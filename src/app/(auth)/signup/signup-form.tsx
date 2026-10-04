@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { signUp, type SignUpInput } from "@/components/auth/auth-api";
+import { signUpWithWorkspace, type SignUpInput } from "@/components/auth/auth-api";
 import { isEmailFormat } from "@/components/auth/email-format";
 import { GoogleButton } from "@/components/auth/google-button";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
+import { ApiError, errorMessage } from "@/lib/client/api-client";
 import { PASSWORD_MIN_LENGTH } from "@/lib/constants/auth";
 
 type Role = SignUpInput["relationship"];
@@ -60,6 +62,7 @@ function FieldError({ show, children }: { show: boolean; children: React.ReactNo
 
 export function SignupForm() {
   const toast = useToast();
+  const router = useRouter();
   const [role, setRole] = useState<Role>("couple");
   const [values, setValues] = useState<Record<Field, string>>({
     name: "",
@@ -100,20 +103,41 @@ export function SignupForm() {
     if (Object.values(nextErrors).some(Boolean)) return;
 
     setStatus("submitting");
-    await signUp({
-      name: values.name.trim(),
-      workspaceName: values.workspaceName.trim(),
-      relationship: role,
-      email: values.email.trim(),
-      password: values.password,
-    });
+    let weddingCreated: boolean;
+    try {
+      ({ weddingCreated } = await signUpWithWorkspace({
+        name: values.name.trim(),
+        workspaceName: values.workspaceName.trim(),
+        relationship: role,
+        email: values.email.trim(),
+        password: values.password,
+      }));
+    } catch (error) {
+      setStatus("idle");
+      if (error instanceof ApiError && error.code === "EMAIL_TAKEN") {
+        setErrors((current) => ({ ...current, email: true }));
+      }
+      toast({ type: "error", title: "Couldn't create your account", message: errorMessage(error) });
+      return;
+    }
+
     setStatus("done");
-    toast({
-      type: "success",
-      title: "Wedding workspace created!",
-      message: "Redirecting to your dashboard in 3 seconds...",
-    });
-    setTimeout(() => setRedirecting(true), 1500);
+    toast(
+      weddingCreated
+        ? {
+            type: "success",
+            title: "Wedding workspace created!",
+            message: "Opening your dashboard...",
+          }
+        : {
+            type: "warning",
+            title: "Account created",
+            message:
+              "We couldn't set up the workspace just now — you can create it from your dashboard.",
+          },
+    );
+    setRedirecting(true);
+    router.push("/dashboard");
   }
 
   const strength = STRENGTH[strengthOf(values.password)] ?? STRENGTH[0]!;

@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getServerSession } from "@/modules/auth/server-session";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Log In — Make My Marriage" };
 
 // Stitch screen: "Make My Marriage — Wedding Workspace Login (Interactive)".
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+  if (await getServerSession()) redirect("/dashboard");
+  const { error } = await searchParams;
+
   return (
     <main className="flex min-h-screen w-full flex-col bg-surface text-body-md selection:bg-secondary-fixed selection:text-on-secondary-fixed md:flex-row">
       {/* Left: brand canvas (~45% on desktop) */}
@@ -77,7 +82,7 @@ export default function LoginPage() {
 
       {/* Right: authentication workspace (~55% on desktop) */}
       <section className="flex w-full items-center justify-center overflow-y-auto bg-surface px-6 py-12 md:w-[55%] md:px-12 lg:px-16">
-        <LoginForm />
+        <LoginForm oauthError={typeof error === "string" ? error : undefined} />
       </section>
     </main>
   );

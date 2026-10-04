@@ -20,6 +20,7 @@
     "db:sync-indexes": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db-sync-indexes.ts"
   },
   "dependencies": {
+    "jose": "^6.2.12",
     "mongoose": "^9.10.4",
     "next": "16.3.8",
     "react": "19.2.8",

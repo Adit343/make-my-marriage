@@ -6,6 +6,7 @@ import { requestPasswordReset } from "@/components/auth/auth-api";
 import { isEmailFormat } from "@/components/auth/email-format";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
+import { errorMessage } from "@/lib/client/api-client";
 import { PASSWORD_RESET_TTL_MINUTES } from "@/lib/constants/auth";
 
 const RESEND_COOLDOWN_SECONDS = 45;
@@ -59,8 +60,14 @@ export function ForgotPasswordFlow() {
     }
 
     setSending(true);
-    await requestPasswordReset(value);
-    setSending(false);
+    try {
+      await requestPasswordReset(value);
+    } catch (error) {
+      toast({ type: "error", title: "Couldn't send the link", message: errorMessage(error) });
+      return;
+    } finally {
+      setSending(false);
+    }
     setSubmittedEmail(value);
     setView("sent");
     setCooldown(RESEND_COOLDOWN_SECONDS);
@@ -73,8 +80,14 @@ export function ForgotPasswordFlow() {
 
   async function handleResend() {
     setResending(true);
-    await requestPasswordReset(submittedEmail);
-    setResending(false);
+    try {
+      await requestPasswordReset(submittedEmail);
+    } catch (error) {
+      toast({ type: "error", title: "Couldn't resend the link", message: errorMessage(error) });
+      return;
+    } finally {
+      setResending(false);
+    }
     setCooldown(RESEND_COOLDOWN_SECONDS);
     toast({
       type: "success",

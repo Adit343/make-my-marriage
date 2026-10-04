@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { resetPassword } from "@/components/auth/auth-api";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
+import { ApiError, errorMessage } from "@/lib/client/api-client";
 import { PASSWORD_MIN_LENGTH } from "@/lib/constants/auth";
 
 const REDIRECT_SECONDS = 3;
@@ -115,8 +116,21 @@ export function ResetPasswordForm({ token }: { token: string }) {
     }
 
     setSubmitting(true);
-    await resetPassword({ token, password });
-    setSubmitting(false);
+    try {
+      await resetPassword({ token, password });
+    } catch (error) {
+      const invalidLink = error instanceof ApiError && error.code === "INVALID_TOKEN";
+      toast({
+        type: "error",
+        title: invalidLink ? "Link expired" : "Couldn't update your password",
+        message: invalidLink
+          ? "This reset link is invalid, already used or expired. Request a new one from the login page."
+          : errorMessage(error),
+      });
+      return;
+    } finally {
+      setSubmitting(false);
+    }
     toast({
       type: "success",
       title: "Password Updated",

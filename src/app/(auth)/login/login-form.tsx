@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
-import { logIn } from "@/components/auth/auth-api";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { GOOGLE_SIGN_IN_ERRORS, logIn } from "@/components/auth/auth-api";
 import { isEmailFormat } from "@/components/auth/email-format";
 import { GoogleButton } from "@/components/auth/google-button";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
+import { errorMessage } from "@/lib/client/api-client";
 import { PASSWORD_MIN_LENGTH } from "@/lib/constants/auth";
 
 type Feedback = "none" | "valid" | "invalid";
@@ -19,8 +21,11 @@ const INPUT_NEUTRAL =
 const INPUT_VALID = "border-primary-container ring-2 ring-primary-container/20";
 const INPUT_INVALID = "border-error ring-2 ring-error/20";
 
-export function LoginForm() {
+/** `oauthError` is the ?error=… code the Google callback redirects back with, if any. */
+export function LoginForm({ oauthError }: { oauthError?: string }) {
   const toast = useToast();
+  const router = useRouter();
+  const reportedOauthError = useRef(false);
   const [email, setEmail] = useState("");
   const [emailFeedback, setEmailFeedback] = useState<Feedback>("none");
   const [password, setPassword] = useState("");
@@ -31,6 +36,17 @@ export function LoginForm() {
   const [redirecting, setRedirecting] = useState(false);
 
   const passwordValid = password.length >= PASSWORD_MIN_LENGTH;
+
+  useEffect(() => {
+    // The ref keeps React's dev double-invoke of effects from showing the toast twice.
+    if (!oauthError || reportedOauthError.current) return;
+    reportedOauthError.current = true;
+    toast({
+      type: oauthError === "oauth_unavailable" ? "info" : "error",
+      title: "Google sign-in",
+      message: GOOGLE_SIGN_IN_ERRORS[oauthError] ?? GOOGLE_SIGN_IN_ERRORS.oauth_failed!,
+    });
+  }, [oauthError, toast]);
 
   function handleEmailChange(value: string) {
     setEmail(value);
@@ -75,14 +91,20 @@ export function LoginForm() {
     }
 
     setStatus("submitting");
-    await logIn({ email: email.trim(), password, rememberMe });
-    setStatus("done");
-    toast({
-      type: "success",
-      title: "Welcome back",
-      message: "Signed in successfully. Opening your workspace...",
-    });
-    setTimeout(() => setRedirecting(true), 1000);
+    try {
+      const { user } = await logIn({ email: email.trim(), password, rememberMe });
+      setStatus("done");
+      toast({
+        type: "success",
+        title: `Welcome back, ${user.name.split(" ")[0]}`,
+        message: "Signed in successfully. Opening your workspace...",
+      });
+      setRedirecting(true);
+      router.push("/dashboard");
+    } catch (error) {
+      setStatus("idle");
+      toast({ type: "error", title: "Couldn't sign you in", message: errorMessage(error) });
+    }
   }
 
   const emailClass =

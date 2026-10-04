@@ -1,31 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { GOOGLE_SIGN_IN_AVAILABLE } from "@/components/auth/auth-api";
 import { GoogleLogo } from "@/components/ui/google-logo";
-import { useToast } from "@/components/ui/toast";
 
-/** "Continue with Google". Starts the server-side OAuth flow once it exists (step 1.5). */
+/**
+ * "Continue with Google": a full-page navigation to the OAuth start route, which redirects to
+ * Google (or back to /login?error=… when Google sign-in isn't configured).
+ */
 export function GoogleButton({ className }: { className: string }) {
-  const toast = useToast();
   const [connecting, setConnecting] = useState(false);
 
   function handleClick() {
-    if (GOOGLE_SIGN_IN_AVAILABLE) {
-      // A full navigation, not router.push: the API route answers with a redirect to Google.
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      window.location.assign("/api/v1/auth/google");
-      return;
-    }
     setConnecting(true);
-    setTimeout(() => {
-      setConnecting(false);
-      toast({
-        type: "info",
-        title: "Google sign-in",
-        message: "Google sign-in isn't connected yet. Use email and password for now.",
-      });
-    }, 1400);
+    // Not router.push: the API route answers with a redirect to Google.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign("/api/v1/auth/google");
   }
 
   return (

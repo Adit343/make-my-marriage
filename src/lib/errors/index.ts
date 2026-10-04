@@ -33,12 +33,15 @@ export interface AppErrorOptions {
   details?: unknown;
   /** Original error, for server-side logs only. Never sent to the client. */
   cause?: unknown;
+  /** Extra response headers, e.g. Retry-After on RATE_LIMITED. */
+  headers?: Record<string, string>;
 }
 
 export class AppError extends Error {
   readonly code: ErrorCode;
   readonly status: number;
   readonly details: unknown;
+  readonly headers: Record<string, string>;
 
   constructor(code: ErrorCode, options: AppErrorOptions = {}) {
     super(options.message ?? ERROR_DEFINITIONS[code].message, { cause: options.cause });
@@ -46,5 +49,16 @@ export class AppError extends Error {
     this.code = code;
     this.status = ERROR_DEFINITIONS[code].status;
     this.details = options.details;
+    this.headers = options.headers ?? {};
   }
+}
+
+/** MongoDB duplicate-key error, optionally on a specific index key. */
+export function isDuplicateKeyError(error: unknown, key?: string): boolean {
+  if (!error || typeof error !== "object" || (error as { code?: unknown }).code !== 11000) {
+    return false;
+  }
+  if (!key) return true;
+  const keyPattern = (error as { keyPattern?: Record<string, unknown> }).keyPattern;
+  return Boolean(keyPattern && key in keyPattern);
 }

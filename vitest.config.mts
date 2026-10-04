@@ -27,6 +27,7 @@ export default defineConfig({
           environment: "node",
           include: ["tests/integration/**/*.test.ts"],
           globalSetup: ["tests/setup/global-setup.ts"],
+          setupFiles: ["tests/setup/quiet-logs.ts"],
           testTimeout: 30_000,
           hookTimeout: 60_000,
         },

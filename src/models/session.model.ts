@@ -13,6 +13,8 @@ const sessionSchema = new Schema(
     /** Throttled to ~10-minute updates to avoid a write per request. */
     lastUsedAt: { type: Date, required: true },
     revokedAt: { type: Date, default: null },
+    /** "Remember me": a long-lived cookie and a longer rolling window. */
+    persistent: { type: Boolean, required: true, default: false },
     userAgent: { type: String, maxlength: 300 },
   },
   { collection: "sessions", timestamps: { createdAt: true, updatedAt: false } },

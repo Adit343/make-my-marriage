@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
+import { getServerSession } from "@/modules/auth/server-session";
 import { SignupForm } from "./signup-form";
 
 export const metadata: Metadata = { title: "Create your wedding workspace — Make My Marriage" };
 
 // Stitch screen: "Make My Marriage — Create Wedding Workspace (Interactive)".
-export default function SignupPage() {
+export default async function SignupPage() {
+  if (await getServerSession()) redirect("/dashboard");
+
   return (
     <main className="flex min-h-screen w-full flex-col bg-background text-on-surface selection:bg-secondary-fixed selection:text-on-secondary-fixed lg:flex-row">
       {/* Left: brand anchor (45% on desktop) */}
