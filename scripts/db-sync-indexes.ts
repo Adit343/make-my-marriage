@@ -13,6 +13,26 @@ import "@/models";
 
 const apply = process.argv.includes("--apply");
 
+/** Keys plus the options worth reviewing before an apply: unique, TTL, partial, sparse. */
+function describeDeclared(
+  declaredIndexes: ReturnType<mongoose.Schema["indexes"]>,
+  keys: unknown,
+): string {
+  const declared = declaredIndexes.find(
+    ([fields]) => JSON.stringify(fields) === JSON.stringify(keys),
+  );
+  const options = (declared?.[1] ?? {}) as Record<string, unknown>;
+  const flags = [
+    options.unique ? "unique" : null,
+    typeof options.expireAfterSeconds === "number" ? `TTL ${options.expireAfterSeconds}s` : null,
+    options.partialFilterExpression
+      ? `partial ${JSON.stringify(options.partialFilterExpression)}`
+      : null,
+    options.sparse ? "sparse" : null,
+  ].filter(Boolean);
+  return flags.length ? `${JSON.stringify(keys)}  [${flags.join(", ")}]` : JSON.stringify(keys);
+}
+
 async function main() {
   const modelNames = mongoose.modelNames().sort();
   if (modelNames.length === 0) {
@@ -26,10 +46,12 @@ async function main() {
 
   let changes = 0;
   for (const name of modelNames) {
-    const { toCreate, toDrop } = await mongoose.model(name).diffIndexes();
+    const model = mongoose.model(name);
+    const { toCreate, toDrop } = await model.diffIndexes();
     changes += toCreate.length + toDrop.length;
-    console.log(`\n${name}`);
-    for (const index of toCreate) console.log(`  + create ${JSON.stringify(index)}`);
+    console.log(`\n${name} (${model.collection.collectionName})`);
+    for (const index of toCreate)
+      console.log(`  + create ${describeDeclared(model.schema.indexes(), index)}`);
     for (const index of toDrop) console.log(`  - DROP   ${JSON.stringify(index)}`);
     if (toCreate.length + toDrop.length === 0) console.log("  (in sync)");
   }

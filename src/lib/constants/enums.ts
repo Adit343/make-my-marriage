@@ -7,11 +7,18 @@ export type UserStatus = (typeof USER_STATUSES)[number];
 export const AUTH_PROVIDERS = ["google"] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
 
+export const PASSWORD_HASH_ALGORITHMS = ["scrypt"] as const;
+export type PasswordHashAlgorithm = (typeof PASSWORD_HASH_ALGORITHMS)[number];
+
 export const WEDDING_STATUSES = ["planning", "completed", "archived"] as const;
 export type WeddingStatus = (typeof WEDDING_STATUSES)[number];
 
 export const MEMBER_ROLES = ["owner", "admin", "member"] as const;
 export type MemberRole = (typeof MEMBER_ROLES)[number];
+
+/** Roles an invitation may grant: ownership only ever moves by transfer (DB Design §6.6). */
+export const INVITATION_ROLES = ["admin", "member"] as const;
+export type InvitationRole = (typeof INVITATION_ROLES)[number];
 
 export const MEMBER_RELATIONSHIPS = [
   "couple",
