@@ -1,1 +1,252 @@
 @import "tailwindcss";
+
+/*
+ * Design tokens from the Stitch design system "Calm Wedding Operations"
+ * (project "Make My Marriage Landing Page"). Names match the Stitch export so screens can be
+ * compared class-for-class.
+ */
+
+/* Stitch uses class-based dark mode and nothing sets `.dark`, so dark: styles stay off. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-background: #fff8f4;
+  --color-on-background: #1f1b17;
+  --color-surface: #fff8f4;
+  --color-surface-bright: #fff8f4;
+  --color-surface-dim: #e1d8d2;
+  --color-surface-variant: #eae1da;
+  --color-surface-tint: #3a6756;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #fbf2eb;
+  --color-surface-container: #f5ece6;
+  --color-surface-container-high: #efe7e0;
+  --color-surface-container-highest: #eae1da;
+  --color-on-surface: #1f1b17;
+  --color-on-surface-variant: #414944;
+  --color-inverse-surface: #34302b;
+  --color-inverse-on-surface: #f8efe8;
+  --color-outline: #717974;
+  --color-outline-variant: #c0c8c3;
+
+  --color-primary: #023627;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #1f4d3d;
+  --color-on-primary-container: #8dbda8;
+  --color-inverse-primary: #a1d1bc;
+  --color-primary-fixed: #bcedd7;
+  --color-primary-fixed-dim: #a1d1bc;
+  --color-on-primary-fixed: #002116;
+  --color-on-primary-fixed-variant: #214f3f;
+
+  --color-secondary: #8b4f2b;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #feaf83;
+  --color-on-secondary-container: #78401d;
+  --color-secondary-fixed: #ffdbca;
+  --color-secondary-fixed-dim: #ffb68e;
+  --color-on-secondary-fixed: #331200;
+  --color-on-secondary-fixed-variant: #6f3816;
+
+  --color-tertiary: #133429;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #2b4b3e;
+  --color-on-tertiary-container: #97baaa;
+  --color-tertiary-fixed: #c6ebd9;
+  --color-tertiary-fixed-dim: #abcebe;
+  --color-on-tertiary-fixed: #002116;
+  --color-on-tertiary-fixed-variant: #2d4d40;
+
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  --text-display: 56px;
+  --text-display--line-height: 64px;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 400;
+  --text-display-mobile: 38px;
+  --text-display-mobile--line-height: 44px;
+  --text-display-mobile--letter-spacing: -0.01em;
+  --text-display-mobile--font-weight: 400;
+  --text-headline-lg: 40px;
+  --text-headline-lg--line-height: 48px;
+  --text-headline-lg--letter-spacing: -0.015em;
+  --text-headline-lg--font-weight: 400;
+  --text-headline-lg-mobile: 28px;
+  --text-headline-lg-mobile--line-height: 36px;
+  --text-headline-lg-mobile--letter-spacing: -0.01em;
+  --text-headline-lg-mobile--font-weight: 400;
+  --text-headline-md: 28px;
+  --text-headline-md--line-height: 36px;
+  --text-headline-md--letter-spacing: -0.01em;
+  --text-headline-md--font-weight: 400;
+  --text-headline-sm: 22px;
+  --text-headline-sm--line-height: 28px;
+  --text-headline-sm--letter-spacing: 0em;
+  --text-headline-sm--font-weight: 500;
+  --text-title: 18px;
+  --text-title--line-height: 24px;
+  --text-title--letter-spacing: -0.005em;
+  --text-title--font-weight: 600;
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 28px;
+  --text-body-lg--letter-spacing: 0em;
+  --text-body-lg--font-weight: 400;
+  --text-body-md: 15px;
+  --text-body-md--line-height: 24px;
+  --text-body-md--letter-spacing: 0em;
+  --text-body-md--font-weight: 400;
+  --text-body-sm: 13px;
+  --text-body-sm--line-height: 20px;
+  --text-body-sm--letter-spacing: 0.005em;
+  --text-body-sm--font-weight: 400;
+  --text-label-md: 12px;
+  --text-label-md--line-height: 16px;
+  --text-label-md--letter-spacing: 0.04em;
+  --text-label-md--font-weight: 600;
+  --text-label-sm: 10px;
+  --text-label-sm--line-height: 14px;
+  --text-label-sm--letter-spacing: 0.06em;
+  --text-label-sm--font-weight: 600;
+
+  /* View swaps on the auth screens (form ⇄ confirmation). */
+  --animate-fade-up: fade-up 0.3s ease both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Font families come from next/font variables set on <html> (see app/layout.tsx). */
+@theme inline {
+  --font-display: var(--font-newsreader), serif;
+  --font-display-mobile: var(--font-newsreader), serif;
+  --font-headline-lg: var(--font-newsreader), serif;
+  --font-headline-lg-mobile: var(--font-newsreader), serif;
+  --font-headline-md: var(--font-newsreader), serif;
+  --font-headline-sm: var(--font-newsreader), serif;
+  --font-title: var(--font-jakarta), sans-serif;
+  --font-body-lg: var(--font-jakarta), sans-serif;
+  --font-body-md: var(--font-jakarta), sans-serif;
+  --font-body-sm: var(--font-jakarta), sans-serif;
+  --font-label-md: var(--font-jakarta), sans-serif;
+  --font-label-sm: var(--font-jakarta), sans-serif;
+}
+
+/* The Stitch exports target Tailwind v3; keep the two v3 defaults they rely on. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* Material Symbols (subset loaded in app/layout.tsx). Our own class rather than Google's
+     .material-symbols-outlined so Tailwind size/color utilities always win. */
+  .ms-icon {
+    font-family: "Material Symbols Outlined";
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    direction: ltr;
+    font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings:
+      "FILL" 0,
+      "wght" 400,
+      "GRAD" 0,
+      "opsz" 24;
+  }
+}
+
+@utility custom-subtle-shadow {
+  box-shadow:
+    0 10px 30px -5px rgba(42, 38, 34, 0.05),
+    0 2px 6px -1px rgba(42, 38, 34, 0.02);
+}
+
+@utility custom-elevation-elevated {
+  box-shadow:
+    0 20px 40px -10px rgba(42, 38, 34, 0.08),
+    0 4px 12px -2px rgba(42, 38, 34, 0.03);
+}
+
+/* Toasts (react-toastify look from the Stitch auth screens). */
+@keyframes toast-slide-in {
+  from {
+    transform: translate3d(110%, 0, 0);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-slide-out {
+  from {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(110%, 0, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes toast-progress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.toast-enter {
+  animation: toast-slide-in 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+}
+
+.toast-exit {
+  animation: toast-slide-out 0.3s cubic-bezier(0.06, 0.71, 0.55, 1) forwards;
+}
+
+.toast-progress {
+  animation: toast-progress linear forwards;
+}
+
+.toast-card:hover .toast-progress {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-enter,
+  .toast-exit {
+    animation-duration: 1ms;
+  }
+}
