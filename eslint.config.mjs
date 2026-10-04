@@ -31,7 +31,8 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              group: ["@/models", "@/models/*"],
+              // Model files and the registry only; plugins/ and shared/ sub-schemas stay importable.
+              regex: "^@/models(/index)?$|^@/models/[^/]+\\.model$",
               message: "Mongoose models may only be imported by *.repository.ts files.",
             },
           ],
