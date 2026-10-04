@@ -1,0 +1,12 @@
+.next
+out
+build
+coverage
+node_modules
+next-env.d.ts
+package-lock.json
+
+# Hand-written / tool-managed docs: keep them out of automatic reformatting.
+docs
+CLAUDE.md
+AGENTS.md
