@@ -15,6 +15,12 @@ export async function findActiveMembershipByUser(userId: Id) {
   return WeddingMember.findOne({ userId }).lean();
 }
 
+/** A wedding's current team, oldest first (soft-deleted members are excluded by the plugin). */
+export async function listMembers(weddingId: Id) {
+  await connectDb();
+  return WeddingMember.find({ weddingId }).sort({ joinedAt: 1 }).lean();
+}
+
 export async function createOwnerMembership(
   input: { weddingId: Id; userId: Id; relationship?: MemberRelationship },
   session: ClientSession,

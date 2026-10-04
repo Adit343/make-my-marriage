@@ -15,6 +15,14 @@ export async function findUserById(userId: Id) {
   return User.findOne({ _id: userId }).lean();
 }
 
+/** Display fields for a set of users in one query (avoids N+1 — DB Design §12.4 rule 4). */
+export async function findUserSummaries(userIds: Id[]) {
+  await connectDb();
+  return User.find({ _id: { $in: userIds } })
+    .select({ name: 1, email: 1 })
+    .lean();
+}
+
 export async function findUserByEmail(email: string, options: { withPassword?: boolean } = {}) {
   await connectDb();
   const query = User.findOne({ emailNormalized: normalizeEmail(email) });
