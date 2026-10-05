@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { parseInviteToken } from "@/lib/invite-link";
 import { getServerSession } from "@/modules/auth/server-session";
 import { LoginForm } from "./login-form";
 
@@ -7,8 +8,10 @@ export const metadata: Metadata = { title: "Log In — Make My Marriage" };
 
 // Stitch screen: "Make My Marriage — Wedding Workspace Login (Interactive)".
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  if (await getServerSession()) redirect("/dashboard");
-  const { error } = await searchParams;
+  const { error, invite: inviteParam } = await searchParams;
+  // /login?invite=<token>: the person is accepting a team invitation after logging in.
+  const invite = parseInviteToken(inviteParam);
+  if (await getServerSession()) redirect(invite ? `/join/${invite}` : "/dashboard");
 
   return (
     <main className="flex min-h-screen w-full flex-col bg-surface text-body-md selection:bg-secondary-fixed selection:text-on-secondary-fixed md:flex-row">
@@ -82,7 +85,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
       {/* Right: authentication workspace (~55% on desktop) */}
       <section className="flex w-full items-center justify-center overflow-y-auto bg-surface px-6 py-12 md:w-[55%] md:px-12 lg:px-16">
-        <LoginForm oauthError={typeof error === "string" ? error : undefined} />
+        <LoginForm oauthError={typeof error === "string" ? error : undefined} invite={invite} />
       </section>
     </main>
   );

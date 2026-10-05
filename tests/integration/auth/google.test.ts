@@ -69,9 +69,12 @@ async function idToken(claims: Claims, key: CryptoKey = googleKey) {
 /** Runs the start route, then fakes Google's token endpoint returning a token built from `claims`. */
 async function signInWithGoogle(
   claims: Omit<Claims, "nonce"> & { nonce?: string },
-  options: { key?: CryptoKey; tamperState?: boolean; dropCookie?: boolean } = {},
+  options: { key?: CryptoKey; tamperState?: boolean; dropCookie?: boolean; next?: string } = {},
 ) {
-  const started = await call(start, { method: "GET", ip: freshIp() });
+  const startPath = options.next
+    ? `/api/v1/auth/google?next=${encodeURIComponent(options.next)}`
+    : "/api/v1/auth/google";
+  const started = await call(start, { method: "GET", path: startPath, ip: freshIp() });
   const authorizeUrl = new URL(started.headers.get("location")!);
   const state = authorizeUrl.searchParams.get("state")!;
   const nonce = authorizeUrl.searchParams.get("nonce")!;
@@ -143,6 +146,38 @@ describe("GET /api/v1/auth/google/callback", () => {
     const again = await signInWithGoogle({ sub: "g-returning", email: "kabir@gmail.com" });
     expect(again.headers.get("location")).toBe("/onboarding");
     expect(await User.countDocuments({ emailNormalized: "kabir@gmail.com" })).toBe(1);
+  });
+
+  it("returns an invited newcomer to their invitation link", async () => {
+    const link = `/join/${"Tok3n_-".repeat(6)}`;
+    const result = await signInWithGoogle(
+      { sub: "g-invited", email: "invited@gmail.com" },
+      { next: link },
+    );
+    expect(result.headers.get("location")).toBe(link);
+  });
+
+  it("ignores a next that isn't an invitation link (no open redirect)", async () => {
+    for (const next of ["https://evil.example/", "//evil.example", "/dashboard", "/join/short"]) {
+      const result = await signInWithGoogle(
+        { sub: `g-${Math.random()}`, email: `x${Math.random()}@gmail.com` },
+        { next },
+      );
+      expect(result.headers.get("location"), next).toBe("/onboarding");
+    }
+  });
+
+  it("does not send someone who already has a wedding to an invitation link", async () => {
+    const first = await signInWithGoogle({ sub: "g-busy", email: "busy@gmail.com" });
+    await call(createWedding, {
+      cookie: cookiePair(first.setCookies, "mmm_session"),
+      body: { title: "Busy & Co", relationship: "couple" },
+    });
+    const again = await signInWithGoogle(
+      { sub: "g-busy", email: "busy@gmail.com" },
+      { next: `/join/${"Tok3n_-".repeat(6)}` },
+    );
+    expect(again.headers.get("location")).toBe("/dashboard");
   });
 
   it("sends a returning Google user who already has a wedding straight to the dashboard", async () => {

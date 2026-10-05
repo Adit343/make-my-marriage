@@ -22,7 +22,7 @@ const INPUT_VALID = "border-primary-container ring-2 ring-primary-container/20";
 const INPUT_INVALID = "border-error ring-2 ring-error/20";
 
 /** `oauthError` is the ?error=… code the Google callback redirects back with, if any. */
-export function LoginForm({ oauthError }: { oauthError?: string }) {
+export function LoginForm({ oauthError, invite }: { oauthError?: string; invite?: string }) {
   const toast = useToast();
   const router = useRouter();
   const reportedOauthError = useRef(false);
@@ -100,7 +100,7 @@ export function LoginForm({ oauthError }: { oauthError?: string }) {
         message: "Signed in successfully. Opening your workspace...",
       });
       setRedirecting(true);
-      router.push(homeFor(hasWedding));
+      router.push(invite ? `/join/${invite}` : homeFor(hasWedding));
     } catch (error) {
       setStatus("idle");
       toast({ type: "error", title: "Couldn't sign you in", message: errorMessage(error) });
@@ -273,13 +273,16 @@ export function LoginForm({ oauthError }: { oauthError?: string }) {
           </div>
         </div>
 
-        <GoogleButton className="flex min-h-[46px] w-full items-center justify-center gap-3 rounded-lg border border-outline-variant/60 bg-surface-container-lowest px-4 py-3 font-title text-[14px] font-medium text-on-surface shadow-xs transition-all duration-150 hover:bg-surface-container-low hover:shadow-sm focus:ring-2 focus:ring-primary-container/20 focus:outline-hidden active:scale-[0.99]" />
+        <GoogleButton
+          next={invite ? `/join/${invite}` : undefined}
+          className="flex min-h-[46px] w-full items-center justify-center gap-3 rounded-lg border border-outline-variant/60 bg-surface-container-lowest px-4 py-3 font-title text-[14px] font-medium text-on-surface shadow-xs transition-all duration-150 hover:bg-surface-container-low hover:shadow-sm focus:ring-2 focus:ring-primary-container/20 focus:outline-hidden active:scale-[0.99]"
+        />
       </form>
 
       <p className="mt-7 text-center font-body-sm text-body-sm text-on-surface-variant">
         Don&apos;t have an account?
         <Link
-          href="/signup"
+          href={invite ? `/signup?invite=${invite}` : "/signup"}
           className="ml-1 font-semibold text-primary-container decoration-secondary transition-colors hover:underline focus:outline-hidden"
         >
           Create wedding workspace

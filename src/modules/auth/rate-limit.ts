@@ -18,6 +18,10 @@ export const RATE_LIMITS = {
   passwordChange: { limit: 5, windowSeconds: 60 * 60 },
   resetRequest: { limit: 5, windowSeconds: 60 * 60 },
   resetConfirm: { limit: 10, windowSeconds: 60 * 60 },
+  // Each invitation sends an email, so cap them per wedding (API Design §14.3: sensitive routes).
+  memberInvite: { limit: 30, windowSeconds: 60 * 60 },
+  invitationLookup: { limit: 60, windowSeconds: 15 * 60 },
+  invitationAccept: { limit: 10, windowSeconds: 60 * 60 },
 } satisfies Record<string, RateLimit>;
 
 /**

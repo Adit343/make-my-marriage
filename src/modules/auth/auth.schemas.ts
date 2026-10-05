@@ -45,3 +45,6 @@ export const googleCallbackQuery = z.object({
   state: z.string().max(512).optional(),
   error: z.string().max(200).optional(),
 });
+
+/** `next` is validated by joinPath() before it is used; anything else is ignored. */
+export const googleStartQuery = z.object({ next: z.string().max(300).optional() });

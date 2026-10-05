@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
+import { parseInviteToken } from "@/lib/invite-link";
 import { getServerSession } from "@/modules/auth/server-session";
 import { SignupForm } from "./signup-form";
 
 export const metadata: Metadata = { title: "Create your wedding workspace — Make My Marriage" };
 
 // Stitch screen: "Make My Marriage — Create Wedding Workspace (Interactive)".
-export default async function SignupPage() {
-  if (await getServerSession()) redirect("/dashboard");
+export default async function SignupPage({ searchParams }: PageProps<"/signup">) {
+  // /signup?invite=<token>: joining someone else's wedding, so a shorter form (no workspace setup).
+  const invite = parseInviteToken((await searchParams).invite);
+  if (await getServerSession()) redirect(invite ? `/join/${invite}` : "/dashboard");
 
   return (
     <main className="flex min-h-screen w-full flex-col bg-background text-on-surface selection:bg-secondary-fixed selection:text-on-secondary-fixed lg:flex-row">
@@ -114,7 +117,7 @@ export default async function SignupPage() {
           </a>
         </div>
 
-        <SignupForm />
+        <SignupForm invite={invite} />
 
         <div className="mx-auto w-full max-w-[440px] pt-4 text-center">
           <div className="inline-flex items-center justify-center gap-1.5 font-label-sm text-label-sm text-on-surface-variant/75">

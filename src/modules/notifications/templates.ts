@@ -33,6 +33,38 @@ function layout(heading: string, paragraphs: string[], action: { label: string; 
 </body></html>`;
 }
 
+export function memberInvitationEmail(input: {
+  inviterName: string;
+  weddingTitle: string;
+  role: "admin" | "member";
+  message?: string | null;
+  inviteUrl: string;
+  validDays: number;
+}) {
+  const roleText = input.role === "admin" ? "an admin" : "a member";
+  const note = input.message?.trim();
+  return {
+    subject: `${input.inviterName} invited you to plan ${input.weddingTitle}`,
+    html: layout(
+      "You're invited to help plan a wedding",
+      [
+        `${escapeHtml(input.inviterName)} invited you to join <strong>${escapeHtml(input.weddingTitle)}</strong> on Make My Marriage as ${roleText}.`,
+        ...(note ? [`<em>&ldquo;${escapeHtml(note)}&rdquo;</em>`] : []),
+        `Create an account or log in, then accept the invitation. The link works once and expires in ${input.validDays} days.`,
+      ],
+      { label: "View invitation", url: input.inviteUrl },
+    ),
+    text: [
+      `${input.inviterName} invited you to join "${input.weddingTitle}" on Make My Marriage as ${roleText}.`,
+      ...(note ? ["", `"${note}"`] : []),
+      "",
+      `Create an account or log in, then accept the invitation. The link works once and expires in ${input.validDays} days:`,
+      "",
+      input.inviteUrl,
+    ].join("\n"),
+  };
+}
+
 export function passwordResetEmail(input: { name: string; resetUrl: string }) {
   const minutes = PASSWORD_RESET_TTL_MINUTES;
   return {

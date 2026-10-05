@@ -24,6 +24,24 @@ export async function listMembers(weddingId: Id) {
   return WeddingMember.find({ weddingId }).sort({ joinedAt: 1 }).lean();
 }
 
+/** A non-owner membership, created when an invitation is accepted. */
+export async function createMembership(
+  input: {
+    weddingId: Id;
+    userId: Id;
+    role: Exclude<MemberRole, "owner">;
+    relationship?: MemberRelationship;
+    invitedBy: Id;
+  },
+  session: ClientSession,
+) {
+  await connectDb();
+  const [membership] = await WeddingMember.create([{ ...input, joinedAt: new Date() }], {
+    session,
+  });
+  return membership!.toObject();
+}
+
 export async function createOwnerMembership(
   input: { weddingId: Id; userId: Id; relationship?: MemberRelationship },
   session: ClientSession,

@@ -10,6 +10,7 @@ import { seal, unseal } from "@/lib/crypto/seal";
 import { generateToken, pkceChallenge, safeEqual } from "@/lib/crypto/tokens";
 import { isDuplicateKeyError } from "@/lib/errors";
 import { readCookie, type CookieToSet } from "@/lib/http/cookies";
+import { joinPath } from "@/lib/invite-link";
 import { logger } from "@/lib/logger";
 import { startSession } from "@/modules/auth/session.service";
 import { findActiveMembershipByUser } from "@/modules/members/member.repository";
@@ -39,6 +40,8 @@ interface OAuthState {
   state: string;
   codeVerifier: string;
   nonce: string;
+  /** In-app path to continue to after sign-in; only ever a /join/<token> invitation link. */
+  next?: string;
 }
 
 interface Outcome {
@@ -74,7 +77,7 @@ function failure(reason: GoogleSignInError): Outcome {
   return { redirect: `/login?error=${reason}`, cookies: [oauthCookie("", 0)] };
 }
 
-export function startGoogleSignIn(): Outcome {
+export function startGoogleSignIn(next?: string): Outcome {
   const config = googleConfig();
   if (!config) return failure("oauth_unavailable");
 
@@ -82,6 +85,7 @@ export function startGoogleSignIn(): Outcome {
     state: generateToken(),
     codeVerifier: generateToken(),
     nonce: generateToken(),
+    next: joinPath(next),
   };
   return {
     redirect: buildAuthorizationUrl({
@@ -138,8 +142,10 @@ export async function completeGoogleSignIn(
   });
   // New Google accounts (and anyone without a wedding yet) continue to workspace setup.
   const hasWedding = Boolean(await findActiveMembershipByUser(user._id));
+  // Someone who arrived from an invitation link goes back to it (unless they already have a wedding).
+  const afterSignIn = hasWedding ? "/dashboard" : (joinPath(stored.next) ?? "/onboarding");
   return {
-    redirect: hasWedding ? "/dashboard" : "/onboarding",
+    redirect: afterSignIn,
     cookies: [oauthCookie("", 0), cookie],
   };
 }

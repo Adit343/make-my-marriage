@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { createWedding, logOut, takeOnboardingPrefill } from "@/components/auth/auth-api";
 import { useToast } from "@/components/ui/toast";
 import { errorMessage } from "@/lib/client/api-client";
+import { joinPath } from "@/lib/invite-link";
 import { MEMBER_RELATIONSHIPS, type MemberRelationship } from "@/lib/constants/enums";
 
 // The right-hand panel of the Stitch onboarding screen: "Start a new wedding" creates the
@@ -139,20 +140,19 @@ export function OnboardingForm({ email }: { email: string }) {
   }
 
   function handleJoin() {
-    if (!invitation.trim()) {
+    const path = joinPath(invitation);
+    if (!path) {
       toast({
         type: "error",
-        title: "Invitation link needed",
-        message: "Paste the invitation link from the email the couple sent you.",
+        title: invitation.trim()
+          ? "That doesn't look like an invitation link"
+          : "Invitation link needed",
+        message: "Paste the full link from the invitation email you received.",
       });
       return;
     }
-    toast({
-      type: "info",
-      title: "Joining by invitation is coming soon",
-      message:
-        "Once member invitations are live, the link in your email will add you to their wedding.",
-    });
+    // The /join page shows who invited you and asks for one last click to accept.
+    router.push(path);
   }
 
   async function switchAccount() {

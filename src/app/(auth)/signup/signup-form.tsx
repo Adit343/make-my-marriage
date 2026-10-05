@@ -65,7 +65,12 @@ function FieldError({ show, children }: { show: boolean; children: React.ReactNo
   );
 }
 
-export function SignupForm() {
+/**
+ * `invite` is the token of a team invitation the person arrived with (/signup?invite=…). They are
+ * joining someone else's wedding, so the role and workspace fields are left out and they continue
+ * to /join/<token> instead of onboarding.
+ */
+export function SignupForm({ invite }: { invite?: string }) {
   const toast = useToast();
   const router = useRouter();
   const [role, setRole] = useState<Role>("couple");
@@ -100,7 +105,7 @@ export function SignupForm() {
     event.preventDefault();
     const nextErrors = {
       name: !isFieldValid("name", values.name),
-      workspaceName: !isFieldValid("workspaceName", values.workspaceName),
+      workspaceName: !invite && !isFieldValid("workspaceName", values.workspaceName),
       email: !isFieldValid("email", values.email),
       password: !isFieldValid("password", values.password),
     };
@@ -123,19 +128,21 @@ export function SignupForm() {
       return;
     }
 
-    // Step 2 of 2 happens on /onboarding; carry what was typed here so it's pre-filled there.
-    saveOnboardingPrefill({
-      title: values.workspaceName.trim(),
-      relationship: RELATIONSHIP_FOR_ROLE[role],
-    });
+    if (!invite) {
+      // Step 2 of 2 happens on /onboarding; carry what was typed here so it's pre-filled there.
+      saveOnboardingPrefill({
+        title: values.workspaceName.trim(),
+        relationship: RELATIONSHIP_FOR_ROLE[role],
+      });
+    }
     setStatus("done");
     toast({
       type: "success",
       title: "Account created!",
-      message: "Now let's set up your wedding.",
+      message: invite ? "Now accept your invitation." : "Now let's set up your wedding.",
     });
     setRedirecting(true);
-    router.push("/onboarding");
+    router.push(invite ? `/join/${invite}` : "/onboarding");
   }
 
   const strength = STRENGTH[strengthOf(values.password)] ?? STRENGTH[0]!;
@@ -144,43 +151,47 @@ export function SignupForm() {
     <div className="mx-auto my-auto w-full max-w-[440px] py-6">
       <div className="mb-3">
         <span className="font-label-sm text-label-sm font-semibold tracking-widest text-secondary uppercase">
-          New workspace
+          {invite ? "You're invited" : "New workspace"}
         </span>
       </div>
       <h2 className="mb-2 font-headline-md text-headline-md font-normal tracking-tight text-on-surface">
-        Create your wedding workspace
+        {invite ? "Create your account" : "Create your wedding workspace"}
       </h2>
       <p className="mb-6 font-body-sm text-body-sm text-on-surface-variant">
-        Set it up in minutes, then invite your family to start planning together.
+        {invite
+          ? "Just a few details, then you can accept the invitation and start planning together."
+          : "Set it up in minutes, then invite your family to start planning together."}
       </p>
 
       <form className="space-y-4" noValidate onSubmit={handleSubmit}>
-        <fieldset>
-          <legend className="mb-2 block font-label-md text-label-md font-medium text-on-surface">
-            Your role in this celebration
-          </legend>
-          <div className="grid grid-cols-3 gap-2">
-            {ROLES.map((option) => {
-              const selected = option.value === role;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setRole(option.value)}
-                  className={`flex flex-col items-center justify-center rounded-lg border p-2.5 text-center transition-all duration-150 ${
-                    selected
-                      ? "border-primary-container bg-primary-container/5 font-semibold text-primary-container ring-1 ring-primary-container"
-                      : "border-surface-dim bg-surface-container-lowest text-on-surface-variant hover:border-outline hover:text-on-surface"
-                  }`}
-                >
-                  <Icon name={option.icon} className="mb-0.5 text-[18px]" />
-                  <span className="font-label-sm text-[11px] leading-tight">{option.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
+        {invite ? null : (
+          <fieldset>
+            <legend className="mb-2 block font-label-md text-label-md font-medium text-on-surface">
+              Your role in this celebration
+            </legend>
+            <div className="grid grid-cols-3 gap-2">
+              {ROLES.map((option) => {
+                const selected = option.value === role;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setRole(option.value)}
+                    className={`flex flex-col items-center justify-center rounded-lg border p-2.5 text-center transition-all duration-150 ${
+                      selected
+                        ? "border-primary-container bg-primary-container/5 font-semibold text-primary-container ring-1 ring-primary-container"
+                        : "border-surface-dim bg-surface-container-lowest text-on-surface-variant hover:border-outline hover:text-on-surface"
+                    }`}
+                  >
+                    <Icon name={option.icon} className="mb-0.5 text-[18px]" />
+                    <span className="font-label-sm text-[11px] leading-tight">{option.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
@@ -205,27 +216,29 @@ export function SignupForm() {
           />
         </div>
 
-        <div>
-          <div className="mb-1.5 flex items-center justify-between">
-            <label
-              className="block font-label-md text-label-md font-medium text-on-surface"
-              htmlFor="partner_name"
-            >
-              Partner name / Wedding workspace name
-            </label>
-            <FieldError show={errors.workspaceName}>Required</FieldError>
+        {invite ? null : (
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label
+                className="block font-label-md text-label-md font-medium text-on-surface"
+                htmlFor="partner_name"
+              >
+                Partner name / Wedding workspace name
+              </label>
+              <FieldError show={errors.workspaceName}>Required</FieldError>
+            </div>
+            <input
+              id="partner_name"
+              name="partner_name"
+              type="text"
+              placeholder="e.g. Vikram Mehta or Ananya & Vikram"
+              value={values.workspaceName}
+              onChange={(event) => update("workspaceName", event.target.value)}
+              aria-invalid={errors.workspaceName}
+              className={`${INPUT} ${errors.workspaceName ? INPUT_ERROR : INPUT_OK}`}
+            />
           </div>
-          <input
-            id="partner_name"
-            name="partner_name"
-            type="text"
-            placeholder="e.g. Vikram Mehta or Ananya & Vikram"
-            value={values.workspaceName}
-            onChange={(event) => update("workspaceName", event.target.value)}
-            aria-invalid={errors.workspaceName}
-            className={`${INPUT} ${errors.workspaceName ? INPUT_ERROR : INPUT_OK}`}
-          />
-        </div>
+        )}
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
@@ -339,11 +352,15 @@ export function SignupForm() {
             ) : null}
             <span>
               {status === "idle"
-                ? "Create workspace"
+                ? invite
+                  ? "Create account"
+                  : "Create workspace"
                 : status === "submitting"
                   ? "Creating your account..."
                   : redirecting
-                    ? "Opening setup..."
+                    ? invite
+                      ? "Opening invitation..."
+                      : "Opening setup..."
                     : "Account Created!"}
             </span>
           </button>
@@ -357,7 +374,10 @@ export function SignupForm() {
         </span>
       </div>
 
-      <GoogleButton className="flex w-full items-center justify-center gap-3 rounded-lg border border-surface-dim bg-surface-container-lowest px-4 py-2.5 font-label-md text-label-md font-semibold text-on-surface transition-all duration-150 hover:bg-surface-container-low active:scale-[0.99]" />
+      <GoogleButton
+        next={invite ? `/join/${invite}` : undefined}
+        className="flex w-full items-center justify-center gap-3 rounded-lg border border-surface-dim bg-surface-container-lowest px-4 py-2.5 font-label-md text-label-md font-semibold text-on-surface transition-all duration-150 hover:bg-surface-container-low active:scale-[0.99]"
+      />
 
       <p className="mt-5 text-center font-body-sm text-body-sm leading-relaxed text-on-surface-variant/80">
         By creating an account, you agree to our{" "}
@@ -381,7 +401,7 @@ export function SignupForm() {
         <p className="font-body-sm text-body-sm text-on-surface-variant">
           Already have an account?
           <Link
-            href="/login"
+            href={invite ? `/login?invite=${invite}` : "/login"}
             className="ml-1 font-semibold text-primary-container decoration-secondary underline-offset-2 transition-colors hover:text-tertiary-container hover:underline"
           >
             Log in

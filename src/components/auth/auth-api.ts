@@ -108,3 +108,11 @@ export const GOOGLE_SIGN_IN_ERRORS: Record<string, string> = {
     "This email already has a password account. Log in with your password instead.",
   account_unavailable: "This account isn't available. Contact support if you think this is wrong.",
 };
+
+/** API Design §6.11: join the wedding an invitation link belongs to. */
+export function acceptInvitation(token: string) {
+  return apiRequest<{
+    membership: { id: string; role: string };
+    wedding: { id: string; title: string };
+  }>("/api/v1/invitations/accept", { method: "POST", body: { token } });
+}
