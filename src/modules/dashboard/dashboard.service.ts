@@ -1,6 +1,7 @@
 import "server-only";
 import type { MemberRelationship, MemberRole } from "@/lib/constants/enums";
 import { daysUntil, formatCalendarDate } from "@/lib/dates";
+import { initialsOf } from "@/lib/text/initials";
 import type { AuthContext } from "@/modules/auth/session.service";
 import { findActiveMembershipByUser, listMembers } from "@/modules/members/member.repository";
 import { findUserSummaries } from "@/modules/users/user.repository";
@@ -41,13 +42,9 @@ export interface Dashboard {
   } | null;
 }
 
-const ROLE_ORDER: Record<MemberRole, number> = { owner: 0, admin: 1, member: 2 };
+export { initialsOf };
 
-export function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const letters = parts.length > 1 ? [parts[0]![0], parts.at(-1)![0]] : [parts[0]?.[0]];
-  return letters.filter(Boolean).join("").toUpperCase() || "?";
-}
+const ROLE_ORDER: Record<MemberRole, number> = { owner: 0, admin: 1, member: 2 };
 
 export async function getDashboard(auth: AuthContext): Promise<Dashboard> {
   const viewer = {

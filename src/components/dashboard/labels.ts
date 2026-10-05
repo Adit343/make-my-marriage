@@ -16,6 +16,17 @@ export const RELATIONSHIP_LABEL: Record<MemberRelationship, string> = {
   other: "Family & Friends",
 };
 
+/** Plain names, as in the Team screen's table and the invite form's relationship select. */
+export const RELATIONSHIP_PLAIN: Record<MemberRelationship, string> = {
+  couple: "Couple",
+  parent: "Parent",
+  sibling: "Sibling",
+  relative: "Relative",
+  friend: "Friend",
+  planner: "Planner",
+  other: "Other",
+};
+
 export const WEDDING_STATUS_LABEL: Record<string, string> = {
   planning: "Planning Active",
   completed: "Completed",

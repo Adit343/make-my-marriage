@@ -43,3 +43,17 @@ export function requireWeddingAccess(
     };
   };
 }
+
+/**
+ * For Server Components, which have no :weddingId in a URL: the signed-in user's own wedding
+ * context, or null if they have no (active) membership.
+ */
+export async function getWeddingAuth(auth: AuthContext): Promise<WeddingAuth | null> {
+  const membership = await findActiveMembershipByUser(auth.userId);
+  if (!membership || membership.status !== "active") return null;
+  return {
+    ...auth,
+    weddingId: membership.weddingId.toString(),
+    membership: { id: membership._id.toString(), role: membership.role },
+  };
+}

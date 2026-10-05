@@ -168,6 +168,29 @@ export async function resendInvitation(auth: WeddingAuth, invitationId: string) 
   return { invitation: toInvitationDto(rotated), inviteLink: inviteUrlFor(token), emailStatus };
 }
 
+/**
+ * "Copy invite link" (Stitch Team screen): the original link can't be shown again (only its hash is
+ * stored), so this issues a fresh one WITHOUT emailing it. The previously sent link stops working.
+ */
+export async function regenerateInvitationLink(auth: WeddingAuth, invitationId: string) {
+  await enforceRateLimit(`member-invite:${auth.weddingId}`, RATE_LIMITS.memberInvite);
+  const existing = await findInvitation(auth.weddingId, invitationId);
+  if (!existing) throw new AppError("NOT_FOUND");
+  if (existing.status !== "pending") {
+    throw new AppError("CONFLICT", { message: "Only a pending invitation has a link." });
+  }
+
+  const token = generateToken();
+  const expiresAt = new Date(Date.now() + MEMBER_INVITATION_TTL_DAYS * DAY_MS);
+  const rotated = await rotateInvitationToken(auth.weddingId, invitationId, {
+    tokenHash: hashToken(token),
+    expiresAt,
+    purgeAt: purgeAtFor(expiresAt),
+  });
+  if (!rotated) throw new AppError("CONFLICT");
+  return { invitation: toInvitationDto(rotated), inviteLink: inviteUrlFor(token) };
+}
+
 export async function revokeInvitationFor(auth: WeddingAuth, invitationId: string) {
   const existing = await findInvitation(auth.weddingId, invitationId);
   if (!existing) throw new AppError("NOT_FOUND");

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { logOut } from "@/components/auth/auth-api";
@@ -50,6 +51,10 @@ export function TopBar({ viewer, workspace }: { viewer: Viewer; workspace: Works
     workspace?.dateLabel ?? "Date not set",
     workspace?.locationLabel ?? "Location not set",
   ].join(" • ");
+  const daysLeft =
+    workspace?.daysUntilWedding != null && workspace.daysUntilWedding > 0
+      ? workspace.daysUntilWedding
+      : null;
   const relationship = viewer.relationship ? RELATIONSHIP_LABEL[viewer.relationship] : null;
 
   async function signOut() {
@@ -80,6 +85,11 @@ export function TopBar({ viewer, workspace }: { viewer: Viewer; workspace: Works
         <p className="mt-0.5 flex items-center gap-1.5 font-body-sm text-body-sm text-on-surface-variant">
           <Icon name="pin_drop" className="text-[15px] text-secondary" />
           {workspace ? subtitle : "Not created yet"}
+          {daysLeft !== null ? (
+            <span className="ml-1 hidden rounded-full bg-secondary/10 px-1.5 py-0.5 font-label-sm text-[10px] tracking-wider text-secondary uppercase sm:inline-flex">
+              {daysLeft} {daysLeft === 1 ? "Day" : "Days"} Left
+            </span>
+          ) : null}
         </p>
       </div>
 
@@ -156,21 +166,14 @@ export function TopBar({ viewer, workspace }: { viewer: Viewer; workspace: Works
                 <p className="truncate text-[12px] text-on-surface-variant">{viewer.email}</p>
               </div>
               <div className="py-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProfileOpen(false);
-                    toast({
-                      type: "info",
-                      title: "Account Settings is coming soon",
-                      message: "Update your name, password and signed-in devices.",
-                    });
-                  }}
+                <Link
+                  href="/dashboard/settings"
+                  onClick={() => setProfileOpen(false)}
                   className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-body-sm text-on-surface transition-colors hover:bg-surface-container-low"
                 >
                   <Icon name="settings" className="text-[17px] text-outline" />
-                  <span>Account Settings</span>
-                </button>
+                  <span>Settings</span>
+                </Link>
               </div>
               <div className="border-t border-[#2A2622]/[0.06] pt-1">
                 <button

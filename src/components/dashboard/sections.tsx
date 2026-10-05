@@ -378,14 +378,13 @@ export function TeamWidget({
       </div>
       {canManageMembers(viewerRole) ? (
         <div className="mt-5 pt-3">
-          <ComingSoonButton
-            icon="person_add"
-            title="Member invitations are coming soon"
-            message="Invite family members and your planner by email."
+          <Link
+            href="/dashboard/team"
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#2A2622]/25 py-2.5 text-body-sm text-on-surface-variant transition-all hover:border-primary hover:bg-surface-container-low hover:text-primary active:scale-[0.99]"
           >
+            <Icon name="person_add" className="text-[17px]" />
             <span className="font-medium">+ Invite Family Coordinator</span>
-          </ComingSoonButton>
+          </Link>
         </div>
       ) : null}
     </div>

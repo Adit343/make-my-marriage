@@ -192,6 +192,11 @@ export async function listSessions(auth: AuthContext) {
   }));
 }
 
+/** "Sign out all other sessions": everything except the one making the request. */
+export async function endOtherSessions(auth: AuthContext) {
+  await revokeAllSessions(auth.userId, { except: auth.sessionId });
+}
+
 /** 404 for unknown ids and other users' sessions alike (API Design §3.4). */
 export async function endSession(auth: AuthContext, sessionId: string) {
   const revoked = await revokeSession(auth.userId, sessionId);

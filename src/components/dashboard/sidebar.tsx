@@ -2,13 +2,28 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { ROLE_LABEL } from "@/components/dashboard/labels";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
+import type { MemberRole } from "@/lib/constants/enums";
 
-// Left navigation shelf from the Stitch dashboard. Only the Dashboard exists so far; the other
-// sections say so instead of leading to a 404.
+// Left navigation shelf, as in the Stitch Team and Settings screens: Overview … Members, with
+// Settings pinned at the bottom (showing the viewer's role when it is the active page). Only
+// Overview, Members and Settings are built so far; the other sections say so instead of leading
+// to a 404.
 
-const NAV: { label: string; icon: IconName; detail: string }[] = [
+export type NavSection = "dashboard" | "members" | "settings";
+
+interface NavItem {
+  label: string;
+  icon: IconName;
+  detail: string;
+  href?: string;
+  section?: NavSection;
+}
+
+const NAV: NavItem[] = [
+  { label: "Overview", icon: "dashboard", detail: "", href: "/dashboard", section: "dashboard" },
   {
     label: "Events",
     icon: "calendar_month",
@@ -16,6 +31,11 @@ const NAV: { label: string; icon: IconName; detail: string }[] = [
   },
   { label: "Guests", icon: "group", detail: "Build one guest list for every function." },
   { label: "Tasks", icon: "checklist", detail: "Assign to-dos to family and your planner." },
+  {
+    label: "Expenses",
+    icon: "account_balance_wallet",
+    detail: "Track what you spend, by category and event.",
+  },
   {
     label: "Vendors",
     icon: "storefront",
@@ -25,13 +45,33 @@ const NAV: { label: string; icon: IconName; detail: string }[] = [
   { label: "Website", icon: "laptop_chromebook", detail: "Publish a simple site for your guests." },
   { label: "Gallery", icon: "photo_library", detail: "Collect everyone's photos in one place." },
   { label: "Live Stream", icon: "videocam", detail: "Share a stream link with remote guests." },
-  { label: "Members", icon: "diversity_3", detail: "Invite family and manage roles." },
+  {
+    label: "Members",
+    icon: "badge",
+    detail: "Invite family and manage roles.",
+    href: "/dashboard/team",
+    section: "members",
+  },
 ];
 
 const ITEM =
-  "flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-left transition-colors duration-150";
+  "relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors duration-150";
+const ACTIVE = "bg-primary-fixed/40 font-semibold text-primary";
+const IDLE = "text-on-surface-variant hover:bg-surface-container hover:text-primary";
 
-export function Sidebar({ pendingTasks }: { pendingTasks: number }) {
+function ActiveBar() {
+  return <span className="absolute top-1.5 bottom-1.5 left-0 w-1 rounded-r bg-primary" />;
+}
+
+export function Sidebar({
+  pendingTasks,
+  active,
+  role,
+}: {
+  pendingTasks: number;
+  active: NavSection;
+  role: MemberRole | null;
+}) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
 
@@ -40,9 +80,8 @@ export function Sidebar({ pendingTasks }: { pendingTasks: number }) {
 
   return (
     <aside className="z-40 flex w-full shrink-0 flex-col border-r border-[#2A2622]/[0.06] bg-surface-container-low select-none md:w-64">
-      <div className="flex h-20 items-center justify-between px-6">
+      <div className="flex h-20 items-center justify-between border-b border-[#2A2622]/[0.05] px-6">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary-container" />
           <span className="font-headline-sm text-headline-sm font-medium tracking-tight text-primary">
             Make My Marriage
           </span>
@@ -59,63 +98,59 @@ export function Sidebar({ pendingTasks }: { pendingTasks: number }) {
       </div>
 
       <nav
-        className={`custom-scrollbar flex-1 space-y-1 overflow-y-auto px-4 py-2 ${open ? "block" : "hidden"} md:block`}
+        className={`custom-scrollbar flex-1 space-y-1 overflow-y-auto px-4 py-6 ${open ? "block" : "hidden"} md:block`}
       >
-        <Link
-          href="/dashboard"
-          aria-current="page"
-          className={`${ITEM} bg-primary-container font-medium text-on-primary shadow-xs`}
-        >
-          <Icon name="dashboard" className="text-[19px]" />
-          <span className="font-title text-body-sm">Dashboard</span>
-        </Link>
-        {NAV.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            onClick={() => comingSoon(item.label, item.detail)}
-            className={`${ITEM} text-on-surface-variant hover:bg-surface-container hover:text-primary`}
-          >
-            <Icon name={item.icon} className="text-[19px]" />
-            <span className="font-body-sm text-body-sm">{item.label}</span>
-            {item.label === "Tasks" && pendingTasks > 0 ? (
-              <span className="ml-auto rounded bg-surface-container-high px-1.5 py-0.5 font-label-sm text-[10px] font-semibold text-on-surface-variant">
-                {pendingTasks}
-              </span>
-            ) : null}
-          </button>
-        ))}
+        {NAV.map((item) => {
+          const isActive = item.section === active;
+          const content = (
+            <>
+              {isActive ? <ActiveBar /> : null}
+              <Icon name={item.icon} className="text-[19px]" />
+              <span className="font-body-sm text-body-sm">{item.label}</span>
+              {item.label === "Tasks" && pendingTasks > 0 ? (
+                <span className="ml-auto rounded bg-surface-container-high px-1.5 py-0.5 font-label-sm text-[10px] font-semibold text-on-surface-variant">
+                  {pendingTasks}
+                </span>
+              ) : null}
+            </>
+          );
+          return item.href ? (
+            <Link
+              key={item.label}
+              href={item.href}
+              aria-current={isActive ? "page" : undefined}
+              className={`${ITEM} ${isActive ? ACTIVE : IDLE}`}
+            >
+              {content}
+            </Link>
+          ) : (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => comingSoon(item.label, item.detail)}
+              className={`${ITEM} ${IDLE}`}
+            >
+              {content}
+            </button>
+          );
+        })}
       </nav>
 
-      <div
-        className={`space-y-2 border-t border-[#2A2622]/[0.06] p-4 ${open ? "block" : "hidden"} md:block`}
-      >
-        <button
-          type="button"
-          onClick={() =>
-            comingSoon("Account Settings", "Update your name, password and signed-in devices.")
-          }
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-body-sm text-on-surface-variant transition-colors hover:bg-surface-container/60 hover:text-primary"
+      <div className={`border-t border-[#2A2622]/[0.05] p-4 ${open ? "block" : "hidden"} md:block`}>
+        <Link
+          href="/dashboard/settings"
+          aria-current={active === "settings" ? "page" : undefined}
+          className={`${ITEM} ${active === "settings" ? "bg-[#EBF2EE] font-medium text-[#1F4D3D]" : IDLE}`}
         >
-          <Icon name="settings" className="text-[18px]" />
-          <span className="font-body-sm">Account Settings</span>
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            comingSoon("Concierge Support", "Get help from the Make My Marriage team.")
-          }
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-body-sm text-on-surface-variant transition-colors hover:bg-surface-container/60 hover:text-primary"
-        >
-          <Icon name="support_agent" className="text-[18px]" />
-          <span className="font-body-sm">Concierge Support</span>
-        </button>
-        <div className="px-3 pt-2">
-          <div className="flex items-center gap-1.5 font-label-sm text-[11px] text-outline">
-            <Icon name="lock" className="text-[13px]" />
-            <span>End-to-End Encrypted Family Space</span>
-          </div>
-        </div>
+          {active === "settings" ? <ActiveBar /> : null}
+          <Icon name="settings" className="text-[20px]" />
+          <span className="font-body-sm text-body-sm">Settings</span>
+          {active === "settings" && role ? (
+            <span className="ml-auto rounded bg-[#1F4D3D]/10 px-1.5 py-0.5 font-label-md text-[11px] font-semibold tracking-wide text-[#1F4D3D] uppercase">
+              {ROLE_LABEL[role]}
+            </span>
+          ) : null}
+        </Link>
       </div>
     </aside>
   );
