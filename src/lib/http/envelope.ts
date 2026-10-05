@@ -17,7 +17,9 @@ export interface ApiFailure {
 }
 
 function baseHeaders(requestId: string, cookies: CookieToSet[] = []): Headers {
-  const headers = new Headers({ [REQUEST_ID_HEADER]: requestId });
+  // Every API response is per-user or secret-bearing (sessions, invitation links, member lists):
+  // never let a browser cache, proxy or CDN keep a copy.
+  const headers = new Headers({ [REQUEST_ID_HEADER]: requestId, "cache-control": "no-store" });
   for (const cookie of cookies) headers.append("set-cookie", serializeCookie(cookie));
   return headers;
 }
