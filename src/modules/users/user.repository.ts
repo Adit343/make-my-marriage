@@ -1,5 +1,5 @@
 import "server-only";
-import type { Types } from "mongoose";
+import type { ClientSession, Types } from "mongoose";
 import { connectDb } from "@/infrastructure/database/connection";
 import type { PasswordHash } from "@/lib/crypto/password";
 import { normalizeEmail } from "@/lib/text/normalize";
@@ -103,4 +103,22 @@ export async function linkGoogleIdentity(userId: Id, google: { sub: string; emai
 export async function recordLogin(userId: Id): Promise<void> {
   await connectDb();
   await User.updateOne({ _id: userId }, { $set: { lastLoginAt: new Date() } });
+}
+
+export async function setName(userId: Id, name: string): Promise<void> {
+  await connectDb();
+  await User.updateOne({ _id: userId }, { $set: { name } });
+}
+
+/**
+ * Account deletion, step one (DB Design §10.4): the row stays, so records that reference it by
+ * createdBy keep working, and the email stays reserved. Anonymization is a later manual script.
+ */
+export async function markUserDeleted(userId: Id, session?: ClientSession): Promise<void> {
+  await connectDb();
+  await User.updateOne(
+    { _id: userId },
+    { $set: { status: "pending_deletion", deletedAt: new Date(), deletedBy: userId } },
+    { session },
+  );
 }

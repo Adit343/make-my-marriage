@@ -23,10 +23,11 @@ interface NextRouteContext {
 }
 
 /**
- * Resolves who is calling, or throws (e.g. 401). Supplied by the auth module (requireSession) so
- * this file stays free of auth logic.
+ * Resolves who is calling, or throws (e.g. 401/403). Supplied by the auth and members modules so
+ * this file stays free of auth logic. It receives the already-validated route params, which is how
+ * a wedding guard learns which :weddingId the request is for.
  */
-export type AuthResolver<A> = (request: Request) => Promise<A>;
+export type AuthResolver<A, P = unknown> = (request: Request, params: P) => Promise<A>;
 
 export interface RouteConfig<
   P extends InputSchema,
@@ -38,7 +39,7 @@ export interface RouteConfig<
   /** Use z.strictObject so unknown query params are rejected (API Design §2.7). */
   query?: Q;
   body?: B;
-  auth?: AuthResolver<A>;
+  auth?: AuthResolver<A, Infer<P>>;
 }
 
 export interface HandlerInput<
@@ -143,7 +144,7 @@ export function route<
       const body = config.body
         ? await parseInput(config.body, await readJsonBody(request), "body")
         : undefined;
-      const auth = config.auth ? await config.auth(request) : undefined;
+      const auth = config.auth ? await config.auth(request, params as Infer<P>) : undefined;
       userId = userIdOf(auth);
 
       const result = await handler({

@@ -19,16 +19,17 @@ export const numberedPageQuery = {
   pageSize,
 };
 
-export interface CursorMeta {
+// Type aliases (not interfaces) so they are assignable to the envelope's ApiMeta index signature.
+export type CursorMeta = {
   nextCursor: string | null;
   hasMore: boolean;
-}
+};
 
-export interface NumberedPageMeta {
+export type NumberedPageMeta = {
   page: number;
   pageSize: number;
   totalCount: number;
-}
+};
 
 /** Opaque cursor: base64url JSON of the last row's sort key + _id. */
 export function encodeCursor(position: Record<string, unknown>): string {

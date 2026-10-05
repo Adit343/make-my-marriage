@@ -3,7 +3,7 @@ import { AppError } from "@/lib/errors";
 import { readCookie } from "@/lib/http/cookies";
 import { resolveSession, SESSION_COOKIE, type AuthContext } from "@/modules/auth/session.service";
 
-// Auth resolvers for route({ auth }). Membership/role guards for wedding routes arrive in step 1.6.
+// Auth resolvers for route({ auth }). Wedding membership/role guards live in members/guards.ts.
 
 /** 401 AUTHENTICATION_REQUIRED unless the request carries a valid session cookie. */
 export async function requireSession(request: Request): Promise<AuthContext> {

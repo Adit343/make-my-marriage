@@ -58,6 +58,28 @@ describe("route()", () => {
     });
   });
 
+  it("hands the validated route params to the auth resolver, after validation", async () => {
+    const auth = vi.fn(
+      async (_request: Request, params: { weddingId: string }) => params.weddingId,
+    );
+    const handler = route(
+      { params: z.strictObject({ weddingId: objectId }), auth },
+      async ({ auth: resolved }) => ({ data: { resolved } }),
+    );
+
+    const ok = await handler(
+      jsonRequest("http://localhost/api"),
+      context({ weddingId: WEDDING_ID }),
+    );
+    expect((await ok.json()).data.resolved).toBe(WEDDING_ID);
+
+    // A malformed id is a 400 and never reaches the resolver (no database lookup on garbage).
+    auth.mockClear();
+    const bad = await handler(jsonRequest("http://localhost/api"), context({ weddingId: "nope" }));
+    expect(bad.status).toBe(400);
+    expect(auth).not.toHaveBeenCalled();
+  });
+
   it("echoes a safe client X-Request-ID and generates one otherwise", async () => {
     const handler = route({}, async () => ({ data: null }));
 
