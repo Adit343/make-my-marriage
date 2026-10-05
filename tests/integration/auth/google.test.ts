@@ -2,6 +2,7 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWK } from
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { GET as callback } from "@/app/api/v1/auth/google/callback/route";
 import { GET as start } from "@/app/api/v1/auth/google/route";
+import { POST as createWedding } from "@/app/api/v1/weddings/route";
 import { setGoogleJwksForTests } from "@/infrastructure/oauth/google";
 import { resetEnvCacheForTests } from "@/lib/env";
 import { User } from "@/models/user.model";
@@ -126,7 +127,8 @@ describe("GET /api/v1/auth/google/callback", () => {
     });
 
     expect(result.status).toBe(303);
-    expect(result.headers.get("location")).toBe("/dashboard");
+    // No wedding yet → workspace setup (onboarding) before the dashboard.
+    expect(result.headers.get("location")).toBe("/onboarding");
     expect(cookiePair(result.setCookies, "mmm_session")).toBeDefined();
 
     const user = await User.findOne({ emailNormalized: "anaya@gmail.com" })
@@ -139,8 +141,20 @@ describe("GET /api/v1/auth/google/callback", () => {
   it("signs a returning Google user into the same account", async () => {
     await signInWithGoogle({ sub: "g-returning", email: "kabir@gmail.com" });
     const again = await signInWithGoogle({ sub: "g-returning", email: "kabir@gmail.com" });
-    expect(again.headers.get("location")).toBe("/dashboard");
+    expect(again.headers.get("location")).toBe("/onboarding");
     expect(await User.countDocuments({ emailNormalized: "kabir@gmail.com" })).toBe(1);
+  });
+
+  it("sends a returning Google user who already has a wedding straight to the dashboard", async () => {
+    const first = await signInWithGoogle({ sub: "g-owner", email: "isha@gmail.com" });
+    const created = await call(createWedding, {
+      cookie: cookiePair(first.setCookies, "mmm_session"),
+      body: { title: "Isha & Dev", relationship: "couple" },
+    });
+    expect(created.status).toBe(201);
+
+    const again = await signInWithGoogle({ sub: "g-owner", email: "isha@gmail.com" });
+    expect(again.headers.get("location")).toBe("/dashboard");
   });
 
   it("never attaches Google to an existing password account (pre-hijacking guard)", async () => {

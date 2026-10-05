@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { GOOGLE_SIGN_IN_ERRORS, logIn } from "@/components/auth/auth-api";
+import { GOOGLE_SIGN_IN_ERRORS, homeFor, logIn } from "@/components/auth/auth-api";
 import { isEmailFormat } from "@/components/auth/email-format";
 import { GoogleButton } from "@/components/auth/google-button";
 import { Icon } from "@/components/ui/icon";
@@ -92,7 +92,7 @@ export function LoginForm({ oauthError }: { oauthError?: string }) {
 
     setStatus("submitting");
     try {
-      const { user } = await logIn({ email: email.trim(), password, rememberMe });
+      const { user, hasWedding } = await logIn({ email: email.trim(), password, rememberMe });
       setStatus("done");
       toast({
         type: "success",
@@ -100,7 +100,7 @@ export function LoginForm({ oauthError }: { oauthError?: string }) {
         message: "Signed in successfully. Opening your workspace...",
       });
       setRedirecting(true);
-      router.push("/dashboard");
+      router.push(homeFor(hasWedding));
     } catch (error) {
       setStatus("idle");
       toast({ type: "error", title: "Couldn't sign you in", message: errorMessage(error) });

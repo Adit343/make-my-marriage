@@ -14,45 +14,71 @@ export interface LogInInput {
   rememberMe: boolean;
 }
 
-export interface SignUpInput {
-  name: string;
-  /** Becomes the wedding's title. */
-  workspaceName: string;
-  relationship: "couple" | "family" | "planner";
-  email: string;
-  password: string;
-}
+/** Signup role chips. */
+export type SignUpRole = "couple" | "family" | "planner";
 
 /** Signup role chips → the owner membership's relationship label. */
-const RELATIONSHIP_FOR_ROLE: Record<SignUpInput["relationship"], MemberRelationship> = {
+export const RELATIONSHIP_FOR_ROLE: Record<SignUpRole, MemberRelationship> = {
   couple: "couple",
   family: "relative",
   planner: "planner",
 };
 
+/** Where a signed-in person belongs: setup first if they have no wedding yet. */
+export function homeFor(hasWedding: boolean) {
+  return hasWedding ? "/dashboard" : "/onboarding";
+}
+
 export function logIn(input: LogInInput) {
   return apiRequest<SignedIn>("/api/v1/auth/login", { method: "POST", body: input });
 }
 
-/**
- * Approved flow (2026-10-04): create the account, then the wedding workspace. If the second call
- * fails the account still exists, so this reports it rather than throwing.
- */
-export async function signUpWithWorkspace(
-  input: SignUpInput,
-): Promise<{ weddingCreated: boolean }> {
-  await apiRequest<SignedIn>("/api/v1/auth/signup", {
+/** Step 1 of 2: the account. The wedding is set up next on /onboarding. */
+export function signUp(input: { name: string; email: string; password: string }) {
+  return apiRequest<SignedIn>("/api/v1/auth/signup", { method: "POST", body: input });
+}
+
+export interface CreateWeddingInput {
+  title: string;
+  partners: { name: string }[];
+  weddingDate?: string;
+  relationship: MemberRelationship;
+}
+
+/** Step 2 of 2: the wedding workspace, with the caller as its owner. */
+export function createWedding(input: CreateWeddingInput) {
+  return apiRequest<{ wedding: { id: string; title: string } }>("/api/v1/weddings", {
     method: "POST",
-    body: { name: input.name, email: input.email, password: input.password },
+    body: input,
   });
+}
+
+/**
+ * The signup form also asks for a workspace name and role; they're carried to the onboarding
+ * form so nobody types them twice. Tab-scoped (sessionStorage) and holds no secrets.
+ */
+const PREFILL_KEY = "mmm:onboarding-prefill";
+
+export interface OnboardingPrefill {
+  title?: string;
+  relationship?: MemberRelationship;
+}
+
+export function saveOnboardingPrefill(prefill: OnboardingPrefill) {
   try {
-    await apiRequest("/api/v1/weddings", {
-      method: "POST",
-      body: { title: input.workspaceName, relationship: RELATIONSHIP_FOR_ROLE[input.relationship] },
-    });
-    return { weddingCreated: true };
+    sessionStorage.setItem(PREFILL_KEY, JSON.stringify(prefill));
   } catch {
-    return { weddingCreated: false };
+    // Storage unavailable: onboarding simply starts empty.
+  }
+}
+
+export function takeOnboardingPrefill(): OnboardingPrefill | null {
+  try {
+    const raw = sessionStorage.getItem(PREFILL_KEY);
+    sessionStorage.removeItem(PREFILL_KEY);
+    return raw ? (JSON.parse(raw) as OnboardingPrefill) : null;
+  } catch {
+    return null;
   }
 }
 

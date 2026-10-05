@@ -12,6 +12,7 @@ import { isDuplicateKeyError } from "@/lib/errors";
 import { readCookie, type CookieToSet } from "@/lib/http/cookies";
 import { logger } from "@/lib/logger";
 import { startSession } from "@/modules/auth/session.service";
+import { findActiveMembershipByUser } from "@/modules/members/member.repository";
 import {
   createUser,
   emailIsRegistered,
@@ -135,7 +136,12 @@ export async function completeGoogleSignIn(
     persistent: true,
     userAgent: request.headers.get("user-agent"),
   });
-  return { redirect: "/dashboard", cookies: [oauthCookie("", 0), cookie] };
+  // New Google accounts (and anyone without a wedding yet) continue to workspace setup.
+  const hasWedding = Boolean(await findActiveMembershipByUser(user._id));
+  return {
+    redirect: hasWedding ? "/dashboard" : "/onboarding",
+    cookies: [oauthCookie("", 0), cookie],
+  };
 }
 
 /**

@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { signUpWithWorkspace, type SignUpInput } from "@/components/auth/auth-api";
+import {
+  RELATIONSHIP_FOR_ROLE,
+  saveOnboardingPrefill,
+  signUp,
+  type SignUpRole,
+} from "@/components/auth/auth-api";
 import { isEmailFormat } from "@/components/auth/email-format";
 import { GoogleButton } from "@/components/auth/google-button";
 import { Icon, type IconName } from "@/components/ui/icon";
@@ -11,7 +16,7 @@ import { useToast } from "@/components/ui/toast";
 import { ApiError, errorMessage } from "@/lib/client/api-client";
 import { PASSWORD_MIN_LENGTH } from "@/lib/constants/auth";
 
-type Role = SignUpInput["relationship"];
+type Role = SignUpRole;
 type Field = "name" | "workspaceName" | "email" | "password";
 type Status = "idle" | "submitting" | "done";
 
@@ -103,15 +108,12 @@ export function SignupForm() {
     if (Object.values(nextErrors).some(Boolean)) return;
 
     setStatus("submitting");
-    let weddingCreated: boolean;
     try {
-      ({ weddingCreated } = await signUpWithWorkspace({
+      await signUp({
         name: values.name.trim(),
-        workspaceName: values.workspaceName.trim(),
-        relationship: role,
         email: values.email.trim(),
         password: values.password,
-      }));
+      });
     } catch (error) {
       setStatus("idle");
       if (error instanceof ApiError && error.code === "EMAIL_TAKEN") {
@@ -121,23 +123,19 @@ export function SignupForm() {
       return;
     }
 
+    // Step 2 of 2 happens on /onboarding; carry what was typed here so it's pre-filled there.
+    saveOnboardingPrefill({
+      title: values.workspaceName.trim(),
+      relationship: RELATIONSHIP_FOR_ROLE[role],
+    });
     setStatus("done");
-    toast(
-      weddingCreated
-        ? {
-            type: "success",
-            title: "Wedding workspace created!",
-            message: "Opening your dashboard...",
-          }
-        : {
-            type: "warning",
-            title: "Account created",
-            message:
-              "We couldn't set up the workspace just now — you can create it from your dashboard.",
-          },
-    );
+    toast({
+      type: "success",
+      title: "Account created!",
+      message: "Now let's set up your wedding.",
+    });
     setRedirecting(true);
-    router.push("/dashboard");
+    router.push("/onboarding");
   }
 
   const strength = STRENGTH[strengthOf(values.password)] ?? STRENGTH[0]!;
@@ -343,10 +341,10 @@ export function SignupForm() {
               {status === "idle"
                 ? "Create workspace"
                 : status === "submitting"
-                  ? "Setting up workspace..."
+                  ? "Creating your account..."
                   : redirecting
-                    ? "Redirecting..."
-                    : "Workspace Created!"}
+                    ? "Opening setup..."
+                    : "Account Created!"}
             </span>
           </button>
         </div>
