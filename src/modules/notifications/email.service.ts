@@ -18,7 +18,13 @@ export interface SendEmailInput extends EmailMessage {
  * delivery failure: the caller's own write (invitation, reset token) stays valid and the failure
  * is visible in the log for retry (Architecture §49). Only the status is logged — never the body.
  */
-export async function sendEmail(input: SendEmailInput): Promise<{ status: "sent" | "failed" }> {
+export interface SendResult {
+  status: "sent" | "failed";
+  /** Why it failed (sanitized: provider code and message, never a secret). */
+  error?: { code: string; message: string };
+}
+
+export async function sendEmail(input: SendEmailInput): Promise<SendResult> {
   const provider = getEmailProvider();
   const base = {
     weddingId: input.weddingId ?? null,
@@ -45,6 +51,6 @@ export async function sendEmail(input: SendEmailInput): Promise<{ status: "sent"
       provider: provider.name,
       errorCode: failure.code,
     });
-    return { status: "failed" };
+    return { status: "failed", error: failure };
   }
 }

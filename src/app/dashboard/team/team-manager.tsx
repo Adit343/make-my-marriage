@@ -698,7 +698,7 @@ function InviteDrawer({
         message:
           result.emailStatus === "sent"
             ? `We emailed ${email.trim()} a link to join.`
-            : "The email couldn't be sent. Use “Copy invite link” on the pending invitation to share it yourself.",
+            : `The email couldn't be sent${result.emailError ? ` (${result.emailError.message ?? result.emailError.code})` : ""}. Use “Copy invite link” on the pending invitation to share it yourself.`,
       });
       onSent();
     } catch (error) {

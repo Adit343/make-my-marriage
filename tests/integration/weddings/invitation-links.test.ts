@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { POST as accept } from "@/app/api/v1/invitations/accept/route";
 import { GET as preview } from "@/app/api/v1/public/invitations/[token]/route";
 import { POST as newLink } from "@/app/api/v1/weddings/[weddingId]/invitations/[invitationId]/link/route";
 import { DELETE as revoke } from "@/app/api/v1/weddings/[weddingId]/invitations/[invitationId]/route";
 import { POST as invite } from "@/app/api/v1/weddings/[weddingId]/invitations/route";
-import { setEmailProviderForTests } from "@/infrastructure/email";
+import { EmailProviderError, setEmailProviderForTests } from "@/infrastructure/email";
+import { resetEnvCacheForTests } from "@/lib/env";
 import { EmailLog } from "@/models/emailLog.model";
 import { WeddingInvitation } from "@/models/weddingInvitation.model";
 import { captureEmails, signUpUser } from "../../setup/auth";
@@ -14,7 +15,11 @@ import { addMember, setupWedding } from "../../setup/wedding";
 
 setupTestDatabase();
 
-afterEach(() => setEmailProviderForTests(undefined));
+afterEach(() => {
+  setEmailProviderForTests(undefined);
+  vi.stubEnv("NODE_ENV", "test");
+  resetEnvCacheForTests();
+});
 
 const tokenOf = (inviteLink: string) => inviteLink.split("/join/")[1]!;
 
@@ -102,5 +107,60 @@ describe("POST /weddings/:weddingId/invitations/:invitationId/link", () => {
       params: { weddingId: a.weddingId, invitationId },
     });
     expect(revoked.status).toBe(409);
+  });
+});
+
+describe("why an invitation email failed", () => {
+  const refusing = {
+    name: "refusing",
+    async send(): Promise<{ providerMessageId: string }> {
+      throw new EmailProviderError(
+        "validation_error",
+        "You can only send testing emails to your own email address (owner@example.com).",
+      );
+    },
+  };
+
+  it("tells the inviter the provider's reason in development", async () => {
+    setEmailProviderForTests(refusing);
+    const { weddingId, owner } = await setupWedding();
+    const result = await call(invite, {
+      cookie: owner.cookie,
+      params: { weddingId },
+      body: { email: "someone@yopmail.com", role: "member" },
+    });
+    expect(result.status).toBe(201);
+    expect(result.json.data.emailStatus).toBe("failed");
+    expect(result.json.data.emailError).toEqual({
+      code: "validation_error",
+      message: "You can only send testing emails to your own email address (owner@example.com).",
+    });
+  });
+
+  it("returns only the error code in production (the message could name the operator's account)", async () => {
+    setEmailProviderForTests(refusing);
+    const { weddingId, owner } = await setupWedding();
+    vi.stubEnv("NODE_ENV", "production");
+    resetEnvCacheForTests();
+    const result = await call(invite, {
+      cookie: owner.cookie,
+      params: { weddingId },
+      body: { email: "someone@yopmail.com", role: "member" },
+    });
+    expect(result.json.data.emailStatus).toBe("failed");
+    expect(result.json.data.emailError).toEqual({ code: "validation_error" });
+    expect(JSON.stringify(result.json)).not.toContain("owner@example.com");
+  });
+
+  it("has no emailError when the send works", async () => {
+    captureEmails();
+    const { weddingId, owner } = await setupWedding();
+    const result = await call(invite, {
+      cookie: owner.cookie,
+      params: { weddingId },
+      body: { email: "fine@example.com", role: "member" },
+    });
+    expect(result.json.data.emailStatus).toBe("sent");
+    expect(result.json.data).not.toHaveProperty("emailError");
   });
 });

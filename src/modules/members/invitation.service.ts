@@ -28,7 +28,7 @@ import {
 } from "@/modules/members/invitation.repository";
 import type { CreateInvitationInput } from "@/modules/members/invitation.schemas";
 import { createMembership, findActiveMembershipByUser } from "@/modules/members/member.repository";
-import { sendEmail } from "@/modules/notifications/email.service";
+import { sendEmail, type SendResult } from "@/modules/notifications/email.service";
 import { memberInvitationEmail } from "@/modules/notifications/templates";
 import { findUserByEmail, findUserSummaries } from "@/modules/users/user.repository";
 import { findWedding } from "@/modules/weddings/wedding.repository";
@@ -41,6 +41,25 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 function purgeAtFor(from: Date) {
   return new Date(from.getTime() + INVITATION_PURGE_AFTER_DAYS * DAY_MS);
+}
+
+/**
+ * What the inviter is told about the send. The provider's message is shown only outside
+ * production: in development it is how you learn, e.g., that the test sender can only email your
+ * own address; in production it could name the operator's account, so only the code is returned.
+ */
+function emailOutcome(result: SendResult) {
+  return {
+    emailStatus: result.status,
+    ...(result.error
+      ? {
+          emailError:
+            getEnv().NODE_ENV === "production"
+              ? { code: result.error.code }
+              : { code: result.error.code, message: result.error.message },
+        }
+      : {}),
+  };
 }
 
 function inviteUrlFor(token: string) {
@@ -59,7 +78,7 @@ async function emailInvitation(
   token: string,
 ) {
   const wedding = await findWedding(auth.weddingId);
-  const { status } = await sendEmail({
+  const result = await sendEmail({
     type: "member_invitation",
     weddingId: auth.weddingId,
     invitationId: invitation._id,
@@ -73,7 +92,7 @@ async function emailInvitation(
       validDays: MEMBER_INVITATION_TTL_DAYS,
     }),
   });
-  return status;
+  return result;
 }
 
 export async function listInvitations(
@@ -141,9 +160,13 @@ export async function createInvitation(auth: WeddingAuth, input: CreateInvitatio
     throw error;
   }
 
-  const emailStatus = await emailInvitation(auth, invitation, token);
+  const email = await emailInvitation(auth, invitation, token);
   // The link is returned once so the inviter can copy it, e.g. if the email fails.
-  return { invitation: toInvitationDto(invitation), inviteLink: inviteUrlFor(token), emailStatus };
+  return {
+    invitation: toInvitationDto(invitation),
+    inviteLink: inviteUrlFor(token),
+    ...emailOutcome(email),
+  };
 }
 
 /** New link, fresh expiry, email again. The previous link stops working immediately. */
@@ -164,8 +187,12 @@ export async function resendInvitation(auth: WeddingAuth, invitationId: string) 
   });
   if (!rotated) throw new AppError("CONFLICT");
 
-  const emailStatus = await emailInvitation(auth, rotated, token);
-  return { invitation: toInvitationDto(rotated), inviteLink: inviteUrlFor(token), emailStatus };
+  const email = await emailInvitation(auth, rotated, token);
+  return {
+    invitation: toInvitationDto(rotated),
+    inviteLink: inviteUrlFor(token),
+    ...emailOutcome(email),
+  };
 }
 
 /**

@@ -10,6 +10,8 @@ export interface InviteResult {
   invitation: { id: string; email: string };
   inviteLink: string;
   emailStatus: "sent" | "failed";
+  /** Present when the send failed. `message` is omitted in production. */
+  emailError?: { code: string; message?: string };
 }
 
 export function inviteMember(
