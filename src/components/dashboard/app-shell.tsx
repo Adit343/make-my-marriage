@@ -22,7 +22,12 @@ export function AppShell({
   const { viewer, workspace } = dashboard;
   return (
     <div className="dashboard-icons relative flex h-dvh flex-col overflow-hidden bg-surface text-body-md text-on-surface selection:bg-primary-fixed selection:text-primary md:flex-row">
-      <Sidebar pendingTasks={workspace.counts.pendingTasks} active={active} role={viewer.role} />
+      <Sidebar
+        eventCount={workspace.counts.events}
+        pendingTasks={workspace.counts.pendingTasks}
+        active={active}
+        role={viewer.role}
+      />
 
       <div className="flex h-full flex-1 flex-col overflow-hidden bg-surface">
         <TopBar viewer={viewer} workspace={workspace} />

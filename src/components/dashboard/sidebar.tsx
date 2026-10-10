@@ -9,10 +9,10 @@ import type { MemberRole } from "@/lib/constants/enums";
 
 // Left navigation shelf, as in the Stitch Team and Settings screens: Overview … Members, with
 // Settings pinned at the bottom (showing the viewer's role when it is the active page). Only
-// Overview, Members and Settings are built so far; the other sections say so instead of leading
+// Overview, Events, Members and Settings are built so far; the other sections say so instead of leading
 // to a 404.
 
-export type NavSection = "dashboard" | "members" | "settings";
+export type NavSection = "dashboard" | "events" | "members" | "settings";
 
 interface NavItem {
   label: string;
@@ -28,6 +28,8 @@ const NAV: NavItem[] = [
     label: "Events",
     icon: "calendar_month",
     detail: "Plan Mehendi, Sangeet, the ceremony and more.",
+    href: "/dashboard/events",
+    section: "events",
   },
   { label: "Guests", icon: "group", detail: "Build one guest list for every function." },
   { label: "Tasks", icon: "checklist", detail: "Assign to-dos to family and your planner." },
@@ -64,10 +66,12 @@ function ActiveBar() {
 }
 
 export function Sidebar({
+  eventCount,
   pendingTasks,
   active,
   role,
 }: {
+  eventCount: number;
   pendingTasks: number;
   active: NavSection;
   role: MemberRole | null;
@@ -107,6 +111,11 @@ export function Sidebar({
               {isActive ? <ActiveBar /> : null}
               <Icon name={item.icon} className="text-[19px]" />
               <span className="font-body-sm text-body-sm">{item.label}</span>
+              {item.label === "Events" && eventCount > 0 ? (
+                <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 font-label-sm text-[10px] font-semibold text-on-primary">
+                  {eventCount}
+                </span>
+              ) : null}
               {item.label === "Tasks" && pendingTasks > 0 ? (
                 <span className="ml-auto rounded bg-surface-container-high px-1.5 py-0.5 font-label-sm text-[10px] font-semibold text-on-surface-variant">
                   {pendingTasks}

@@ -3,7 +3,7 @@ import { ComingSoonButton } from "@/components/dashboard/coming-soon-button";
 import { canManageMembers, RELATIONSHIP_LABEL, ROLE_LABEL } from "@/components/dashboard/labels";
 import { Icon, type IconName } from "@/components/ui/icon";
 import type { MemberRole } from "@/lib/constants/enums";
-import type { Dashboard, TeamMember } from "@/modules/dashboard/dashboard.service";
+import type { Dashboard, NextEvent, TeamMember } from "@/modules/dashboard/dashboard.service";
 
 // Sections of the Stitch "Member Wedding Dashboard". Widgets for modules that don't exist yet
 // render their designed empty states; nothing on this page is sample data.
@@ -32,7 +32,16 @@ function EmptyState({ icon, title, message }: { icon: IconName; title: string; m
   );
 }
 
+/** "today", "tomorrow", "in 12 days", or "under way" for an event that has already started. */
+function whenText(daysUntil: number): string {
+  if (daysUntil < 0) return "under way";
+  if (daysUntil === 0) return "today";
+  if (daysUntil === 1) return "tomorrow";
+  return `in ${daysUntil} days`;
+}
+
 export function CountdownHero({ workspace }: { workspace: Workspace }) {
+  const next = workspace.nextEvent;
   const days = workspace.daysUntilWedding;
   const countdown =
     days === null
@@ -86,22 +95,35 @@ export function CountdownHero({ workspace }: { workspace: Workspace }) {
               <Icon name="schedule" className="text-[14px]" />
               Next Milestone Event
             </div>
-            <h3 className="font-headline-md text-headline-md text-on-surface">
-              No events planned yet
-            </h3>
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              Add Mehendi, Sangeet, the ceremony and more to see what&apos;s coming up next.
-            </p>
+            {next ? (
+              <>
+                <h3 className="font-headline-md text-headline-md text-on-surface">{next.name}</h3>
+                <p className="font-body-md text-body-md text-on-surface-variant">
+                  {next.whenLabel}
+                  {next.venue ? ` · ${next.venue}` : ""}
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="font-headline-md text-headline-md text-on-surface">
+                  {workspace.counts.events > 0 ? "All events have passed" : "No events planned yet"}
+                </h3>
+                <p className="font-body-md text-body-md text-on-surface-variant">
+                  {workspace.counts.events > 0
+                    ? "Add another function to see what's coming up next."
+                    : "Add Mehendi, Sangeet, the ceremony and more to see what's coming up next."}
+                </p>
+              </>
+            )}
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            <ComingSoonButton
-              icon="calendar_month"
-              title="Event planning is coming soon"
-              message="Plan Mehendi, Sangeet, the ceremony and more."
+            <Link
+              href={next ? `/dashboard/events/${next.id}` : "/dashboard/events"}
               className="flex items-center gap-2 rounded-lg bg-primary-container px-5 py-2.5 font-body-sm text-body-sm font-medium text-on-primary shadow-xs transition-all hover:bg-[#163A2E] focus:ring-2 focus:ring-primary/30 focus:outline-hidden active:scale-[0.98]"
             >
-              Plan Events
-            </ComingSoonButton>
+              <Icon name="calendar_month" className="text-[17px]" />
+              {next ? "View Event" : "Plan Events"}
+            </Link>
           </div>
         </div>
       </div>
@@ -109,7 +131,13 @@ export function CountdownHero({ workspace }: { workspace: Workspace }) {
   );
 }
 
-export function StatCards({ counts }: { counts: Workspace["counts"] }) {
+export function StatCards({
+  counts,
+  nextEvent,
+}: {
+  counts: Workspace["counts"];
+  nextEvent: NextEvent | null;
+}) {
   const stats: {
     label: string;
     icon: IconName;
@@ -121,7 +149,11 @@ export function StatCards({ counts }: { counts: Workspace["counts"] }) {
       label: "Events",
       icon: "event_note",
       value: counts.events,
-      detail: "No events planned yet",
+      detail: nextEvent
+        ? `Next: ${nextEvent.name} ${whenText(nextEvent.daysUntil)}`
+        : counts.events > 0
+          ? "All events have passed"
+          : "No events planned yet",
       accent: "primary",
     },
     {

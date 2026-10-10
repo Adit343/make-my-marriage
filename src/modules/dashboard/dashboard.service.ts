@@ -1,14 +1,16 @@
 import "server-only";
 import type { MemberRelationship, MemberRole } from "@/lib/constants/enums";
 import { daysUntil, formatCalendarDate } from "@/lib/dates";
+import { calendarDayIn, formatLongDate, formatTimeRange, venueLine } from "@/lib/events/format";
 import { initialsOf } from "@/lib/text/initials";
 import type { AuthContext } from "@/modules/auth/session.service";
+import { countEvents, findNextEvent } from "@/modules/events/event.repository";
 import { findActiveMembershipByUser, listMembers } from "@/modules/members/member.repository";
 import { findUserSummaries } from "@/modules/users/user.repository";
 import { findWedding } from "@/modules/weddings/wedding.repository";
 
 // Everything the member dashboard (Stitch "Member Wedding Dashboard") shows, from real data only.
-// Widgets for modules that don't exist yet (events, guests, tasks, vendors) get zero counts and
+// Widgets for modules that don't exist yet (guests, tasks, vendors) get zero counts and
 // render their designed empty states; each module fills its widget in when it is built.
 
 export interface TeamMember {
@@ -18,6 +20,16 @@ export interface TeamMember {
   role: MemberRole;
   relationship: MemberRelationship | null;
   isYou: boolean;
+}
+
+export interface NextEvent {
+  id: string;
+  name: string;
+  /** "Saturday, 13 February 2027 · 10:00 AM – 01:00 PM IST" */
+  whenLabel: string;
+  venue: string | null;
+  /** Whole days until it starts in its own timezone: 0 today, negative while under way. */
+  daysUntil: number;
 }
 
 export interface Dashboard {
@@ -39,6 +51,8 @@ export interface Dashboard {
     daysUntilWedding: number | null;
     team: TeamMember[];
     counts: { events: number; guests: number; pendingTasks: number; vendors: number };
+    /** The soonest event that hasn't finished, or null when there are none. */
+    nextEvent: NextEvent | null;
   } | null;
 }
 
@@ -77,6 +91,27 @@ export async function getDashboard(auth: AuthContext): Promise<Dashboard> {
     })
     .sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]);
 
+  const [eventCount, nextEventRow] = await Promise.all([
+    countEvents(wedding._id),
+    findNextEvent(wedding._id, new Date()),
+  ]);
+  const nextEvent: NextEvent | null = nextEventRow
+    ? {
+        id: nextEventRow._id.toString(),
+        name: nextEventRow.name,
+        whenLabel: `${formatLongDate(nextEventRow.startsAt, nextEventRow.timezone)} · ${formatTimeRange(
+          nextEventRow.startsAt,
+          nextEventRow.endsAt ?? null,
+          nextEventRow.timezone,
+        )}`,
+        venue: venueLine(nextEventRow.location),
+        daysUntil: daysUntil(
+          calendarDayIn(nextEventRow.startsAt, nextEventRow.timezone),
+          nextEventRow.timezone,
+        ),
+      }
+    : null;
+
   const address = wedding.location?.address;
   const city = address?.city ?? null;
   const locationLabel =
@@ -99,7 +134,8 @@ export async function getDashboard(auth: AuthContext): Promise<Dashboard> {
         ? daysUntil(wedding.weddingDate, wedding.timezone)
         : null,
       team,
-      counts: { events: 0, guests: 0, pendingTasks: 0, vendors: 0 },
+      counts: { events: eventCount, guests: 0, pendingTasks: 0, vendors: 0 },
+      nextEvent,
     },
   };
 }

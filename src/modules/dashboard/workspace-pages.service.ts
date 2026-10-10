@@ -1,8 +1,12 @@
 import "server-only";
+import { AppError } from "@/lib/errors";
+import { nextEventLabel } from "@/lib/events/format";
+import { toEventDetailView, toEventViews } from "@/lib/events/view";
 import { describeUserAgent, lastActiveLabel, type DeviceKind } from "@/lib/user-agent";
 import { getCurrentUser, listSessions } from "@/modules/auth/auth.service";
 import type { AuthContext } from "@/modules/auth/session.service";
 import { getDashboard } from "@/modules/dashboard/dashboard.service";
+import { getEvent, listEvents } from "@/modules/events/event.service";
 import { getWeddingAuth } from "@/modules/members/guards";
 import type { InvitationDto } from "@/modules/members/invitation.dto";
 import { listInvitations } from "@/modules/members/invitation.service";
@@ -106,4 +110,58 @@ export async function getSettingsPage(auth: AuthContext) {
     canEditWedding: can(weddingAuth.membership.role, "wedding:update"),
     activeMemberCount,
   };
+}
+
+/** Data for the Events timeline (Stitch "Events Timeline"). */
+export async function getEventsPage(auth: AuthContext) {
+  const dashboard = await getDashboard(auth);
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!dashboard.workspace || !weddingAuth) return null;
+
+  const [events, { wedding }] = await Promise.all([
+    listEvents(weddingAuth),
+    getWeddingFor(weddingAuth),
+  ]);
+  const now = new Date();
+  return {
+    dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+    weddingId: weddingAuth.weddingId,
+    weddingTimezone: wedding.timezone,
+    events: toEventViews(events, now),
+    summary: {
+      count: events.length,
+      next: nextEventLabel(
+        events.map((event) => ({
+          startsAt: new Date(event.startsAt),
+          endsAt: event.endsAt ? new Date(event.endsAt) : null,
+          timezone: event.timezone,
+        })),
+        now,
+      ),
+    },
+    canCreate: can(weddingAuth.membership.role, "events:edit"),
+  };
+}
+
+/** Data for one event's page (Stitch "Event Detail"); "not_found" when it isn't in this wedding. */
+export async function getEventPage(auth: AuthContext, eventId: string) {
+  const dashboard = await getDashboard(auth);
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!dashboard.workspace || !weddingAuth) return null;
+
+  try {
+    const [event, { wedding }] = await Promise.all([
+      getEvent(weddingAuth, eventId),
+      getWeddingFor(weddingAuth),
+    ]);
+    return {
+      dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+      weddingId: weddingAuth.weddingId,
+      weddingTimezone: wedding.timezone,
+      event: toEventDetailView(event),
+    };
+  } catch (error) {
+    if (error instanceof AppError && error.code === "NOT_FOUND") return "not_found" as const;
+    throw error;
+  }
 }

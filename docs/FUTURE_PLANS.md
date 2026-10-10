@@ -3,7 +3,7 @@
 > What is left to build, in order, with the decisions that must be made first.
 > Where the project is *now* is in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). **Read that file first.**
 >
-> Last updated: **2026-10-10** · Phase 1 complete · **Phase 2 in progress: steps 2.1 and 2.2 (events backend) built, uncommitted; 2.3 (UI) waits for Stitch designs; tasks not started.**
+> Last updated: **2026-10-10** · Phase 1 complete · **Phase 2 in progress: events are built end to end (backend committed; events UI, step 2.3, built but uncommitted). Left: tasks (backend + UI, waiting for Stitch designs) and a schedule editor (waiting for a design or a go-ahead to build in the existing style).**
 
 **Contents**
 
@@ -157,7 +157,7 @@ Permissions to add: `events:edit`, `tasks:edit` → all roles (owner, admin, mem
 
 - **2.1** ✅ events only: `EVENT_TYPES`, `events` model with embedded `schedule[]`, registry, tests (built 2026-10-10).
 - **2.2** ✅ events only: service/routes/permissions (`events:edit`, `events:manage-any`), cross-wedding checks, tests, route inventory (built 2026-10-10). **Still to do for tasks:** task model + service/routes/permissions, assignee validation, the member-removal `$pull` of `assigneeMemberIds`, and the event-delete cascade (RSVPs in Phase 3; tasks `eventId: null` once tasks exist).
-- **2.3** UI (Events, Tasks, Schedule), **waits for the owner's Stitch designs** from Stitch/approved style; dashboard wiring; browser verification.
+- **2.3** ✅ events UI: timeline, event page, add/edit/duplicate slide-over, sidebar link, dashboard wiring (built 2026-10-10 from the owner's three Events screens). **Still to do:** the schedule editor (the event page and slide-over designs have no schedule section; ask the owner whether to build one in the existing style or wait for a design) and the Tasks screens, **which wait for the owner's Stitch designs** from Stitch/approved style; dashboard wiring; browser verification.
 - **2.4** review/hardening pass for the phase; update status docs.
 
 ---

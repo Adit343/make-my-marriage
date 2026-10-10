@@ -103,3 +103,19 @@ export async function softDeleteEvent(
   );
   return result.modifiedCount === 1;
 }
+
+export async function countEvents(weddingId: Id): Promise<number> {
+  await connectDb();
+  return Event.countDocuments({ weddingId });
+}
+
+/** The soonest event that has not finished yet (one that is under way counts). */
+export async function findNextEvent(weddingId: Id, now: Date) {
+  await connectDb();
+  return Event.findOne({
+    weddingId,
+    $or: [{ startsAt: { $gte: now } }, { endsAt: { $gte: now } }],
+  })
+    .sort({ startsAt: 1, sortOrder: 1, _id: 1 })
+    .lean();
+}
