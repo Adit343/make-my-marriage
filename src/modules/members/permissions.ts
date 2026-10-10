@@ -24,6 +24,13 @@ export const PERMISSIONS = {
   "events:edit": EVERYONE,
   /** Edit or delete events other people created. */
   "events:manage-any": ADMIN_UP,
+  /**
+   * Create tasks and edit ANY task (assignees must be able to update the status of tasks other
+   * people created). Deleting is narrower: your own, unless you have tasks:manage-any.
+   */
+  "tasks:edit": EVERYONE,
+  /** Delete tasks other people created (owner decision 2026-10-10, same pattern as events). */
+  "tasks:manage-any": ADMIN_UP,
 } as const satisfies Record<string, readonly MemberRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

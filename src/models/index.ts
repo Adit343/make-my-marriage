@@ -7,6 +7,7 @@ import "@/models/event.model";
 import "@/models/passwordResetToken.model";
 import "@/models/rateLimitCounter.model";
 import "@/models/session.model";
+import "@/models/task.model";
 import "@/models/user.model";
 import "@/models/wedding.model";
 import "@/models/weddingInvitation.model";

@@ -32,3 +32,23 @@ export function formatCalendarDate(isoDate: string): string {
     timeZone: "UTC",
   }).format(new Date(`${isoDate}T00:00:00Z`));
 }
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "2027-02-11" → "11 Feb 2027" (the date style on the Stitch task screens). */
+export function formatShortDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return `${day} ${MONTHS[month! - 1]} ${year}`;
+}
+
+/** "2027-02-11" → "11 Feb". */
+export function formatDayMonth(isoDate: string): string {
+  const [, month, day] = isoDate.split("-").map(Number);
+  return `${day} ${MONTHS[month! - 1]}`;
+}
+
+/** The calendar day `days` after `isoDate` ("YYYY-MM-DD" in, "YYYY-MM-DD" out). */
+export function addDays(isoDate: string, days: number): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(year!, month! - 1, day! + days)).toISOString().slice(0, 10);
+}

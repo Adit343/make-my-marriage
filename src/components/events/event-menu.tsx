@@ -7,11 +7,14 @@ export interface EventMenuItem {
   icon: IconName;
   label: string;
   danger?: boolean;
-  onSelect: () => void;
+  /** Choosing the item does this... */
+  onSelect?: () => void;
+  /** ...or, with a submenu, opens these choices inside the same popover (the task menu's "Change status"). */
+  submenu?: { label: string; active?: boolean; onSelect: () => void }[];
 }
 
 /**
- * The "more" popover on an event (Stitch "Events Timeline": Edit event, Manage guests, Duplicate,
+ * The "more" popover on an event (and, with submenus, on a task) (Stitch "Events Timeline": Edit event, Manage guests, Duplicate,
  * Delete event). Positioned with `fixed` so a card's overflow can't clip it; closes on outside
  * click, Escape, scroll and resize.
  */
@@ -26,12 +29,16 @@ export function EventMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<{ top: number; right: number } | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const button = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const close = () => setOpen(false);
+    const close = () => {
+      setOpen(false);
+      setExpanded(null);
+    };
     const onPointer = (event: MouseEvent) => {
       const target = event.target as Node;
       if (menu.current?.contains(target) || button.current?.contains(target)) return;
@@ -60,6 +67,7 @@ export function EventMenu({
       const rect = button.current.getBoundingClientRect();
       setPosition({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
     }
+    setExpanded(null);
     setOpen((value) => !value);
   }
 
@@ -102,9 +110,15 @@ export function EventMenu({
               <button
                 type="button"
                 role="menuitem"
+                aria-haspopup={item.submenu ? "menu" : undefined}
+                aria-expanded={item.submenu ? expanded === item.label : undefined}
                 onClick={() => {
+                  if (item.submenu) {
+                    setExpanded(expanded === item.label ? null : item.label);
+                    return;
+                  }
                   setOpen(false);
-                  item.onSelect();
+                  item.onSelect?.();
                 }}
                 className={`flex w-full items-center gap-2.5 px-3.5 py-1.5 text-left font-body-sm text-[13px] transition-colors ${
                   item.danger
@@ -117,7 +131,37 @@ export function EventMenu({
                   className={`text-[16px] ${item.danger ? "text-[#B33A3A]" : "text-outline"}`}
                 />
                 <span>{item.label}</span>
+                {item.submenu ? (
+                  <Icon
+                    name="expand_more"
+                    className={`ml-auto text-[16px] text-outline transition-transform ${expanded === item.label ? "rotate-180" : ""}`}
+                  />
+                ) : null}
               </button>
+              {item.submenu && expanded === item.label ? (
+                <div className="mx-2 mb-1 rounded-lg bg-surface-container-low py-1">
+                  {item.submenu.map((choice) => (
+                    <button
+                      key={choice.label}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={choice.active ?? false}
+                      onClick={() => {
+                        setOpen(false);
+                        setExpanded(null);
+                        choice.onSelect();
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left font-body-sm text-[13px] text-[#2A2622] transition-colors hover:bg-surface-container hover:text-primary"
+                    >
+                      <Icon
+                        name="check"
+                        className={`text-[15px] ${choice.active ? "text-primary" : "text-transparent"}`}
+                      />
+                      <span className={choice.active ? "font-semibold" : ""}>{choice.label}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

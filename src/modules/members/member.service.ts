@@ -16,6 +16,7 @@ import {
 } from "@/modules/members/member.repository";
 import type { UpdateMemberInput } from "@/modules/members/member.schemas";
 import { can } from "@/modules/members/permissions";
+import { removeAssigneeFromTasks } from "@/modules/tasks/task.repository";
 
 // Team management (API Design §6.5–§6.8). Routes are guarded by role (members/guards.ts); the
 // rules that depend on WHICH member is the target live here.
@@ -76,13 +77,19 @@ export async function removeMember(auth: WeddingAuth, memberId: string) {
   }
 
   const deletedAt = new Date();
-  const removed = await softDeleteMember(auth.weddingId, memberId, {
-    by: auth.userId,
-    reason: isSelf ? "left" : "removed",
+  // Leaving ends the membership AND takes the person off every task they were assigned to
+  // (DB Design §6.5 rule 4), together, so no task is left pointing at a member who is gone.
+  const tasksUnassigned = await withTransaction(async (session) => {
+    const removed = await softDeleteMember(
+      auth.weddingId,
+      memberId,
+      { by: auth.userId, reason: isSelf ? "left" : "removed" },
+      session,
+    );
+    if (!removed) throw new AppError("NOT_FOUND");
+    return removeAssigneeFromTasks(auth.weddingId, memberId, session);
   });
-  if (!removed) throw new AppError("NOT_FOUND");
-  // Phase 2: also $pull this member from tasks.assigneeMemberIds (DB Design §6.5 rule 4).
-  return { id: memberId, deletedAt: deletedAt.toISOString() };
+  return { id: memberId, deletedAt: deletedAt.toISOString(), tasksUnassigned };
 }
 
 /**

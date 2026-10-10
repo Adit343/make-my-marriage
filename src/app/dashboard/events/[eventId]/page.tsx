@@ -6,6 +6,7 @@ import { ComingSoonButton } from "@/components/dashboard/coming-soon-button";
 import { DashboardFooter } from "@/components/dashboard/sections";
 import { EventDetailActions } from "@/components/events/event-detail-actions";
 import { ScheduleCard } from "@/components/events/schedule-card";
+import { EventTasksCard } from "@/components/tasks/event-tasks-card";
 import { Icon, type IconName } from "@/components/ui/icon";
 import type { EventDetailView } from "@/lib/events/view";
 import { getServerSession } from "@/modules/auth/server-session";
@@ -321,28 +322,14 @@ export default async function EventPage({ params }: { params: Promise<{ eventId:
             </div>
           </div>
 
-          <div className={`${CARD} flex flex-col justify-between p-6 md:col-span-7`}>
-            <div>
-              <div className={CARD_HEADER}>
-                <h2 className="font-headline-sm text-headline-sm font-normal text-[#2A2622]">
-                  Tasks for this event
-                </h2>
-                <ComingSoonButton
-                  icon="add"
-                  title="Task planner is coming soon"
-                  message="Assign to-dos to family and your planner."
-                  className="flex items-center gap-1 text-body-sm font-semibold text-[#1F4D3D] hover:underline"
-                >
-                  Add task
-                </ComingSoonButton>
-              </div>
-              <EmptyCardState
-                icon="checklist"
-                title="No tasks for this event yet"
-                message="Tasks you link to this event show up here, with who is doing what by when."
-              />
-            </div>
-          </div>
+          <EventTasksCard
+            weddingId={page.weddingId}
+            eventId={event.id}
+            tasks={page.tasks}
+            events={page.taskForm.events}
+            members={page.taskForm.members}
+            today={page.taskForm.today}
+          />
 
           <div className={`${CARD} p-6 md:col-span-12 md:p-7`}>
             <div className={`${CARD_HEADER} pb-4`}>

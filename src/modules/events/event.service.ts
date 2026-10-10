@@ -1,7 +1,9 @@
 import "server-only";
+import { withTransaction } from "@/infrastructure/database/transaction";
 import { AppError } from "@/lib/errors";
 import type { WeddingAuth } from "@/modules/members/guards";
 import { can } from "@/modules/members/permissions";
+import { unlinkTasksFromEvent } from "@/modules/tasks/task.repository";
 import { findWedding } from "@/modules/weddings/wedding.repository";
 import { toEventDto, type EventDto } from "@/modules/events/event.dto";
 import {
@@ -103,9 +105,9 @@ export async function updateEvent(
 }
 
 /**
- * Soft delete (DB Design §6.7 rule 1). Once RSVPs (Phase 3) and tasks/expenses exist, this is
- * also where they are soft-deleted / set to eventId null in the same transaction, and the
- * response reports how many rows were affected. None of those collections exist yet.
+ * Soft delete (DB Design §6.7 rule 1). The event's tasks are not deleted: they become
+ * wedding-level tasks, in the same transaction, and the response says how many were affected.
+ * When RSVPs (Phase 3) and expenses (Phase 4) exist, they join this transaction.
  */
 export async function deleteEvent(auth: WeddingAuth, eventId: string) {
   const existing = await findEvent(auth.weddingId, eventId);
@@ -113,8 +115,11 @@ export async function deleteEvent(auth: WeddingAuth, eventId: string) {
   if (!canManage(auth, existing)) throw new AppError("INSUFFICIENT_ROLE");
 
   const at = new Date();
-  if (!(await softDeleteEvent(auth.weddingId, eventId, { by: auth.userId, at }))) {
-    throw new AppError("NOT_FOUND");
-  }
-  return { id: eventId, deletedAt: at.toISOString() };
+  const tasksUnlinked = await withTransaction(async (session) => {
+    if (!(await softDeleteEvent(auth.weddingId, eventId, { by: auth.userId, at }, session))) {
+      throw new AppError("NOT_FOUND");
+    }
+    return unlinkTasksFromEvent(auth.weddingId, eventId, session);
+  });
+  return { id: eventId, deletedAt: at.toISOString(), tasksUnlinked };
 }

@@ -3,7 +3,12 @@ import { ComingSoonButton } from "@/components/dashboard/coming-soon-button";
 import { canManageMembers, RELATIONSHIP_LABEL, ROLE_LABEL } from "@/components/dashboard/labels";
 import { Icon, type IconName } from "@/components/ui/icon";
 import type { MemberRole } from "@/lib/constants/enums";
-import type { Dashboard, NextEvent, TeamMember } from "@/modules/dashboard/dashboard.service";
+import type {
+  Dashboard,
+  NextEvent,
+  TeamMember,
+  UpcomingTask,
+} from "@/modules/dashboard/dashboard.service";
 
 // Sections of the Stitch "Member Wedding Dashboard". Widgets for modules that don't exist yet
 // render their designed empty states; nothing on this page is sample data.
@@ -167,7 +172,8 @@ export function StatCards({
       label: "Pending Tasks",
       icon: "assignment_turned_in",
       value: counts.pendingTasks,
-      detail: "Nothing assigned yet",
+      detail:
+        counts.pendingTasks > 0 ? `${counts.pendingTasks} still to do` : "Nothing assigned yet",
       accent: "secondary",
     },
     {
@@ -283,7 +289,19 @@ export function RsvpWidget() {
   );
 }
 
-export function TasksWidget({ pendingTasks }: { pendingTasks: number }) {
+const PRIORITY_DOT = {
+  high: "bg-primary",
+  medium: "bg-secondary",
+  low: "bg-outline-variant",
+} as const;
+
+export function TasksWidget({
+  pendingTasks,
+  upcoming,
+}: {
+  pendingTasks: number;
+  upcoming: UpcomingTask[];
+}) {
   return (
     <div className={`${CARD} flex flex-col justify-between p-6 lg:col-span-6`}>
       <div>
@@ -292,25 +310,70 @@ export function TasksWidget({ pendingTasks }: { pendingTasks: number }) {
             title="Upcoming Coordination"
             subtitle="Operational tasks assigned to family & coordinators"
           />
-          <ComingSoonButton
-            iconAfter="arrow_forward"
-            title="The task planner is coming soon"
-            message="Assign to-dos to family and your planner."
+          <Link
+            href="/dashboard/tasks"
             className="group flex items-center gap-1 font-label-md text-label-md font-semibold text-primary hover:text-primary-container focus:outline-hidden"
           >
             All Tasks ({pendingTasks})
-          </ComingSoonButton>
+            <Icon
+              name="arrow_forward"
+              className="text-[14px] transition-transform group-hover:translate-x-0.5"
+            />
+          </Link>
         </div>
         <div className="mt-4">
-          <EmptyState
-            icon="checklist"
-            title="No tasks yet"
-            message="Tasks you assign to family members and your planner will appear here with their due dates."
-          />
+          {upcoming.length === 0 ? (
+            <EmptyState
+              icon="checklist"
+              title="No tasks yet"
+              message="Tasks you assign to family members and your planner will appear here with their due dates."
+            />
+          ) : (
+            <ul className="divide-y divide-[#2A2622]/[0.05]">
+              {upcoming.map((task) => (
+                <li key={task.id} className="flex items-center gap-3 py-3">
+                  <span
+                    aria-hidden="true"
+                    className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[task.priority]}`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href="/dashboard/tasks"
+                      className="block truncate font-body-sm text-body-sm font-medium text-on-surface hover:text-primary"
+                    >
+                      {task.title}
+                    </Link>
+                    <p
+                      className={`font-body-sm text-[12px] ${task.isOverdue ? "font-medium text-secondary" : "text-on-surface-variant"}`}
+                    >
+                      {task.isOverdue ? "Overdue • " : task.dueLabel ? "Due " : ""}
+                      {task.dueLabel ?? "No due date"}
+                    </p>
+                  </div>
+                  {task.assigneeInitials.length > 0 ? (
+                    <div className="flex -space-x-1.5">
+                      {task.assigneeInitials.slice(0, 3).map((initials, index) => (
+                        <span
+                          key={index}
+                          className="flex h-6 w-6 items-center justify-center rounded-full border border-surface-container-lowest bg-surface-container-high font-label-sm text-[10px] font-medium text-primary"
+                        >
+                          {initials}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-[#2A2622]/[0.04] pt-3 text-body-sm">
-        <span className="text-body-sm text-outline">Assign tasks to family and coordinators</span>
+        <span className="text-body-sm text-outline">
+          {pendingTasks === 0
+            ? "Assign tasks to family and coordinators"
+            : `${pendingTasks} ${pendingTasks === 1 ? "task" : "tasks"} still to do`}
+        </span>
       </div>
     </div>
   );

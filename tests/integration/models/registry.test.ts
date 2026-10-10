@@ -13,6 +13,11 @@ const EXPECTED_INDEXES: Record<string, string[]> = {
   sessions: ["tokenHash_1 unique", "userId_1", "expiresAt_1 ttl=0"],
   passwordResetTokens: ["tokenHash_1 unique", "userId_1", "expiresAt_1 ttl=0"],
   events: ["weddingId_1_startsAt_1"],
+  tasks: [
+    "weddingId_1_status_1_dueDate_1",
+    "weddingId_1_eventId_1",
+    "weddingId_1_assigneeMemberIds_1",
+  ],
   weddings: ["purgeAfter_1 partial"],
   weddingMembers: ["userId_1 unique partial", "weddingId_1", "weddingId_1_role_1 unique partial"],
   weddingInvitations: [

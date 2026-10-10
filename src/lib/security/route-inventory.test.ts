@@ -59,6 +59,12 @@ const INVENTORY: Record<string, Access> = {
   "PATCH /api/v1/weddings/[weddingId]/events/[eventId]": "wedding:events:edit",
   "DELETE /api/v1/weddings/[weddingId]/events/[eventId]": "wedding:events:edit",
 
+  "GET /api/v1/weddings/[weddingId]/tasks": "wedding:wedding:view",
+  "POST /api/v1/weddings/[weddingId]/tasks": "wedding:tasks:edit",
+  // Every role may edit any task; the service lets a member delete only tasks they created.
+  "PATCH /api/v1/weddings/[weddingId]/tasks/[taskId]": "wedding:tasks:edit",
+  "DELETE /api/v1/weddings/[weddingId]/tasks/[taskId]": "wedding:tasks:edit",
+
   // Token routes: the secret in the path is the credential (hash lookup, rate limited).
   "GET /api/v1/public/invitations/[token]": "public",
   "POST /api/v1/invitations/accept": "session",
@@ -148,6 +154,7 @@ describe("API route inventory", () => {
         "/api/v1/weddings/[weddingId]/invitations",
         "/api/v1/weddings/[weddingId]/events",
         "/api/v1/weddings/[weddingId]/events/[eventId]",
+        "/api/v1/weddings/[weddingId]/tasks",
         "/api/v1/public/invitations/[token]",
       ].sort(),
     );

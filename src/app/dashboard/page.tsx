@@ -45,7 +45,10 @@ export default async function DashboardPage() {
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <RsvpWidget />
-        <TasksWidget pendingTasks={workspace.counts.pendingTasks} />
+        <TasksWidget
+          pendingTasks={workspace.counts.pendingTasks}
+          upcoming={workspace.upcomingTasks}
+        />
         <FollowUpWidget />
         <TeamWidget team={workspace.team} viewerRole={viewer.role} />
       </section>

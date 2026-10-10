@@ -3,7 +3,7 @@
 > What is left to build, in order, with the decisions that must be made first.
 > Where the project is *now* is in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). **Read that file first.**
 >
-> Last updated: **2026-10-10** · Phase 1 complete · **Phase 2 in progress: events are built end to end (steps 2.1–2.3 committed and pushed). The schedule editor is built (uncommitted). Left: tasks (backend + UI, waiting for Stitch designs).**
+> Last updated: **2026-10-10** · Phase 1 complete · **Phase 2 in progress: events are built end to end (steps 2.1–2.3 committed and pushed). The schedule editor is committed. Tasks (backend and UI) are built, uncommitted. Left: a Phase 2 review/hardening pass.**
 
 **Contents**
 
@@ -156,9 +156,11 @@ Permissions to add: `events:edit`, `tasks:edit` → all roles (owner, admin, mem
 ### 4.6 Suggested steps
 
 - **2.1** ✅ events only: `EVENT_TYPES`, `events` model with embedded `schedule[]`, registry, tests (built 2026-10-10).
-- **2.2** ✅ events only: service/routes/permissions (`events:edit`, `events:manage-any`), cross-wedding checks, tests, route inventory (built 2026-10-10). **Still to do for tasks:** task model + service/routes/permissions, assignee validation, the member-removal `$pull` of `assigneeMemberIds`, and the event-delete cascade (RSVPs in Phase 3; tasks `eventId: null` once tasks exist).
-- **2.3** ✅ events UI: timeline, event page, add/edit/duplicate slide-over, sidebar link, dashboard wiring (built 2026-10-10 from the owner's three Events screens). **Still to do:** the Tasks screens, **which wait for the owner's Stitch designs** from Stitch/approved style; dashboard wiring; browser verification.
-- **2.4** ✅ (schedule editor, built 2026-10-10 in the existing style with the owner's approval; no Stitch design) — then the phase review/hardening pass once tasks are done.
+- **2.2** ✅ events only: service/routes/permissions (`events:edit`, `events:manage-any`), cross-wedding checks, tests, route inventory (built 2026-10-10). - **2.5** ✅ tasks backend: model, service, routes, permissions (`tasks:edit`, `tasks:manage-any`), assignee and event validation, `completedAt/By` handling, the member-removal `$pull` and the event-delete `eventId: null` cascade, 40 tests (built 2026-10-10). The RSVP part of the event-delete cascade joins in Phase 3.
+- **2.6** ✅ tasks UI from the owner's three Stitch screens: Tasks screen (list grouped by event + drag-and-drop board + filters), task slide-over, event-page task card, dashboard widget, sidebar badge (built 2026-10-10).
+- **2.3** ✅ events UI: timeline, event page, add/edit/duplicate slide-over, sidebar link, dashboard wiring (built 2026-10-10 from the owner's three Events screens). (Tasks UI: see 2.6 below.) from Stitch/approved style; dashboard wiring; browser verification.
+- **2.4** ✅ (schedule editor, built 2026-10-10 in the existing style with the owner's approval; no Stitch design).
+- **2.7** Phase 2 review/hardening pass (not started): re-read the permission rules, check indexes with `explain()` on a realistic task set, accessibility pass on the drag-and-drop board and slide-overs, update the DB and API design docs with the additions listed in `PROJECT_STATUS.md` §14.3.
 
 ---
 

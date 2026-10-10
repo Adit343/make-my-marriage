@@ -9,10 +9,10 @@ import type { MemberRole } from "@/lib/constants/enums";
 
 // Left navigation shelf, as in the Stitch Team and Settings screens: Overview … Members, with
 // Settings pinned at the bottom (showing the viewer's role when it is the active page). Only
-// Overview, Events, Members and Settings are built so far; the other sections say so instead of leading
+// Overview, Events, Tasks, Members and Settings are built so far; the other sections say so instead of leading
 // to a 404.
 
-export type NavSection = "dashboard" | "events" | "members" | "settings";
+export type NavSection = "dashboard" | "events" | "tasks" | "members" | "settings";
 
 interface NavItem {
   label: string;
@@ -32,7 +32,13 @@ const NAV: NavItem[] = [
     section: "events",
   },
   { label: "Guests", icon: "group", detail: "Build one guest list for every function." },
-  { label: "Tasks", icon: "checklist", detail: "Assign to-dos to family and your planner." },
+  {
+    label: "Tasks",
+    icon: "checklist",
+    detail: "Assign to-dos to family and your planner.",
+    href: "/dashboard/tasks",
+    section: "tasks",
+  },
   {
     label: "Expenses",
     icon: "account_balance_wallet",

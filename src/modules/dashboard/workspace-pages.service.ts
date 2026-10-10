@@ -1,11 +1,14 @@
 import "server-only";
+import { todayIn } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
-import { nextEventLabel } from "@/lib/events/format";
+import { nextEventLabel, venueLine } from "@/lib/events/format";
 import { toEventDetailView, toEventViews } from "@/lib/events/view";
+import { summarize, toTaskViews, type TaskEventInfo, type TaskMember } from "@/lib/tasks/view";
 import { describeUserAgent, lastActiveLabel, type DeviceKind } from "@/lib/user-agent";
 import { getCurrentUser, listSessions } from "@/modules/auth/auth.service";
 import type { AuthContext } from "@/modules/auth/session.service";
 import { getDashboard } from "@/modules/dashboard/dashboard.service";
+import type { EventDto } from "@/modules/events/event.dto";
 import { getEvent, listEvents } from "@/modules/events/event.service";
 import { getWeddingAuth } from "@/modules/members/guards";
 import type { InvitationDto } from "@/modules/members/invitation.dto";
@@ -13,6 +16,7 @@ import { listInvitations } from "@/modules/members/invitation.service";
 import { countActiveMembers } from "@/modules/members/member.repository";
 import { listTeam } from "@/modules/members/member.service";
 import { can } from "@/modules/members/permissions";
+import { listEveryTask, listEventTasks } from "@/modules/tasks/task.service";
 import { getWeddingFor } from "@/modules/weddings/wedding.service";
 
 // Data for the Team and Settings pages. Server Components call the same services the REST API
@@ -150,18 +154,77 @@ export async function getEventPage(auth: AuthContext, eventId: string) {
   if (!dashboard.workspace || !weddingAuth) return null;
 
   try {
-    const [event, { wedding }] = await Promise.all([
+    const [event, { wedding }, allEvents, team, eventTasks] = await Promise.all([
       getEvent(weddingAuth, eventId),
       getWeddingFor(weddingAuth),
+      listEvents(weddingAuth),
+      listTeam(weddingAuth, ALL),
+      listEventTasks(weddingAuth, eventId),
     ]);
+    const context = taskContext(allEvents, team.items, wedding.timezone);
     return {
       dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
       weddingId: weddingAuth.weddingId,
       weddingTimezone: wedding.timezone,
       event: toEventDetailView(event),
+      tasks: toTaskViews(eventTasks, context),
+      taskForm: { events: context.events, members: context.members, today: context.today },
     };
   } catch (error) {
     if (error instanceof AppError && error.code === "NOT_FOUND") return "not_found" as const;
     throw error;
   }
+}
+
+/** What turns task rows into screen rows: who the members are, which events exist, what "today" is. */
+function taskContext(
+  events: EventDto[],
+  members: { id: string; user: { name: string }; relationship: string | null; status: string }[],
+  timezone: string,
+): { events: TaskEventInfo[]; members: TaskMember[]; today: string; timezone: string } {
+  return {
+    events: events.map((event) => ({
+      id: event.id,
+      name: event.name,
+      type: event.type,
+      startsAt: event.startsAt,
+      timezone: event.timezone,
+      venue: venueLine(event.location),
+    })),
+    // Only active members can be given a task (the service refuses anyone else).
+    members: members
+      .filter((member) => member.status === "active")
+      .map((member) => ({
+        id: member.id,
+        name: member.user.name,
+        relationship: member.relationship,
+      })),
+    today: todayIn(timezone),
+    timezone,
+  };
+}
+
+/** Data for the Tasks screens (Stitch "Tasks (List View Grouped by Event)" and "(Board View)"). */
+export async function getTasksPage(auth: AuthContext) {
+  const dashboard = await getDashboard(auth);
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!dashboard.workspace || !weddingAuth) return null;
+
+  const [tasks, events, team, { wedding }] = await Promise.all([
+    listEveryTask(weddingAuth),
+    listEvents(weddingAuth),
+    listTeam(weddingAuth, ALL),
+    getWeddingFor(weddingAuth),
+  ]);
+  const context = taskContext(events, team.items, wedding.timezone);
+  const views = toTaskViews(tasks, context);
+  return {
+    dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+    weddingId: weddingAuth.weddingId,
+    events: context.events,
+    members: context.members,
+    today: context.today,
+    tasks: views,
+    summary: summarize(views),
+  };
 }

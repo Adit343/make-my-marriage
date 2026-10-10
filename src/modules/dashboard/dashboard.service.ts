@@ -1,16 +1,18 @@
 import "server-only";
 import type { MemberRelationship, MemberRole } from "@/lib/constants/enums";
-import { daysUntil, formatCalendarDate } from "@/lib/dates";
+import { daysUntil, formatCalendarDate, formatShortDate, todayIn } from "@/lib/dates";
 import { calendarDayIn, formatLongDate, formatTimeRange, venueLine } from "@/lib/events/format";
+import { isOverdue } from "@/lib/tasks/view";
 import { initialsOf } from "@/lib/text/initials";
 import type { AuthContext } from "@/modules/auth/session.service";
 import { countEvents, findNextEvent } from "@/modules/events/event.repository";
 import { findActiveMembershipByUser, listMembers } from "@/modules/members/member.repository";
+import { countOpenTasks, listUpcomingOpenTasks } from "@/modules/tasks/task.repository";
 import { findUserSummaries } from "@/modules/users/user.repository";
 import { findWedding } from "@/modules/weddings/wedding.repository";
 
 // Everything the member dashboard (Stitch "Member Wedding Dashboard") shows, from real data only.
-// Widgets for modules that don't exist yet (guests, tasks, vendors) get zero counts and
+// Widgets for modules that don't exist yet (guests, vendors) get zero counts and
 // render their designed empty states; each module fills its widget in when it is built.
 
 export interface TeamMember {
@@ -30,6 +32,17 @@ export interface NextEvent {
   venue: string | null;
   /** Whole days until it starts in its own timezone: 0 today, negative while under way. */
   daysUntil: number;
+}
+
+export interface UpcomingTask {
+  id: string;
+  title: string;
+  priority: "low" | "medium" | "high";
+  status: "todo" | "in_progress" | "done";
+  /** "11 Feb 2027", or null when the task has no due date. */
+  dueLabel: string | null;
+  isOverdue: boolean;
+  assigneeInitials: string[];
 }
 
 export interface Dashboard {
@@ -53,6 +66,8 @@ export interface Dashboard {
     counts: { events: number; guests: number; pendingTasks: number; vendors: number };
     /** The soonest event that hasn't finished, or null when there are none. */
     nextEvent: NextEvent | null;
+    /** The next few tasks that aren't done: soonest due first. */
+    upcomingTasks: UpcomingTask[];
   } | null;
 }
 
@@ -91,10 +106,26 @@ export async function getDashboard(auth: AuthContext): Promise<Dashboard> {
     })
     .sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]);
 
-  const [eventCount, nextEventRow] = await Promise.all([
+  const [eventCount, nextEventRow, openTaskCount, upcomingTaskRows] = await Promise.all([
     countEvents(wedding._id),
     findNextEvent(wedding._id, new Date()),
+    countOpenTasks(wedding._id),
+    listUpcomingOpenTasks(wedding._id, 4),
   ]);
+  const today = todayIn(wedding.timezone);
+  const initialsByMember = new Map(team.map((member) => [member.id, member.initials]));
+  const upcomingTasks: UpcomingTask[] = upcomingTaskRows.map((task) => ({
+    id: task._id.toString(),
+    title: task.title,
+    priority: task.priority,
+    status: task.status,
+    dueLabel: task.dueDate ? formatShortDate(task.dueDate) : null,
+    isOverdue: isOverdue({ dueDate: task.dueDate ?? null, status: task.status }, today),
+    assigneeInitials: (task.assigneeMemberIds ?? []).flatMap((id) => {
+      const initials = initialsByMember.get(id.toString());
+      return initials ? [initials] : [];
+    }),
+  }));
   const nextEvent: NextEvent | null = nextEventRow
     ? {
         id: nextEventRow._id.toString(),
@@ -134,8 +165,9 @@ export async function getDashboard(auth: AuthContext): Promise<Dashboard> {
         ? daysUntil(wedding.weddingDate, wedding.timezone)
         : null,
       team,
-      counts: { events: eventCount, guests: 0, pendingTasks: 0, vendors: 0 },
+      counts: { events: eventCount, guests: 0, pendingTasks: openTaskCount, vendors: 0 },
       nextEvent,
+      upcomingTasks,
     },
   };
 }

@@ -1,5 +1,5 @@
 import "server-only";
-import { Error as MongooseError, type Types } from "mongoose";
+import { Error as MongooseError, type ClientSession, type Types } from "mongoose";
 import { connectDb } from "@/infrastructure/database/connection";
 import type { EventType } from "@/lib/constants/enums";
 import type { LocationInput } from "@/lib/validation/location";
@@ -95,11 +95,13 @@ export async function softDeleteEvent(
   weddingId: Id,
   eventId: Id,
   deletion: { by: Id; at: Date },
+  session?: ClientSession,
 ): Promise<boolean> {
   await connectDb();
   const result = await Event.updateOne(
     { _id: eventId, weddingId },
     { $set: { deletedAt: deletion.at, deletedBy: deletion.by } },
+    { session },
   );
   return result.modifiedCount === 1;
 }
