@@ -10,6 +10,8 @@ they access everything through secure tokenized links.
 - @docs/Make_My_Marriage_System_Design_Architecture_V1.md — system design architecture (V1)
 - @docs/Make_My_Marriage_Database_Design_V1.md — MongoDB collections, indexes, validation rules
 - @docs/Make_My_Marriage_API_Design_V1.md — REST endpoints, auth, error codes
+- @docs/PROJECT_STATUS.md — what is built so far, decisions, setup, working rules (read first in a new session)
+- @docs/FUTURE_PLANS.md — remaining phases, open decisions, definition of done (update both after every step)
 
 ## Core rules (do not violate without flagging it to me first)
 - Soft delete by default; hard delete only for sessions, tokens, and email logs
