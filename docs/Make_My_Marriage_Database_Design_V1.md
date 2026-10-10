@@ -523,6 +523,7 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 | `dressCode` | string | — | ≤ 200 |
 | `sortOrder` | int | — | Manual ordering tie-breaker |
 | `isPublic` | boolean | ✔ | Default `false`. Whether the wedding website may show it (§6.15). |
+| `schedule[]` | array (max 50) | — | *Added 2026-10-10 (owner decision).* The event's timed run-of-show, embedded because it is always read with its event and never queried across weddings. Each line: `{ _id, time, title, notes?, isPublic }`; `time` is a 24-hour `"HH:mm"` wall-clock string in the event's `timezone`; `isPublic` is for the §6.15 website. Not a task: a task is a to-do for a person. |
 | `createdBy` | ObjectId | ✔ | |
 | soft-delete block | | | |
 

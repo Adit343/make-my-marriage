@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import "@/models";
 import { setupTestDatabase } from "../../setup/database";
 
-// The index catalog from DB Design §8.2 for the Phase 1 collections, written out independently
+// The index catalog from DB Design §8.2 for the Phase 1–2 collections, written out independently
 // of the schemas so an accidentally dropped or altered index fails a test.
 const EXPECTED_INDEXES: Record<string, string[]> = {
   users: [
@@ -12,6 +12,7 @@ const EXPECTED_INDEXES: Record<string, string[]> = {
   ],
   sessions: ["tokenHash_1 unique", "userId_1", "expiresAt_1 ttl=0"],
   passwordResetTokens: ["tokenHash_1 unique", "userId_1", "expiresAt_1 ttl=0"],
+  events: ["weddingId_1_startsAt_1"],
   weddings: ["purgeAfter_1 partial"],
   weddingMembers: ["userId_1 unique partial", "weddingId_1", "weddingId_1_role_1 unique partial"],
   weddingInvitations: [
@@ -43,7 +44,7 @@ function describeIndex(index: Record<string, unknown>): string {
 }
 
 describe("model registry", () => {
-  it("registers every Phase 1 model under its DB Design collection name", () => {
+  it("registers every model under its DB Design collection name", () => {
     const collections = mongoose
       .modelNames()
       .map((name) => mongoose.model(name).collection.collectionName);

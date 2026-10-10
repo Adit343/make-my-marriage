@@ -10,6 +10,8 @@ describe("role matrix", () => {
     "wedding:delete": [true, false, false],
     "ownership:transfer": [true, false, false],
     "members:manage": [true, true, false],
+    "events:edit": [true, true, true],
+    "events:manage-any": [true, true, false],
   };
 
   it.each(Object.entries(expected) as [Permission, boolean[]][])("%s", (permission, allowed) => {

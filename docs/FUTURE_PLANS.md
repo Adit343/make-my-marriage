@@ -3,7 +3,7 @@
 > What is left to build, in order, with the decisions that must be made first.
 > Where the project is *now* is in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). **Read that file first.**
 >
-> Last updated: **2026-10-10** · Phase 1 complete · **Phase 2 is next and has NOT been started.**
+> Last updated: **2026-10-10** · Phase 1 complete · **Phase 2 in progress: steps 2.1 and 2.2 (events backend) built, uncommitted; 2.3 (UI) waits for Stitch designs; tasks not started.**
 
 **Contents**
 
@@ -147,16 +147,17 @@ Permissions to add: `events:edit`, `tasks:edit` → all roles (owner, admin, mem
 ### 4.5 Decisions for Phase 2 (one is settled; the rest to ask before building)
 
 1. **Schedule model: DECIDED (owner, 2026-10-10): embed a bounded `schedule[]` array inside each `events` document** (about 50 items max; each item: time, title, optional notes, optional `isPublic` for the Phase 5 website). No separate collection. Reasoning: it is always read together with its event and never queried across weddings. Remember to add a short note to the DB doc (§6.7) when building it, and validate order/limits in Zod. A schedule item is *not* a task: a task is a to-do for a person with a due date; a schedule item is a timed line in the event's run-of-show.
-2. **Task "Notes"** (PRD §12 lists Description *and* Notes; DB doc has only `description`): keep one field, or add `notes`.
-3. **Task statuses wording:** PRD says To Do / In Progress / Completed; DB enum is `todo / in_progress / done`: confirm labels only.
-4. Whether **members** may delete events/tasks created by others (current matrix: yes, members edit everything in these modules).
-5. Whether tasks need **comments or subtasks** (V1 says no).
+2. **Task "Notes": DECIDED (owner, 2026-10-10):** keep the single `description` field (DB doc as written); no separate `notes`.
+3. **Task statuses: DECIDED (owner, 2026-10-10):** DB enum `todo / in_progress / done`; UI labels To Do / In Progress / Completed.
+4. **Delete rule: DECIDED (owner, 2026-10-10):** a `member` can delete only events and tasks they created; `admin` and `owner` can delete any (same pattern as expenses, enforced with `createdBy` in the service). There is no separate "manager" role. Overrides the old "members edit everything" line for **delete**; whether members may *edit* others' events/tasks is still to confirm.
+5. **Comments/subtasks: DECIDED (owner, 2026-10-10):** not in V1.
+6. **Stitch designs:** the owner will provide Events, Tasks and Schedule screens; UI step (2.3) waits for them.
 
 ### 4.6 Suggested steps
 
-- **2.1** enums, `event`/`task` models + registry + index tests; (schedule per decision 1).
-- **2.2** event and task services/routes/permissions, cross-wedding checks, cascade hook, member-removal `$pull`; tests; route-inventory update.
-- **2.3** UI (Events, Tasks, Schedule) from Stitch/approved style; dashboard wiring; browser verification.
+- **2.1** ✅ events only: `EVENT_TYPES`, `events` model with embedded `schedule[]`, registry, tests (built 2026-10-10).
+- **2.2** ✅ events only: service/routes/permissions (`events:edit`, `events:manage-any`), cross-wedding checks, tests, route inventory (built 2026-10-10). **Still to do for tasks:** task model + service/routes/permissions, assignee validation, the member-removal `$pull` of `assigneeMemberIds`, and the event-delete cascade (RSVPs in Phase 3; tasks `eventId: null` once tasks exist).
+- **2.3** UI (Events, Tasks, Schedule), **waits for the owner's Stitch designs** from Stitch/approved style; dashboard wiring; browser verification.
 - **2.4** review/hardening pass for the phase; update status docs.
 
 ---
@@ -366,7 +367,7 @@ Ask these when the relevant phase starts (recommendations in brackets are the AI
 | #  | Phase | Question                                                                                                         | Recommendation                                           |
 | -- | ----- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | 1  | 2     | ~~Schedule/timeline model~~ **Decided:** bounded `schedule[]` embedded in each event                             | (done)                                                    |
-| 2  | 2     | Task "Notes" separate from "Description"?                                                                        | One field unless the owner wants both                     |
+| 2  | 2     | ~~Task "Notes" separate from "Description"?~~ **Decided:** one field (`description`)                              | (done)                                                    |
 | 3  | 3     | Approve `tokenEnc` + `TOKEN_ENCRYPTION_KEY` for re-showable guest links                                          | Yes                                                       |
 | 4  | 3     | RSVP link per guest or per household                                                                             | Per guest first                                           |
 | 5  | 3     | Digital invitation template scope (no collection in DB doc)                                                      | One built-in template first                               |

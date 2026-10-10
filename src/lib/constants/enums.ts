@@ -48,3 +48,16 @@ export type EmailType = (typeof EMAIL_TYPES)[number];
 
 export const EMAIL_STATUSES = ["sent", "failed"] as const;
 export type EmailStatus = (typeof EMAIL_STATUSES)[number];
+
+// Phase 2 — Planning (DB Design Appendix A).
+/** `ceremony` is the main wedding ceremony. */
+export const EVENT_TYPES = [
+  "mehendi",
+  "haldi",
+  "sangeet",
+  "engagement",
+  "ceremony",
+  "reception",
+  "other",
+] as const;
+export type EventType = (typeof EVENT_TYPES)[number];

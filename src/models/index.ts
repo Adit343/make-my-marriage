@@ -3,6 +3,7 @@
 // Add an import here whenever a model file is created.
 
 import "@/models/emailLog.model";
+import "@/models/event.model";
 import "@/models/passwordResetToken.model";
 import "@/models/rateLimitCounter.model";
 import "@/models/session.model";

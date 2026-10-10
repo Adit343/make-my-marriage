@@ -41,9 +41,9 @@ they use secure links. (Full product definition: `docs/Make_My_Marriage_PRD.md`.
 | Item                | State                                                                                                |
 | ------------------- | ---------------------------------------------------------------------------------------------------- |
 | Release phase       | **Phase 1 (Foundation) is complete.** Steps 1.1 to 1.9 are built, tested, committed and pushed.      |
-| Next phase          | **Phase 2 (Planning: events, tasks, schedule) — not started.** Needs a plan approved first.          |
+| Next phase          | **Phase 2 (Planning) is in progress:** steps 2.1–2.2 (events backend, with embedded schedule) built, **uncommitted**. Next: events UI (2.3, needs Stitch designs), then tasks. |
 | Git                 | Single working branch **`dev`** (never commit to `main`). Local and `origin/dev` are in sync.        |
-| Tests               | **276 tests in 41 files, all passing.** Typecheck, lint, Prettier and production build all clean.    |
+| Tests               | **329 tests in 43 files, all passing** (276 at end of Phase 1). Typecheck, lint, Prettier and production build all clean. |
 | Dependencies        | `npm audit --omit=dev`: 0 known vulnerabilities (checked 2026-10-06).                                |
 | Deployed?           | **No.** Runs locally only. Planned host: Vercel (Hobby), later AWS ECS/Fargate.                       |
 | Real email          | **Not working for arbitrary recipients yet** (no verified Resend domain). See §12.                   |
@@ -58,7 +58,7 @@ they use secure links. (Full product definition: `docs/Make_My_Marriage_PRD.md`.
 - Join someone else's wedding from an invitation link.
 - Edit wedding details, change profile name and password, see and end signed-in sessions, leave or delete a wedding, delete the account.
 
-**What does not exist yet:** events, tasks, schedule, guests, RSVP, expenses, vendors, website,
+**What does not exist yet:** an Events screen (the events API exists, no UI), tasks, guests, RSVP, expenses, vendors, website,
 live stream, gallery. The sidebar shows these as "coming soon".
 
 ---
@@ -274,7 +274,7 @@ alphabetically sorted list**), `src/components/ui/toast.tsx` (react-toastify-sty
 
 ## 7. Data model
 
-Eight collections exist (Phase 1). Full spec: `docs/Make_My_Marriage_Database_Design_V1.md`.
+Nine collections exist (eight from Phase 1, plus `events` from Phase 2). Full spec: `docs/Make_My_Marriage_Database_Design_V1.md`.
 
 | Collection            | Purpose                                              | Delete type                    | Key rules and indexes                                                                                                                                                               |
 | --------------------- | ---------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -287,7 +287,9 @@ Eight collections exist (Phase 1). Full spec: `docs/Make_My_Marriage_Database_De
 | `emailLogs`           | Per-recipient send receipts                          | Hard (TTL 180 days)            | Status sent/failed, provider, sanitised error; never stores bodies or links; idempotency index ready for Phase 3                                                                      |
 | `rateLimitCounters`   | Lightweight rate limiting without Redis              | Hard (TTL)                     | Keys are hashed (no raw IPs/emails stored). Addition beyond the DB doc's 21 collections (flagged in the API doc §17)                                                                  |
 
-Not yet created (later phases): events, tasks, guestGroups, guests, rsvps, expenses, vendors, vendorPayments, weddingWebsites, liveStreams, galleries, galleryAlbums, galleryAssets, galleryAccessTokens.
+| `events`              | Wedding functions (Haldi, Sangeet…) with an embedded run-of-show | Soft                | `weddingId`, `name`, `type` (EVENT_TYPES), `startsAt`/`endsAt` (UTC instants, end after start), `timezone` (defaults from the wedding), `location`, `description`, `dressCode`, `sortOrder` (same-time tie-break), `isPublic` (for the Phase 5 website), **`schedule[]`** (≤50 lines of `{time "HH:mm" in the event timezone, title, notes, isPublic}`, each with its own id), `createdBy`; optimistic concurrency; index `{weddingId, startsAt}` |
+
+Not yet created (later phases): tasks, guestGroups, guests, rsvps, expenses, vendors, vendorPayments, weddingWebsites, liveStreams, galleries, galleryAlbums, galleryAssets, galleryAccessTokens.
 
 **Wedding deletion workflow (DB Design §10.3), as built:** in one transaction, set the wedding's `deletedAt/deletedBy`, `status: archived`, `purgeAfter = +30 days`, and soft-delete **every membership** (reason `wedding_deleted`), which frees each person's one-wedding slot. Child rows are **not** individually soft-deleted: every request is gated on the wedding being live, so they become unreachable at once. Restore (former owner, within 30 days) clears the deletion, sets status back to `planning`, and re-activates the owner **and** the other members removed by the deletion (skipping anyone who has since joined a different wedding). The permanent-purge script does **not exist yet** (Phase 7).
 
@@ -297,7 +299,7 @@ Not yet created (later phases): events, tasks, guestGroups, guests, rsvps, expen
 
 ## 8. API endpoints
 
-All under `/api/v1`. 31 route handlers across 24 files. **A route-inventory test
+All under `/api/v1`. 36 route handlers across 26 files. **A route-inventory test
 (`src/lib/security/route-inventory.test.ts`) lists every one with its guard; adding or weakening a
 route fails the build until that table is updated on purpose.**
 
@@ -335,6 +337,11 @@ Access legend: **public** = no session; **session** = any signed-in user; **opti
 | DELETE | `/weddings/:id/invitations/:invitationId`                     | members:manage               | Revoke (row kept, purged by TTL)                                                             |
 | POST   | `/weddings/:id/invitations/:invitationId/resend`              | members:manage               | **Addition:** new token + fresh expiry + email again                                         |
 | POST   | `/weddings/:id/invitations/:invitationId/link`                | members:manage               | **Addition:** fresh link, **no email** ("Copy invite link")                                  |
+| GET    | `/weddings/:id/events`                                        | wedding:view                 | Timeline soonest first (`startsAt`, `sortOrder`, id); not paginated; each row has `canManage` for the viewer |
+| POST   | `/weddings/:id/events`                                        | events:edit (all roles)      | Create; `timezone` defaults from the wedding; optional `schedule[]` (sorted by time)         |
+| GET    | `/weddings/:id/events/:eventId`                               | wedding:view                 | One event                                                                                    |
+| PATCH  | `/weddings/:id/events/:eventId`                               | events:edit (+ rule)         | Any subset + required `version`; `schedule` replaces the whole list (keep a line by sending its `id`); `null` clears optional fields; a member may change only their own event, admin/owner any (`INSUFFICIENT_ROLE` otherwise) |
+| DELETE | `/weddings/:id/events/:eventId`                               | events:edit (+ rule)         | Soft delete, same ownership rule. Cascade to RSVPs/tasks is a documented hook until those collections exist |
 | GET    | `/public/invitations/:token`                                  | public (60/15min/IP)         | Landing preview; any bad link → `{valid: false}`                                             |
 | POST   | `/invitations/accept`                                         | session (10/h/user)          | Claim invitation + create membership atomically; `409 ALREADY_IN_WEDDING` leaves it pending  |
 
@@ -376,7 +383,8 @@ Table lives in `src/modules/members/permissions.ts` (one reviewable map; add row
 | Edit wedding details                                 |  ✔   |  ✔   |   —   |
 | Invite, change roles, remove members                 |  ✔   |  ✔   |   —   |
 | Delete/restore the wedding, transfer ownership       |  ✔   |   —   |   —   |
-| Edit events, tasks, guests, gallery *(future)*       |  ✔   |  ✔   |   ✔   |
+| Create events (built); edit tasks, guests, gallery *(future)* |  ✔   |  ✔   |   ✔   |
+| **Edit/delete events and tasks** *(events built; decided 2026-10-10)* | any | any | **own only** |
 | **View all expenses and record expenses** *(future, decided 2026-10-10: see §14.2)* | ✔ | ✔ | **✔** |
 | Vendors, vendor payments, website editing, gallery tokens *(future; unchanged from D3)* | ✔ | ✔ | — |
 
@@ -473,6 +481,10 @@ Everything below is on branch `dev`. Dates 2026-10-04 to 2026-10-06.
 
 **Step 1.9: Hardening and review (2026-10-06).** Fixed: password-reset **timing leak** (work moved after the response), **API caching** (`no-store`), **missing CSP** (added with Permissions-Policy and COOP, scanned in a real browser). Added: route-inventory test, hardening tests (cache headers, cookie flags, no secrets in responses, cross-wedding invitation access, reset enumeration), the Phase 1 end-to-end journey test, not-found and error pages, `README.md`. Verified `db:sync-indexes` builds all indexes on a clean DB and is idempotent.
 
+**Phase 2, step 2.1: events model (2026-10-10, uncommitted).** `EVENT_TYPES` enum, `events` model with embedded bounded `schedule[]` (limits in `src/lib/constants/events.ts`), index `{weddingId, startsAt}`, model registry + registry test, model tests (validation, defaults, schedule limits, soft delete, concurrency).
+
+**Phase 2, step 2.2: events service and API (2026-10-10, uncommitted).** `src/modules/events/` (schemas, DTO, repository, service), 5 routes, permissions `events:edit` (all roles) and `events:manage-any` (admin/owner), route inventory updated, 33 integration tests (every role, ownership rule, cross-wedding 403/404, validation, concurrency, schedule replace/re-sort, soft delete). Total tests 276 → 329. Typecheck, lint, Prettier, build clean. **Not yet built:** the Events UI (2.3, waits for Stitch designs), tasks, dashboard wiring.
+
 **After 1.9 (2026-10-06).** Debugging with the owner: invitation email failed because the Resend test sender only delivers to the account owner. Added `emailError` to invitation responses and surfaced Resend's actual reason in the Team page toast (committed by the owner as `983d15c "fixed issue"`). Explained that `*.vercel.app` can't be a Resend domain and that Copy invite link is the interim path. Explained the "You already belong to a wedding" screen (owner testing their own invite link in the same browser; test with a different browser profile or incognito).
 
 ---
@@ -504,6 +516,8 @@ Everything below is on branch `dev`. Dates 2026-10-04 to 2026-10-06.
 - Kept the project without a domain for now; use Copy invite link instead of email.
 - **Expenses (decided 2026-10-10, before Phase 4):** keep the tracker **simple**. Family members (the `member` role) can **see all expenses in one place** and **record expenses**, so nobody has to look in several places. **No new libraries**, no accounting-style features. This **overrides D3 for expenses only** (D3 had finance as admin+ only); the vendors, vendor-payments and website rules are unchanged. **Edit/delete rule (decided 2026-10-10):** a member can edit or delete **only the expenses they recorded**; **admins and owners can edit or delete any** expense. Implement by checking `createdBy` against the caller in the expense service (the model already stores `createdBy`).
 - **Schedule model (decided 2026-10-10, for Phase 2):** each event stores its own **bounded timed list (`schedule[]`, about 50 items max)** inside the `events` document, **not** a separate collection. Example items: "7:00 AM Makeup", "9:00 AM Haldi", "11:00 AM Family photos". Distinct from tasks (a task is a to-do for a person; a schedule item is a timed line in the day's run-of-show). Needs a short note added to the DB doc when built.
+- **Choices made while building 2.1–2.2 (flagged, change if disliked):** (1) a member also may **edit** only their own events (the owner decided delete only; edit follows the same rule, tasks will be looser); (2) schedule `time` is `"HH:mm"` in the event timezone (a late-night line after midnight sorts as early morning; multi-day events are not modelled); (3) `PATCH` replaces the whole `schedule` list; (4) responses include `canManage` and `createdBy`; (5) bad input, an end before the start included, is `400 VALIDATION_ERROR` (`details[0].path = endsAt`); (6) no cap on the number of events per wedding.
+- **Phase 2 decisions (2026-10-10):** a `member` can delete only events/tasks they created; `admin`/`owner` can delete any (no separate "manager" role); tasks keep a single `description` field (no `notes`); statuses `todo`/`in_progress`/`done` shown as To Do / In Progress / Completed; no task comments or subtasks in V1; owner will supply Stitch designs for Events, Tasks and Schedule before the UI step.
 
 ### 14.3 Choices the AI made without asking (flagged to the owner; change if disliked)
 

@@ -17,6 +17,13 @@ export const PERMISSIONS = {
   "ownership:transfer": OWNER,
   /** Change members' roles, remove members, and (step 1.7) invite people. */
   "members:manage": ADMIN_UP,
+  /**
+   * Create events, and edit or delete the ones you created (the service checks who created it).
+   * Owner decision 2026-10-10: a member may delete only their own; admin and owner may delete any.
+   */
+  "events:edit": EVERYONE,
+  /** Edit or delete events other people created. */
+  "events:manage-any": ADMIN_UP,
 } as const satisfies Record<string, readonly MemberRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

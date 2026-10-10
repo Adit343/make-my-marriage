@@ -52,6 +52,13 @@ const INVENTORY: Record<string, Access> = {
   "POST /api/v1/weddings/[weddingId]/invitations/[invitationId]/resend": "wedding:members:manage",
   "POST /api/v1/weddings/[weddingId]/invitations/[invitationId]/link": "wedding:members:manage",
 
+  "GET /api/v1/weddings/[weddingId]/events": "wedding:wedding:view",
+  "POST /api/v1/weddings/[weddingId]/events": "wedding:events:edit",
+  "GET /api/v1/weddings/[weddingId]/events/[eventId]": "wedding:wedding:view",
+  // Open to every role at the route; the service lets a member change only events they created.
+  "PATCH /api/v1/weddings/[weddingId]/events/[eventId]": "wedding:events:edit",
+  "DELETE /api/v1/weddings/[weddingId]/events/[eventId]": "wedding:events:edit",
+
   // Token routes: the secret in the path is the credential (hash lookup, rate limited).
   "GET /api/v1/public/invitations/[token]": "public",
   "POST /api/v1/invitations/accept": "session",
@@ -139,6 +146,8 @@ describe("API route inventory", () => {
         "/api/v1/weddings/[weddingId]",
         "/api/v1/weddings/[weddingId]/members",
         "/api/v1/weddings/[weddingId]/invitations",
+        "/api/v1/weddings/[weddingId]/events",
+        "/api/v1/weddings/[weddingId]/events/[eventId]",
         "/api/v1/public/invitations/[token]",
       ].sort(),
     );
