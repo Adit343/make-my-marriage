@@ -5,6 +5,7 @@ import { AppShell } from "@/components/dashboard/app-shell";
 import { ComingSoonButton } from "@/components/dashboard/coming-soon-button";
 import { DashboardFooter } from "@/components/dashboard/sections";
 import { EventDetailActions } from "@/components/events/event-detail-actions";
+import { ScheduleCard } from "@/components/events/schedule-card";
 import { Icon, type IconName } from "@/components/ui/icon";
 import type { EventDetailView } from "@/lib/events/view";
 import { getServerSession } from "@/modules/auth/server-session";
@@ -265,6 +266,8 @@ export default async function EventPage({ params }: { params: Promise<{ eventId:
             </p>
           </div>
         ) : null}
+
+        <ScheduleCard weddingId={page.weddingId} event={event} />
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
           <div className={`${CARD} flex flex-col justify-between p-6 md:col-span-5`}>

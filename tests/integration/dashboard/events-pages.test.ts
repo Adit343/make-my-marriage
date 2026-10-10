@@ -151,6 +151,30 @@ describe("getEventPage", () => {
     expect(page.event.mapsUrl).toContain("https://www.google.com/maps/search/");
   });
 
+  it("lists the schedule in time order with printable times", async () => {
+    const { weddingId, owner } = await setupWedding();
+    const id = await addEvent(weddingId, owner, {
+      name: "Haldi",
+      type: "haldi",
+      startsAt: "2027-02-13T04:30:00Z",
+      schedule: [
+        { time: "11:00", title: "Family photos", notes: "Garden", isPublic: true },
+        { time: "07:00", title: "Makeup" },
+        { time: "12:30", title: "Lunch" },
+      ],
+    });
+
+    const page = await getEventPage(await authFor(owner.cookie), id);
+    if (!page || page === "not_found") throw new Error("expected the event page");
+    expect(
+      page.event.scheduleLines.map((l) => [l.timeLabel, l.title, l.notes, l.isPublic]),
+    ).toEqual([
+      ["7:00 AM", "Makeup", null, false],
+      ["11:00 AM", "Family photos", "Garden", true],
+      ["12:30 PM", "Lunch", null, false],
+    ]);
+  });
+
   it("answers not_found for another wedding's event, a deleted event and a missing id", async () => {
     const a = await setupWedding();
     const b = await setupWedding("Another wedding");

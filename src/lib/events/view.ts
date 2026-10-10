@@ -1,6 +1,7 @@
 import type { EventType } from "@/lib/constants/enums";
 import {
   formatDateBlock,
+  formatScheduleTime,
   formatDuration,
   formatLongDate,
   formatTimeRange,
@@ -42,6 +43,8 @@ export interface EventDetailView extends EventView {
   address: string | null;
   mapsUrl: string | null;
   coordinates: { latitude: number; longitude: number } | null;
+  /** The event's run-of-show with a printable time on each line, in time order. */
+  scheduleLines: (EventDto["schedule"][number] & { timeLabel: string })[];
 }
 
 /** `events` must already be in timeline order, as the service returns them. */
@@ -81,5 +84,9 @@ export function toEventDetailView(event: EventDto, now: Date = new Date()): Even
     address: fullAddress(event.location),
     mapsUrl: mapsUrl(event.location),
     coordinates: location.coordinates ?? null,
+    scheduleLines: event.schedule.map((line) => ({
+      ...line,
+      timeLabel: formatScheduleTime(line.time),
+    })),
   };
 }

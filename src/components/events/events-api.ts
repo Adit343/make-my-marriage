@@ -72,3 +72,16 @@ export function updateEvent(
 export function deleteEvent(weddingId: string, eventId: string) {
   return apiRequest<unknown>(`${events(weddingId)}/${eventId}`, { method: "DELETE" });
 }
+
+/** Replaces an event's whole schedule; a line keeps its id by sending it back. */
+export function updateSchedule(
+  weddingId: string,
+  eventId: string,
+  version: number,
+  schedule: (ScheduleItemInput & { id?: string })[],
+) {
+  return apiRequest<{ id: string }>(`${events(weddingId)}/${eventId}`, {
+    method: "PATCH",
+    body: { version, schedule },
+  });
+}

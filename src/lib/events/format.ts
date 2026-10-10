@@ -15,6 +15,13 @@ export function timeZoneAbbreviation(timeZone: string, at: Date): string {
   return part?.value ?? timeZone;
 }
 
+/** A schedule line's "HH:mm" as the detail screen writes times: "07:00" → "7:00 AM". */
+export function formatScheduleTime(time: string): string {
+  const [hour, minute] = time.split(":").map(Number);
+  const suffix = hour! >= 12 ? "PM" : "AM";
+  return `${hour! % 12 === 0 ? 12 : hour! % 12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
 /** "02:00 PM", or "2:00 PM" with `padHour: false` (the detail screen). */
 export function formatClock(instant: Date, timeZone: string, padHour = true): string {
   return plain(

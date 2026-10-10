@@ -5,6 +5,7 @@ import {
   formatDateBlock,
   formatDuration,
   formatLongDate,
+  formatScheduleTime,
   formatTimeRange,
   fullAddress,
   mapsUrl,
@@ -148,5 +149,18 @@ describe("nextEventLabel", () => {
     expect(nextEventLabel([event("2026-12-20T08:30:00Z")], now).strong).toBe(
       "All events have passed",
     );
+  });
+});
+
+describe("formatScheduleTime", () => {
+  it.each([
+    ["07:00", "7:00 AM"],
+    ["09:30", "9:30 AM"],
+    ["12:00", "12:00 PM"],
+    ["13:05", "1:05 PM"],
+    ["00:00", "12:00 AM"],
+    ["23:59", "11:59 PM"],
+  ])("%s → %s", (time, label) => {
+    expect(formatScheduleTime(time)).toBe(label);
   });
 });
