@@ -17,6 +17,7 @@ const EXPECTED_INDEXES: Record<string, string[]> = {
     "weddingId_1_status_1_dueDate_1",
     "weddingId_1_eventId_1",
     "weddingId_1_assigneeMemberIds_1",
+    "weddingId_1__id_-1",
   ],
   weddings: ["purgeAfter_1 partial"],
   weddingMembers: ["userId_1 unique partial", "weddingId_1", "weddingId_1_role_1 unique partial"],

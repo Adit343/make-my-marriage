@@ -17,6 +17,7 @@ export default async function TeamPage() {
 
   return (
     <AppShell dashboard={page.dashboard} active="members">
+      <h1 className="sr-only">Members</h1>
       <TeamManager
         weddingId={page.dashboard.workspace.weddingId}
         weddingTitle={page.weddingTitle}

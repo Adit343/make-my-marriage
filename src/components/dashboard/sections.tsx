@@ -21,7 +21,7 @@ const WIDGET_HEADER = "flex items-center justify-between border-b border-[#2A262
 function WidgetTitle({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div>
-      <h4 className="font-headline-sm text-headline-sm font-medium text-on-surface">{title}</h4>
+      <h2 className="font-headline-sm text-headline-sm font-medium text-on-surface">{title}</h2>
       <p className="font-body-sm text-body-sm text-on-surface-variant">{subtitle}</p>
     </div>
   );
@@ -102,7 +102,7 @@ export function CountdownHero({ workspace }: { workspace: Workspace }) {
             </div>
             {next ? (
               <>
-                <h3 className="font-headline-md text-headline-md text-on-surface">{next.name}</h3>
+                <h2 className="font-headline-md text-headline-md text-on-surface">{next.name}</h2>
                 <p className="font-body-md text-body-md text-on-surface-variant">
                   {next.whenLabel}
                   {next.venue ? ` · ${next.venue}` : ""}
@@ -110,9 +110,9 @@ export function CountdownHero({ workspace }: { workspace: Workspace }) {
               </>
             ) : (
               <>
-                <h3 className="font-headline-md text-headline-md text-on-surface">
+                <h2 className="font-headline-md text-headline-md text-on-surface">
                   {workspace.counts.events > 0 ? "All events have passed" : "No events planned yet"}
-                </h3>
+                </h2>
                 <p className="font-body-md text-body-md text-on-surface-variant">
                   {workspace.counts.events > 0
                     ? "Add another function to see what's coming up next."
@@ -271,7 +271,7 @@ export function RsvpWidget() {
                 <span className={`h-2 w-2 rounded-full ${item.dot}`} />
                 <span className="font-title text-body-sm font-semibold">0</span>
               </div>
-              <p className="mt-1 font-label-sm text-label-sm font-medium tracking-wider text-outline uppercase">
+              <p className="mt-1 font-label-sm text-label-sm font-medium tracking-wider text-on-surface-variant uppercase">
                 {item.label}
               </p>
             </div>
@@ -426,14 +426,14 @@ function TeamRow({ member }: { member: TeamMember }) {
           {member.initials}
         </div>
         <div>
-          <h5
+          <h3
             className={`font-title text-body-sm text-on-surface ${member.isYou ? "font-semibold" : ""}`}
           >
             {member.name}
             {member.isYou ? (
               <span className="text-[11px] font-normal text-outline"> (You)</span>
             ) : null}
-          </h5>
+          </h3>
           <p className="font-body-sm text-[12px] text-outline">{relationship}</p>
         </div>
       </div>

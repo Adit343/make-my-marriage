@@ -3,7 +3,7 @@
 > What is left to build, in order, with the decisions that must be made first.
 > Where the project is *now* is in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). **Read that file first.**
 >
-> Last updated: **2026-10-10** · Phase 1 complete · **Phase 2 in progress: events are built end to end (steps 2.1–2.3 committed and pushed). The schedule editor is committed. Tasks (backend and UI) are built, uncommitted. Left: a Phase 2 review/hardening pass.**
+> Last updated: **2026-10-10** · Phases 1 and 2 complete · **Phase 3 (Guests and invitations) is next and has NOT been started.**
 
 **Contents**
 
@@ -28,11 +28,11 @@
 1. Open the project folder in Claude Code (the four design docs, `PROJECT_STATUS.md` and this file are
    imported automatically through `CLAUDE.md`).
 2. If working on a new machine, follow `PROJECT_STATUS.md` §3 (Node 24, `npm ci`, `.env.local`, branch `dev`, Stitch MCP).
-3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **276 passing**).
+3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **458 passing**).
 4. Start the next piece of work with a prompt like:
 
-   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. We are starting **Phase 2**. Do not create
-   > files, install anything or write code yet. Check my Stitch project for Events and Tasks screens,
+   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. We are starting **Phase 3**. Do not create
+   > files, install anything or write code yet. Check my Stitch project for Guests, Invitations and RSVP screens,
    > then propose a step-by-step plan (like Phase 1's steps) with the open decisions you need answered.
    > Wait for my approval.
 
@@ -86,7 +86,7 @@ These come from `CLAUDE.md`, the architecture and the working agreement. Repeat 
 | Phase | Name                    | Collections introduced                                   | Status                                                  |
 | ----- | ----------------------- | -------------------------------------------------------- | ------------------------------------------------------- |
 | 1     | Foundation              | users, sessions, passwordResetTokens, weddings, weddingMembers, weddingInvitations, emailLogs, rateLimitCounters | **Done** (steps 1.1–1.9)                |
-| 2     | Planning                | events, tasks (+ schedule: model undecided)              | **Next**: needs a plan and decisions (§4)               |
+| 2     | Planning                | events (with embedded schedule), tasks                   | **Done** (steps 2.1–2.7)                                |
 | 3     | Guests & Invitations    | guestGroups, guests, rsvps (emailLogs already exists)    | Not started; needs a verified email domain in practice  |
 | 4     | Financials & Vendors    | expenses, vendors, vendorPayments                        | Not started; PRD/role conflict to resolve (§6)          |
 | 5     | Wedding Experience      | weddingWebsites, liveStreams                             | Not started                                             |
@@ -160,7 +160,7 @@ Permissions to add: `events:edit`, `tasks:edit` → all roles (owner, admin, mem
 - **2.6** ✅ tasks UI from the owner's three Stitch screens: Tasks screen (list grouped by event + drag-and-drop board + filters), task slide-over, event-page task card, dashboard widget, sidebar badge (built 2026-10-10).
 - **2.3** ✅ events UI: timeline, event page, add/edit/duplicate slide-over, sidebar link, dashboard wiring (built 2026-10-10 from the owner's three Events screens). (Tasks UI: see 2.6 below.) from Stitch/approved style; dashboard wiring; browser verification.
 - **2.4** ✅ (schedule editor, built 2026-10-10 in the existing style with the owner's approval; no Stitch design).
-- **2.7** Phase 2 review/hardening pass (not started): re-read the permission rules, check indexes with `explain()` on a realistic task set, accessibility pass on the drag-and-drop board and slide-overs, update the DB and API design docs with the additions listed in `PROJECT_STATUS.md` §14.3.
+- **2.7** ✅ Phase 2 review/hardening pass (built 2026-10-10): permission and isolation tests extended, indexes checked with `explain()` (one index added), accessibility pass with axe-core and keyboard checks (0 violations on 13 screens), DB and API design docs updated. Details in `PROJECT_STATUS.md` §13.
 
 ---
 
@@ -347,7 +347,8 @@ Items not belonging to a single phase. Ask the owner to prioritise.
 - [ ] Stitch designs for `/join/[token]`, not-found, error pages; restyle if they arrive.
 - [ ] Footer links (Terms, Security & Compliance, Contact Support), "Concierge Support", landing-page placeholders.
 - [ ] Dashboard "Quick Actions"/notice banner content as modules arrive.
-- [ ] Accessibility pass (focus management in dialogs/menus, keyboard navigation, contrast) — partly Phase 7.
+- [x] Accessibility pass for the Phase 1–2 screens (done 2026-10-10: focus in dialogs, menu keyboard navigation, contrast, headings; 0 axe violations). **Still for Phase 7:** make it repeatable in CI (e.g. Playwright + axe), cover Phase 3+ screens, screen-reader testing by a person, touch alternative to drag and drop if wanted.
+- [ ] **Favicon** (every page logs a 404 for `/favicon.ico`): needs a design asset.
 
 **Docs and process**
 

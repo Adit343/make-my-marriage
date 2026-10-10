@@ -16,6 +16,7 @@ export default async function SettingsPage() {
 
   return (
     <AppShell dashboard={page.dashboard} active="settings" width="narrow">
+      <h1 className="sr-only">Settings</h1>
       <SettingsPanel
         wedding={page.wedding}
         user={page.user}

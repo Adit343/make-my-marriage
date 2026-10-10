@@ -47,6 +47,10 @@ taskSchema.index({ weddingId: 1, status: 1, dueDate: 1 });
 taskSchema.index({ weddingId: 1, eventId: 1 });
 // "My tasks" (multikey).
 taskSchema.index({ weddingId: 1, assigneeMemberIds: 1 });
+// Newest-first paging and "every task of this wedding" read ONE wedding in id order. Without this the
+// database walks the global _id index and reads other weddings' tasks (found with explain() in
+// tests/integration/database/query-plans.test.ts). Same shape as expenses in DB Design §8.2.
+taskSchema.index({ weddingId: 1, _id: -1 });
 
 export type TaskRecord = InferSchemaType<typeof taskSchema>;
 export const Task = defineModel("Task", taskSchema);

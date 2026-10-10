@@ -70,7 +70,7 @@ function TypeBadge({ event }: { event: EventDetailView }) {
     <span
       className={`rounded-full px-3 py-1 text-[11px] font-medium tracking-wide ${
         haldi
-          ? "border border-[#ECD9A8]/50 bg-[#FAF2DE] text-[#8B6B2B]"
+          ? "border border-[#ECD9A8]/50 bg-[#FAF2DE] text-[#775A22]"
           : "bg-[#1F4D3D]/10 text-[#1F4D3D]"
       }`}
     >
@@ -245,7 +245,7 @@ export default async function EventPage({ params }: { params: Promise<{ eventId:
               {event.dressCode ? (
                 <div className="border-t border-[#2A2622]/[0.05] pt-4">
                   <div className={SECTION_LABEL}>Dress Code</div>
-                  <div className="mt-1 flex items-center gap-1.5 text-body-sm font-medium text-[#B5714A]">
+                  <div className="mt-1 flex items-center gap-1.5 text-body-sm font-medium text-[#9A5A36]">
                     <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#E5AB35]" />
                     {event.dressCode}
                   </div>

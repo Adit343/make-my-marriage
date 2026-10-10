@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   createEvent,
   updateEvent,
@@ -8,6 +8,7 @@ import {
   type EventLocation,
 } from "@/components/events/events-api";
 import { Icon } from "@/components/ui/icon";
+import { useDialogFocus } from "@/components/ui/use-dialog-focus";
 import { useToast } from "@/components/ui/toast";
 import { ApiError, errorMessage } from "@/lib/client/api-client";
 import { EVENT_TYPES, type EventType } from "@/lib/constants/enums";
@@ -126,6 +127,8 @@ export function EventDrawer({
   onSaved: () => void;
 }) {
   const toast = useToast();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef);
   const editing = mode.kind === "edit";
   const [form, setForm] = useState<FormState>(() => initialState(mode, weddingTimezone));
   const [errors, setErrors] = useState<Errors>({});
@@ -240,316 +243,319 @@ export function EventDrawer({
           if (!saving) onClose();
         }}
       />
-      <form
+      <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="event-drawer-title"
-        noValidate
-        onSubmit={handleSubmit}
         className="fixed inset-y-0 right-0 flex w-[480px] max-w-full flex-col border-l border-[#E5DDD2] bg-[#FAF6F0] shadow-2xl"
       >
-        <header className="flex-shrink-0 border-b border-[#2A2622]/[0.06] bg-[#FAF6F0] px-7 pt-7 pb-5">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-secondary" />
-                <span className="font-label-sm text-label-sm font-semibold tracking-wider text-secondary uppercase">
-                  Itinerary Builder
-                </span>
+        <form noValidate onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <header className="flex-shrink-0 border-b border-[#2A2622]/[0.06] bg-[#FAF6F0] px-7 pt-7 pb-5">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-secondary" />
+                  <span className="font-label-sm text-label-sm font-semibold tracking-wider text-secondary uppercase">
+                    Itinerary Builder
+                  </span>
+                </div>
+                <h2
+                  id="event-drawer-title"
+                  className="font-headline-sm text-2xl font-medium tracking-tight text-[#2A2622]"
+                >
+                  {title}
+                </h2>
+                <p className="pt-0.5 font-body-sm text-body-sm text-on-surface-variant">
+                  {subtitle}
+                </p>
               </div>
-              <h2
-                id="event-drawer-title"
-                className="font-headline-sm text-2xl font-medium tracking-tight text-[#2A2622]"
+              <button
+                type="button"
+                aria-label="Close panel"
+                onClick={onClose}
+                className="-mr-2 rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-[#F2ECE3] hover:text-[#2A2622]"
               >
-                {title}
-              </h2>
-              <p className="pt-0.5 font-body-sm text-body-sm text-on-surface-variant">{subtitle}</p>
+                <Icon name="close" />
+              </button>
             </div>
-            <button
-              type="button"
-              aria-label="Close panel"
-              onClick={onClose}
-              className="-mr-2 rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-[#F2ECE3] hover:text-[#2A2622]"
-            >
-              <Icon name="close" />
-            </button>
-          </div>
-        </header>
+          </header>
 
-        <div className="custom-scrollbar flex-1 space-y-6 overflow-y-auto px-7 py-6">
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="event-name" className={LABEL}>
-                Event name <span className="text-secondary">*</span>
-              </label>
-              <Counter error={errors.name} />
-            </div>
-            <div className="relative">
-              <input
-                id="event-name"
-                type="text"
-                autoFocus
-                autoComplete="off"
-                maxLength={120}
-                placeholder="e.g., Sangeet night"
-                value={form.name}
-                onChange={(e) => set("name", e.target.value)}
-                aria-invalid={Boolean(errors.name)}
-                className={`${FIELD} pr-10 ${errors.name ? "border-error" : ""}`}
-              />
-              <Icon
-                name="celebration"
-                className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-surface-tint"
-              />
-            </div>
-            <p className="font-body-sm text-[12px] text-on-surface-variant">
-              Displayed as the primary headline on digital invitations &amp; schedules.
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="event-type" className={LABEL}>
-              Event type <span className="text-secondary">*</span>
-            </label>
-            <div className="relative">
-              <select
-                id="event-type"
-                value={form.type}
-                onChange={(e) => set("type", e.target.value as EventType)}
-                className={`${FIELD} cursor-pointer appearance-none`}
-              >
-                {EVENT_TYPES.map((value) => (
-                  <option key={value} value={value}>
-                    {EVENT_TYPE_LABEL[value]}
-                  </option>
-                ))}
-              </select>
-              <Icon
-                name="expand_more"
-                className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[18px] text-on-surface-variant"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3.5">
+          <div className="custom-scrollbar flex-1 space-y-6 overflow-y-auto px-7 py-6">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label htmlFor="event-start" className={LABEL}>
-                  Starts <span className="text-secondary">*</span>
+                <label htmlFor="event-name" className={LABEL}>
+                  Event name <span className="text-secondary">*</span>
                 </label>
-                <Counter error={errors.starts} />
+                <Counter error={errors.name} />
               </div>
               <div className="relative">
                 <input
-                  id="event-start"
-                  type="datetime-local"
-                  value={form.starts}
-                  onChange={(e) => set("starts", e.target.value)}
-                  aria-invalid={Boolean(errors.starts)}
-                  className={`${FIELD_SM} ${PICKER} pr-8 pl-3 ${errors.starts ? "border-error" : ""}`}
+                  id="event-name"
+                  type="text"
+                  autoFocus
+                  autoComplete="off"
+                  maxLength={120}
+                  placeholder="e.g., Sangeet night"
+                  value={form.name}
+                  onChange={(e) => set("name", e.target.value)}
+                  aria-invalid={Boolean(errors.name)}
+                  className={`${FIELD} pr-10 ${errors.name ? "border-error" : ""}`}
                 />
                 <Icon
-                  name="calendar_today"
-                  className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-[16px] text-on-surface-variant"
+                  name="celebration"
+                  className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-surface-tint"
+                />
+              </div>
+              <p className="font-body-sm text-[12px] text-on-surface-variant">
+                Displayed as the primary headline on digital invitations &amp; schedules.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="event-type" className={LABEL}>
+                Event type <span className="text-secondary">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  id="event-type"
+                  value={form.type}
+                  onChange={(e) => set("type", e.target.value as EventType)}
+                  className={`${FIELD} cursor-pointer appearance-none`}
+                >
+                  {EVENT_TYPES.map((value) => (
+                    <option key={value} value={value}>
+                      {EVENT_TYPE_LABEL[value]}
+                    </option>
+                  ))}
+                </select>
+                <Icon
+                  name="expand_more"
+                  className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[18px] text-on-surface-variant"
                 />
               </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="event-start" className={LABEL}>
+                    Starts <span className="text-secondary">*</span>
+                  </label>
+                  <Counter error={errors.starts} />
+                </div>
+                <div className="relative">
+                  <input
+                    id="event-start"
+                    type="datetime-local"
+                    value={form.starts}
+                    onChange={(e) => set("starts", e.target.value)}
+                    aria-invalid={Boolean(errors.starts)}
+                    className={`${FIELD_SM} ${PICKER} pr-8 pl-3 ${errors.starts ? "border-error" : ""}`}
+                  />
+                  <Icon
+                    name="calendar_today"
+                    className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-[16px] text-on-surface-variant"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="event-end"
+                    className="block font-label-md text-label-md font-medium text-[#2A2622]"
+                  >
+                    Ends <span className="font-normal text-on-surface-variant">(optional)</span>
+                  </label>
+                </div>
+                <div className="relative">
+                  <input
+                    id="event-end"
+                    type="datetime-local"
+                    value={form.ends}
+                    onChange={(e) => set("ends", e.target.value)}
+                    aria-invalid={Boolean(errors.ends)}
+                    className={`${FIELD_SM} ${PICKER} pr-8 pl-3 ${errors.ends ? "border-error" : ""}`}
+                  />
+                  <Icon
+                    name="schedule"
+                    className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-[16px] text-on-surface-variant"
+                  />
+                </div>
+                {errors.ends ? <p className="text-[11px] text-error">{errors.ends}</p> : null}
+              </div>
+            </div>
+
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+              <label htmlFor="event-timezone" className={LABEL}>
+                Timezone
+              </label>
+              <div className="relative">
+                <select
+                  id="event-timezone"
+                  value={form.timezone}
+                  onChange={(e) => set("timezone", e.target.value)}
+                  className={`${FIELD_SM} cursor-pointer appearance-none`}
+                >
+                  {timezoneOptions.map((zone) => (
+                    <option key={zone.value} value={zone.value}>
+                      {zone.label}
+                    </option>
+                  ))}
+                </select>
+                <Icon
+                  name="public"
+                  className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[18px] text-on-surface-variant"
+                />
+              </div>
+              <p className="font-body-sm text-[12px] text-on-surface-variant">
+                The start and end times above are read in this timezone.
+              </p>
+            </div>
+
+            <div className="space-y-4 rounded-xl border border-[#2A2622]/[0.08] bg-[#FFFDF9] p-4">
+              <div className="flex items-center gap-2 border-b border-[#2A2622]/[0.04] pb-1">
+                <Icon name="pin_drop" className="text-[18px] text-[#1F4D3D]" />
+                <span className="font-title text-[14px] text-[#2A2622]">Venue &amp; Location</span>
+              </div>
+              <div className="space-y-1.5">
                 <label
-                  htmlFor="event-end"
+                  htmlFor="event-venue"
                   className="block font-label-md text-label-md font-medium text-[#2A2622]"
                 >
-                  Ends <span className="font-normal text-on-surface-variant">(optional)</span>
+                  Venue name
                 </label>
+                <input
+                  id="event-venue"
+                  type="text"
+                  maxLength={200}
+                  autoComplete="off"
+                  placeholder="e.g., Grand Ballroom, Marriott Surat"
+                  value={form.venue}
+                  onChange={(e) => set("venue", e.target.value)}
+                  className={INNER_FIELD}
+                />
               </div>
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="event-address"
+                  className="block font-label-md text-label-md font-medium text-[#2A2622]"
+                >
+                  Address
+                </label>
+                <input
+                  id="event-address"
+                  type="text"
+                  maxLength={200}
+                  autoComplete="off"
+                  placeholder="e.g., Dumas Road, Piplod, Surat, Gujarat 395007"
+                  value={form.address}
+                  onChange={(e) => set("address", e.target.value)}
+                  className={INNER_FIELD}
+                />
+                <p className="font-body-sm text-[12px] text-on-surface-variant">
+                  Type the full address. Guests get a Google Maps link from it.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="event-dress"
+                className="block font-label-md text-label-md font-medium text-[#2A2622]"
+              >
+                Dress code <span className="font-normal text-on-surface-variant">(optional)</span>
+              </label>
               <div className="relative">
                 <input
-                  id="event-end"
-                  type="datetime-local"
-                  value={form.ends}
-                  onChange={(e) => set("ends", e.target.value)}
-                  aria-invalid={Boolean(errors.ends)}
-                  className={`${FIELD_SM} ${PICKER} pr-8 pl-3 ${errors.ends ? "border-error" : ""}`}
+                  id="event-dress"
+                  type="text"
+                  maxLength={200}
+                  autoComplete="off"
+                  placeholder="e.g., Indo-Western Glitz & Glam / Formal Indian"
+                  value={form.dressCode}
+                  onChange={(e) => set("dressCode", e.target.value)}
+                  className={`${FIELD} pr-10`}
                 />
                 <Icon
-                  name="schedule"
-                  className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-[16px] text-on-surface-variant"
+                  name="apparel"
+                  className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-on-surface-variant"
                 />
               </div>
-              {errors.ends ? <p className="text-[11px] text-error">{errors.ends}</p> : null}
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <label htmlFor="event-timezone" className={LABEL}>
-              Timezone
-            </label>
-            <div className="relative">
-              <select
-                id="event-timezone"
-                value={form.timezone}
-                onChange={(e) => set("timezone", e.target.value)}
-                className={`${FIELD_SM} cursor-pointer appearance-none`}
-              >
-                {timezoneOptions.map((zone) => (
-                  <option key={zone.value} value={zone.value}>
-                    {zone.label}
-                  </option>
-                ))}
-              </select>
-              <Icon
-                name="public"
-                className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[18px] text-on-surface-variant"
-              />
-            </div>
-            <p className="font-body-sm text-[12px] text-on-surface-variant">
-              The start and end times above are read in this timezone.
-            </p>
-          </div>
-
-          <div className="space-y-4 rounded-xl border border-[#2A2622]/[0.08] bg-[#FFFDF9] p-4">
-            <div className="flex items-center gap-2 border-b border-[#2A2622]/[0.04] pb-1">
-              <Icon name="pin_drop" className="text-[18px] text-[#1F4D3D]" />
-              <span className="font-title text-[14px] text-[#2A2622]">Venue &amp; Location</span>
-            </div>
             <div className="space-y-1.5">
               <label
-                htmlFor="event-venue"
+                htmlFor="event-description"
                 className="block font-label-md text-label-md font-medium text-[#2A2622]"
               >
-                Venue name
+                Description <span className="font-normal text-on-surface-variant">(optional)</span>
               </label>
-              <input
-                id="event-venue"
-                type="text"
-                maxLength={200}
-                autoComplete="off"
-                placeholder="e.g., Grand Ballroom, Marriott Surat"
-                value={form.venue}
-                onChange={(e) => set("venue", e.target.value)}
-                className={INNER_FIELD}
+              <textarea
+                id="event-description"
+                rows={4}
+                maxLength={2000}
+                placeholder="Add details about traditions, schedule, or notes for your guests."
+                value={form.description}
+                onChange={(e) => set("description", e.target.value)}
+                className={`${FIELD_SM} resize-none`}
               />
             </div>
-            <div className="space-y-1.5">
-              <label
-                htmlFor="event-address"
-                className="block font-label-md text-label-md font-medium text-[#2A2622]"
+
+            <div className="flex items-start justify-between gap-4 rounded-xl border border-[#2A2622]/[0.08] bg-[#FFFDF9] p-4">
+              <div className="space-y-1">
+                <label
+                  htmlFor="event-public"
+                  className="block cursor-pointer font-title text-[14px] font-semibold text-[#2A2622]"
+                >
+                  Show on wedding website
+                </label>
+                <p className="font-body-sm text-[12px] leading-relaxed text-on-surface-variant">
+                  Visible to anyone with your public website link. Leave off for private family-only
+                  rituals.
+                </p>
+              </div>
+              <div className="flex-shrink-0 pt-0.5">
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    id="event-public"
+                    type="checkbox"
+                    checked={form.isPublic}
+                    onChange={(e) => set("isPublic", e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <div className="h-6 w-11 rounded-full bg-[#E5DDD2] transition-colors after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform after:content-[''] peer-checked:bg-[#1F4D3D] peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-[#B5714A] peer-focus-visible:ring-offset-2" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <footer className="flex flex-shrink-0 items-center justify-between gap-3 border-t border-[#E8E1D7] bg-[#FAF6F0]/95 px-7 py-4 backdrop-blur-md">
+            <div className="flex min-w-0 items-center gap-2 font-body-sm text-body-sm text-on-surface-variant">
+              <Icon name="lock" className="shrink-0 text-[16px] text-surface-tint" />
+              <span className="truncate">Shared with your team</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={saving}
+                className="shrink-0 rounded-lg border border-[#D5CCC0] px-5 py-2.5 font-label-md text-label-md font-medium text-[#2A2622] transition-colors hover:bg-[#F2ECE3] focus:ring-2 focus:ring-[#B5714A] focus:outline-none active:scale-[0.99]"
               >
-                Address
-              </label>
-              <input
-                id="event-address"
-                type="text"
-                maxLength={200}
-                autoComplete="off"
-                placeholder="e.g., Dumas Road, Piplod, Surat, Gujarat 395007"
-                value={form.address}
-                onChange={(e) => set("address", e.target.value)}
-                className={INNER_FIELD}
-              />
-              <p className="font-body-sm text-[12px] text-on-surface-variant">
-                Type the full address. Guests get a Google Maps link from it.
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label
-              htmlFor="event-dress"
-              className="block font-label-md text-label-md font-medium text-[#2A2622]"
-            >
-              Dress code <span className="font-normal text-on-surface-variant">(optional)</span>
-            </label>
-            <div className="relative">
-              <input
-                id="event-dress"
-                type="text"
-                maxLength={200}
-                autoComplete="off"
-                placeholder="e.g., Indo-Western Glitz & Glam / Formal Indian"
-                value={form.dressCode}
-                onChange={(e) => set("dressCode", e.target.value)}
-                className={`${FIELD} pr-10`}
-              />
-              <Icon
-                name="apparel"
-                className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-on-surface-variant"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label
-              htmlFor="event-description"
-              className="block font-label-md text-label-md font-medium text-[#2A2622]"
-            >
-              Description <span className="font-normal text-on-surface-variant">(optional)</span>
-            </label>
-            <textarea
-              id="event-description"
-              rows={4}
-              maxLength={2000}
-              placeholder="Add details about traditions, schedule, or notes for your guests."
-              value={form.description}
-              onChange={(e) => set("description", e.target.value)}
-              className={`${FIELD_SM} resize-none`}
-            />
-          </div>
-
-          <div className="flex items-start justify-between gap-4 rounded-xl border border-[#2A2622]/[0.08] bg-[#FFFDF9] p-4">
-            <div className="space-y-1">
-              <label
-                htmlFor="event-public"
-                className="block cursor-pointer font-title text-[14px] font-semibold text-[#2A2622]"
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex shrink-0 items-center gap-2 rounded-xl bg-[#1F4D3D] px-6 py-2.5 font-label-md text-label-md font-medium text-[#FAF6F0] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#16382c] focus:ring-2 focus:ring-[#B5714A] focus:ring-offset-2 focus:outline-none active:scale-[0.99] disabled:opacity-70"
               >
-                Show on wedding website
-              </label>
-              <p className="font-body-sm text-[12px] leading-relaxed text-on-surface-variant">
-                Visible to anyone with your public website link. Leave off for private family-only
-                rituals.
-              </p>
+                <Icon name="check" className="text-[16px]" />
+                {saving ? "Saving..." : "Save event"}
+              </button>
             </div>
-            <div className="flex-shrink-0 pt-0.5">
-              <label className="relative inline-flex cursor-pointer items-center">
-                <input
-                  id="event-public"
-                  type="checkbox"
-                  checked={form.isPublic}
-                  onChange={(e) => set("isPublic", e.target.checked)}
-                  className="peer sr-only"
-                />
-                <div className="h-6 w-11 rounded-full bg-[#E5DDD2] transition-colors after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform after:content-[''] peer-checked:bg-[#1F4D3D] peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-[#B5714A] peer-focus-visible:ring-offset-2" />
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <footer className="flex flex-shrink-0 items-center justify-between gap-3 border-t border-[#E8E1D7] bg-[#FAF6F0]/95 px-7 py-4 backdrop-blur-md">
-          <div className="flex min-w-0 items-center gap-2 font-body-sm text-body-sm text-on-surface-variant">
-            <Icon name="lock" className="shrink-0 text-[16px] text-surface-tint" />
-            <span className="truncate">Shared with your team</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="shrink-0 rounded-lg border border-[#D5CCC0] px-5 py-2.5 font-label-md text-label-md font-medium text-[#2A2622] transition-colors hover:bg-[#F2ECE3] focus:ring-2 focus:ring-[#B5714A] focus:outline-none active:scale-[0.99]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex shrink-0 items-center gap-2 rounded-xl bg-[#1F4D3D] px-6 py-2.5 font-label-md text-label-md font-medium text-[#FAF6F0] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#16382c] focus:ring-2 focus:ring-[#B5714A] focus:ring-offset-2 focus:outline-none active:scale-[0.99] disabled:opacity-70"
-            >
-              <Icon name="check" className="text-[16px]" />
-              {saving ? "Saving..." : "Save event"}
-            </button>
-          </div>
-        </footer>
-      </form>
+          </footer>
+        </form>
+      </div>
     </div>
   );
 }

@@ -111,7 +111,7 @@ export function EventTasksCard({
                           {task.doneLabel ?? "Done"}
                         </span>
                       ) : task.overdueLabel ? (
-                        <span className="inline-flex items-center gap-1 font-medium text-[#B5714A]">
+                        <span className="inline-flex items-center gap-1 font-medium text-secondary">
                           <Icon name="event" className="text-[13px]" />
                           {task.overdueLabel}
                         </span>

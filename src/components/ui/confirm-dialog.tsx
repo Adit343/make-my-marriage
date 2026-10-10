@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/icon";
+import { useDialogFocus } from "@/components/ui/use-dialog-focus";
 
 /**
  * A modal confirmation, styled like the Stitch Settings screen's modals. `requireText` makes the
@@ -29,6 +30,8 @@ export function ConfirmDialog({
   onCancel: () => void;
 }) {
   const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef);
   const [typed, setTyped] = useState("");
   const allowed = !requireText || typed.trim() === requireText;
 
@@ -42,6 +45,7 @@ export function ConfirmDialog({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}

@@ -561,12 +561,17 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 | `{ weddingId: 1, status: 1, dueDate: 1 }` | Main task board / "what's due soon" |
 | `{ weddingId: 1, eventId: 1 }` | Tasks for one event |
 | `{ weddingId: 1, assigneeMemberIds: 1 }` (multikey) | "My tasks" |
+| `{ weddingId: 1, _id: -1 }` | *Added 2026-10-10.* Newest-first paging and "every task of this wedding". Found with `explain()` (Phase 2 review, §8.1 rule 5): without it, sorting a wedding's tasks by `_id` made MongoDB walk the **global** `_id` index and read other weddings' tasks. Same shape as `expenses` (§6.12). |
 
 **Rules**
 
 - Assignees must be **active members of the same wedding** (checked in service).
 - Why membership ids instead of user ids: an assignment is "a role in this wedding", and validating "is this assignee in *this* wedding" is a direct lookup.
 - **Limitation:** no subtasks, comments, or recurrence in V1. **Alternative:** a `checklist[]` sub-array (bounded) if subtasks are needed later.
+- `dueDate` stays a `YYYY-MM-DD` string. The Stitch task form shows a date **and time**; the decision (2026-10-10) was to keep the date-only design (§3.5) because a due date must not shift with the viewer's timezone. A due time would be a schema change.
+- `completedBy` is stored for audit but not returned by the API.
+- Deleting an event sets `eventId: null` on its tasks in the same transaction (§6.7 rule 1); removing a member `$pull`s them from `assigneeMemberIds` in the same transaction as the soft delete (§6.5 rule 4).
+- **Permissions (owner, 2026-10-10):** any member edits any task; a member deletes only tasks they created (`createdBy`), admin/owner any. Events: a member edits or deletes only their own.
 
 ---
 ### 6.9 `guestGroups`
@@ -1031,7 +1036,7 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 | `weddingInvitations` | `{weddingId:1, emailNormalized:1}` | unique, partial (`status:"pending"`) |
 | `weddingInvitations` | `{purgeAt:1}` | TTL 0 |
 | `events` | `{weddingId:1, startsAt:1}` | |
-| `tasks` | `{weddingId:1, status:1, dueDate:1}` · `{weddingId:1, eventId:1}` · `{weddingId:1, assigneeMemberIds:1}` | multikey on the last |
+| `tasks` | `{weddingId:1, status:1, dueDate:1}` · `{weddingId:1, eventId:1}` · `{weddingId:1, assigneeMemberIds:1}` · `{weddingId:1, _id:-1}` | multikey on the third; the fourth was added in the Phase 2 review |
 | `guestGroups` | `{weddingId:1, nameNormalized:1}` | unique, partial (`deletedAt` null) |
 | `guests` | `{weddingId:1, nameNormalized:1, _id:1}` | |
 | `guests` | `{weddingId:1, groupId:1}` | |

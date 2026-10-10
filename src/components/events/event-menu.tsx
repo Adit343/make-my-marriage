@@ -62,6 +62,37 @@ export function EventMenu({
     };
   }, [open]);
 
+  // Opening the menu with the keyboard (or mouse) puts focus on its first entry.
+  useEffect(() => {
+    if (open && position) {
+      menu.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    }
+  }, [open, position]);
+
+  /** Arrow keys, Home and End move between entries; Tab leaves the menu (closing it). */
+  function onMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    const entries = [
+      ...(menu.current?.querySelectorAll<HTMLElement>(
+        '[role="menuitem"], [role="menuitemradio"]',
+      ) ?? []),
+    ];
+    if (entries.length === 0) return;
+    const at = entries.indexOf(document.activeElement as HTMLElement);
+    let next: number | null = null;
+    if (event.key === "ArrowDown") next = (at + 1) % entries.length;
+    else if (event.key === "ArrowUp") next = (at - 1 + entries.length) % entries.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = entries.length - 1;
+    else if (event.key === "Tab") {
+      setOpen(false);
+      setExpanded(null);
+      return;
+    }
+    if (next === null) return;
+    event.preventDefault();
+    entries[next]?.focus();
+  }
+
   function toggle() {
     if (!open && button.current) {
       const rect = button.current.getBoundingClientRect();
@@ -99,6 +130,8 @@ export function EventMenu({
         <div
           ref={menu}
           role="menu"
+          aria-label={`Options for ${eventName}`}
+          onKeyDown={onMenuKeyDown}
           style={{ top: position.top, right: position.right }}
           className="elevation-2 fixed z-50 w-48 rounded-xl border border-[#2A2622]/[0.08] bg-[#FFFDF9] py-1.5"
         >
@@ -118,6 +151,9 @@ export function EventMenu({
                     return;
                   }
                   setOpen(false);
+                  // Focus goes back to the button first, so a dialog this opens remembers it and
+                  // returns here when it closes.
+                  button.current?.focus();
                   item.onSelect?.();
                 }}
                 className={`flex w-full items-center gap-2.5 px-3.5 py-1.5 text-left font-body-sm text-[13px] transition-colors ${
@@ -149,6 +185,7 @@ export function EventMenu({
                       onClick={() => {
                         setOpen(false);
                         setExpanded(null);
+                        button.current?.focus();
                         choice.onSelect();
                       }}
                       className="flex w-full items-center gap-2 px-3 py-1.5 text-left font-body-sm text-[13px] text-[#2A2622] transition-colors hover:bg-surface-container hover:text-primary"

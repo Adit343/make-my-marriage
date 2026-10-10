@@ -28,6 +28,7 @@ export default async function DashboardPage() {
 
   return (
     <AppShell dashboard={{ viewer, workspace }} active="dashboard">
+      <h1 className="sr-only">Overview</h1>
       {workspace.daysUntilWedding === null ? (
         <NoticeBanner noticeId={`${workspace.weddingId}:no-date`}>
           <strong className="font-title font-semibold text-primary">Notice:</strong> Your wedding

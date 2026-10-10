@@ -35,7 +35,7 @@ export type ViewMode = "list" | "board";
 const PRIORITY_CHIP = {
   high: "bg-primary-fixed/30 text-primary",
   medium: "bg-surface-container text-on-surface-variant",
-  low: "bg-surface-container-low text-outline",
+  low: "bg-surface-container-low text-on-surface-variant",
 } as const;
 const PRIORITY_BAR = { high: "bg-[#1F4D3D]", medium: "bg-[#B5714A]", low: "bg-[#C0C8C3]" } as const;
 const STATUS_PILL: Record<TaskStatus, string> = {
@@ -376,9 +376,9 @@ function ListView({
                   className={`text-on-surface-variant transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
                 />
                 <div className="min-w-0">
-                  <h3 className="truncate font-headline-sm text-headline-sm font-medium text-primary">
+                  <h2 className="truncate font-headline-sm text-headline-sm font-medium text-primary">
                     {group.title}
-                  </h3>
+                  </h2>
                   {group.subtitle ? (
                     <p className="truncate font-body-sm text-body-sm text-on-surface-variant">
                       {group.subtitle}
@@ -435,7 +435,7 @@ function ListRow({ task, actions }: { task: TaskView; actions: Actions }) {
           type="button"
           onClick={() => actions.openDrawer({ kind: "edit", task })}
           className={`min-w-0 truncate text-left font-body-md text-body-md transition-colors hover:text-primary ${
-            done ? "text-on-surface-variant/60 line-through" : "text-on-background"
+            done ? "text-on-surface-variant/80 line-through" : "text-on-background"
           }`}
         >
           {task.title}
@@ -467,7 +467,7 @@ function ListRow({ task, actions }: { task: TaskView; actions: Actions }) {
 function DueCell({ task }: { task: TaskView }) {
   if (task.status === "done") {
     return (
-      <span className="font-body-sm text-body-sm text-on-surface-variant/60 md:w-28 md:text-right">
+      <span className="font-body-sm text-body-sm text-on-surface-variant/80 md:w-28 md:text-right">
         {task.doneLabel ?? task.dueLabel ?? "—"}
       </span>
     );
@@ -504,7 +504,15 @@ function BoardView({
   const [over, setOver] = useState<TaskStatus | null>(null);
 
   return (
-    <section className="grid grid-cols-1 items-start gap-6 pb-6 md:grid-cols-3">
+    <section
+      aria-label="Task board"
+      aria-describedby="board-hint"
+      className="grid grid-cols-1 items-start gap-6 pb-6 md:grid-cols-3"
+    >
+      <p id="board-hint" className="sr-only">
+        Drag a card to another column to change its status. Without a mouse, open a card&apos;s
+        options menu and choose Change status.
+      </p>
       {TASK_STATUSES.map((status) => {
         const column = tasks
           .filter((task) => task.status === status)
@@ -627,7 +635,7 @@ function BoardCard({
           <h3
             className={`min-w-0 font-title text-[15px] leading-snug font-semibold ${
               done
-                ? "text-on-surface-variant/70 line-through"
+                ? "text-on-surface-variant/80 line-through"
                 : "text-[#2A2622] transition-colors group-hover:text-primary"
             }`}
           >

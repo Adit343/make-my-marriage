@@ -14,6 +14,7 @@ import {
 } from "@/components/dashboard/workspace-api";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Icon } from "@/components/ui/icon";
+import { useDialogFocus } from "@/components/ui/use-dialog-focus";
 import { useToast } from "@/components/ui/toast";
 import { ApiError, errorMessage } from "@/lib/client/api-client";
 import {
@@ -663,6 +664,8 @@ function InviteDrawer({
   onSent: () => void;
 }) {
   const toast = useToast();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<InvitationRole>("member");
   const [relationship, setRelationship] = useState<MemberRelationship | "">("");
@@ -722,169 +725,174 @@ function InviteDrawer({
           if (!sending) onClose();
         }}
       />
-      <form
+      <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Invite member"
-        noValidate
-        onSubmit={handleSubmit}
         className="fixed inset-y-0 right-0 flex w-screen max-w-md flex-col justify-between bg-surface-container-lowest shadow-[-12px_0_36px_-6px_rgba(42,38,34,0.12)]"
       >
-        <div className="flex-1 space-y-6 overflow-y-auto p-8 select-text">
-          <div className="flex items-start justify-between border-b border-[#2A2622]/[0.06] pb-4">
-            <div>
-              <h3 className="font-headline-sm text-headline-sm font-medium text-on-surface">
-                Invite member
-              </h3>
-              <p className="mt-1 font-body-sm text-body-sm text-on-surface-variant">
-                Add a family member, partner, or planner to this workspace.
+        <form
+          noValidate
+          onSubmit={handleSubmit}
+          className="flex min-h-0 flex-1 flex-col justify-between"
+        >
+          <div className="flex-1 space-y-6 overflow-y-auto p-8 select-text">
+            <div className="flex items-start justify-between border-b border-[#2A2622]/[0.06] pb-4">
+              <div>
+                <h3 className="font-headline-sm text-headline-sm font-medium text-on-surface">
+                  Invite member
+                </h3>
+                <p className="mt-1 font-body-sm text-body-sm text-on-surface-variant">
+                  Add a family member, partner, or planner to this workspace.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={onClose}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-outline transition-colors hover:bg-surface-container hover:text-on-surface"
+              >
+                <Icon name="close" />
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="invite-email" className={FIELD_LABEL}>
+                  Email address <span className="text-secondary">*</span>
+                </label>
+                {errors.email ? (
+                  <span className="text-[11px] text-error">Valid email required</span>
+                ) : null}
+              </div>
+              <input
+                id="invite-email"
+                type="email"
+                autoComplete="off"
+                autoFocus
+                placeholder="colleague@family.com"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  if (isEmailFormat(event.target.value)) setErrors((e) => ({ ...e, email: false }));
+                }}
+                aria-invalid={errors.email}
+                className={`${FIELD} ${errors.email ? "border-error" : ""}`}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="invite-role" className={FIELD_LABEL}>
+                Role &amp; Permissions <span className="text-secondary">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  id="invite-role"
+                  value={role}
+                  onChange={(event) => setRole(event.target.value as InvitationRole)}
+                  className={`${FIELD} cursor-pointer appearance-none`}
+                >
+                  {[...INVITATION_ROLES].reverse().map((value) => (
+                    <option key={value} value={value}>
+                      {ROLE_OPTION_TEXT[value]}
+                    </option>
+                  ))}
+                </select>
+                <Icon
+                  name="expand_more"
+                  className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-outline"
+                />
+              </div>
+              <p className="mt-1 text-[12px] leading-relaxed text-outline">
+                Admins can edit event details, sign off vendor agreements, and approve guest lists.
+                Only Owners can transfer wedding ownership or delete the project.
               </p>
             </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="invite-relationship" className={FIELD_LABEL}>
+                  Relationship <span className="text-secondary">*</span>
+                </label>
+                {errors.relationship ? (
+                  <span className="text-[11px] text-error">Select one</span>
+                ) : null}
+              </div>
+              <div className="relative">
+                <select
+                  id="invite-relationship"
+                  value={relationship}
+                  onChange={(event) => {
+                    setRelationship(event.target.value as MemberRelationship);
+                    setErrors((e) => ({ ...e, relationship: false }));
+                  }}
+                  aria-invalid={errors.relationship}
+                  className={`${FIELD} cursor-pointer appearance-none ${errors.relationship ? "border-error" : ""}`}
+                >
+                  <option value="" disabled>
+                    Select relationship
+                  </option>
+                  {INVITE_RELATIONSHIPS.map((value) => (
+                    <option key={value} value={value}>
+                      {RELATIONSHIP_PLAIN[value]}
+                    </option>
+                  ))}
+                </select>
+                <Icon
+                  name="expand_more"
+                  className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-outline"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="invite-message" className={FIELD_LABEL}>
+                  Personal message
+                </label>
+                <span className="font-label-sm text-label-sm text-outline">Optional</span>
+              </div>
+              <textarea
+                id="invite-message"
+                rows={3}
+                maxLength={500}
+                placeholder="Add a personal note to the email invitation..."
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                className={`${FIELD} resize-none`}
+              />
+            </div>
+
+            <div className="flex items-start gap-3 rounded-lg border border-[#2A2622]/[0.06] bg-surface-container p-3.5">
+              <Icon name="lock" className="mt-0.5 text-[18px] text-primary" />
+              <p className="font-body-sm text-[12px] leading-relaxed text-on-surface-variant">
+                Invitations generate a secure single-use link. No password setup required until
+                accepted.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-[#2A2622]/[0.06] bg-surface-container-low p-6">
+            <button
+              type="submit"
+              disabled={sending}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-title text-body-md font-semibold text-on-primary shadow-[0_2px_12px_-2px_rgba(42,38,34,0.04)] transition-all duration-200 hover:bg-primary-container active:scale-[0.99] disabled:opacity-70"
+            >
+              <Icon name="send" className="text-[18px]" />
+              <span>{sending ? "Sending..." : "Send invitation"}</span>
+            </button>
             <button
               type="button"
-              aria-label="Close"
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-outline transition-colors hover:bg-surface-container hover:text-on-surface"
+              disabled={sending}
+              className="py-2 text-center font-title text-body-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface"
             >
-              <Icon name="close" />
+              Cancel
             </button>
           </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="invite-email" className={FIELD_LABEL}>
-                Email address <span className="text-secondary">*</span>
-              </label>
-              {errors.email ? (
-                <span className="text-[11px] text-error">Valid email required</span>
-              ) : null}
-            </div>
-            <input
-              id="invite-email"
-              type="email"
-              autoComplete="off"
-              autoFocus
-              placeholder="colleague@family.com"
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value);
-                if (isEmailFormat(event.target.value)) setErrors((e) => ({ ...e, email: false }));
-              }}
-              aria-invalid={errors.email}
-              className={`${FIELD} ${errors.email ? "border-error" : ""}`}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="invite-role" className={FIELD_LABEL}>
-              Role &amp; Permissions <span className="text-secondary">*</span>
-            </label>
-            <div className="relative">
-              <select
-                id="invite-role"
-                value={role}
-                onChange={(event) => setRole(event.target.value as InvitationRole)}
-                className={`${FIELD} cursor-pointer appearance-none`}
-              >
-                {[...INVITATION_ROLES].reverse().map((value) => (
-                  <option key={value} value={value}>
-                    {ROLE_OPTION_TEXT[value]}
-                  </option>
-                ))}
-              </select>
-              <Icon
-                name="expand_more"
-                className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-outline"
-              />
-            </div>
-            <p className="mt-1 text-[12px] leading-relaxed text-outline">
-              Admins can edit event details, sign off vendor agreements, and approve guest lists.
-              Only Owners can transfer wedding ownership or delete the project.
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="invite-relationship" className={FIELD_LABEL}>
-                Relationship <span className="text-secondary">*</span>
-              </label>
-              {errors.relationship ? (
-                <span className="text-[11px] text-error">Select one</span>
-              ) : null}
-            </div>
-            <div className="relative">
-              <select
-                id="invite-relationship"
-                value={relationship}
-                onChange={(event) => {
-                  setRelationship(event.target.value as MemberRelationship);
-                  setErrors((e) => ({ ...e, relationship: false }));
-                }}
-                aria-invalid={errors.relationship}
-                className={`${FIELD} cursor-pointer appearance-none ${errors.relationship ? "border-error" : ""}`}
-              >
-                <option value="" disabled>
-                  Select relationship
-                </option>
-                {INVITE_RELATIONSHIPS.map((value) => (
-                  <option key={value} value={value}>
-                    {RELATIONSHIP_PLAIN[value]}
-                  </option>
-                ))}
-              </select>
-              <Icon
-                name="expand_more"
-                className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-outline"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="invite-message" className={FIELD_LABEL}>
-                Personal message
-              </label>
-              <span className="font-label-sm text-label-sm text-outline">Optional</span>
-            </div>
-            <textarea
-              id="invite-message"
-              rows={3}
-              maxLength={500}
-              placeholder="Add a personal note to the email invitation..."
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              className={`${FIELD} resize-none`}
-            />
-          </div>
-
-          <div className="flex items-start gap-3 rounded-lg border border-[#2A2622]/[0.06] bg-surface-container p-3.5">
-            <Icon name="lock" className="mt-0.5 text-[18px] text-primary" />
-            <p className="font-body-sm text-[12px] leading-relaxed text-on-surface-variant">
-              Invitations generate a secure single-use link. No password setup required until
-              accepted.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3 border-t border-[#2A2622]/[0.06] bg-surface-container-low p-6">
-          <button
-            type="submit"
-            disabled={sending}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-title text-body-md font-semibold text-on-primary shadow-[0_2px_12px_-2px_rgba(42,38,34,0.04)] transition-all duration-200 hover:bg-primary-container active:scale-[0.99] disabled:opacity-70"
-          >
-            <Icon name="send" className="text-[18px]" />
-            <span>{sending ? "Sending..." : "Send invitation"}</span>
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={sending}
-            className="py-2 text-center font-title text-body-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

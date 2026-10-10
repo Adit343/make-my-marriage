@@ -19,7 +19,7 @@ const TYPE_STYLE: Record<EventType, { chip: string; dot: string; hover: string }
     hover: "hover:border-l-[#1F4D3D]/40",
   },
   haldi: {
-    chip: "bg-[#B5714A]/10 text-[#B5714A]",
+    chip: "bg-[#B5714A]/10 text-[#9A5A36]",
     dot: "bg-[#B5714A]",
     hover: "hover:border-l-[#B5714A]/40",
   },
@@ -29,7 +29,7 @@ const TYPE_STYLE: Record<EventType, { chip: string; dot: string; hover: string }
     hover: "hover:border-l-[#8b4f2b]/40",
   },
   engagement: {
-    chip: "bg-[#B5714A]/10 text-[#B5714A]",
+    chip: "bg-[#B5714A]/10 text-[#9A5A36]",
     dot: "bg-[#B5714A]",
     hover: "hover:border-l-[#B5714A]/40",
   },
@@ -136,14 +136,17 @@ export function EventsManager({
           ) : null}
         </div>
       ) : (
-        <ol className="relative pl-7">
-          <div className="absolute top-6 bottom-10 left-2.5 w-[1.5px] bg-[#E2DBD2]" />
-          <div className="space-y-6">
+        <div className="relative pl-7">
+          <div
+            aria-hidden="true"
+            className="absolute top-6 bottom-10 left-2.5 w-[1.5px] bg-[#E2DBD2]"
+          />
+          <ol className="space-y-6">
             {events.map((event) => (
               <EventCard key={event.id} event={event} menu={actions.menuItems(event)} />
             ))}
-          </div>
-        </ol>
+          </ol>
+        </div>
       )}
 
       {actions.overlays}
@@ -180,7 +183,7 @@ function EventCard({ event, menu }: { event: EventView; menu: EventMenuItem[] })
               >
                 {event.dateBlock.day}
               </div>
-              <div className="mt-1 font-label-sm text-[11px] font-semibold tracking-wider text-outline uppercase">
+              <div className="mt-1 font-label-sm text-[11px] font-semibold tracking-wider text-on-surface-variant uppercase">
                 {event.dateBlock.monthYear}
               </div>
               <div className="mt-0.5 font-body-sm text-[12px] text-on-surface-variant">
@@ -204,14 +207,14 @@ function EventCard({ event, menu }: { event: EventView; menu: EventMenuItem[] })
                   {event.isPublic ? "Public" : "Private"}
                 </span>
               </div>
-              <h3 className="font-headline-sm text-headline-sm leading-snug font-medium text-[#2A2622]">
+              <h2 className="font-headline-sm text-headline-sm leading-snug font-medium text-[#2A2622]">
                 <Link
                   href={`/dashboard/events/${event.id}`}
                   className="transition-colors hover:text-primary focus-visible:underline focus-visible:outline-none"
                 >
                   {event.name}
                 </Link>
-              </h3>
+              </h2>
               <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 font-body-sm text-[13px] text-on-surface-variant">
                 <span className="flex items-center gap-1.5">
                   <Icon name="schedule" className="text-[16px] text-outline" />

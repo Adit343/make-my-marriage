@@ -26,7 +26,9 @@
   --color-on-surface-variant: #414944;
   --color-inverse-surface: #34302b;
   --color-inverse-on-surface: #f8efe8;
-  --color-outline: #717974;
+  /* Stitch's #717974 is 4.26:1 on the cream background (WCAG AA small text needs 4.5:1); #686f6a is
+     4.5:1 or better on every surface it sits on and looks the same. */
+  --color-outline: #686f6a;
   --color-outline-variant: #c0c8c3;
 
   --color-primary: #023627;

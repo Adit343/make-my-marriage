@@ -11,8 +11,19 @@ import {
   GET as listInvitations,
   POST as createInvitation,
 } from "@/app/api/v1/weddings/[weddingId]/invitations/route";
+import {
+  GET as listEvents,
+  POST as createEvent,
+} from "@/app/api/v1/weddings/[weddingId]/events/route";
 import { GET as listMembers } from "@/app/api/v1/weddings/[weddingId]/members/route";
-import { GET as getWedding } from "@/app/api/v1/weddings/[weddingId]/route";
+import {
+  GET as listTasks,
+  POST as createTask,
+} from "@/app/api/v1/weddings/[weddingId]/tasks/route";
+import {
+  DELETE as deleteWedding,
+  GET as getWedding,
+} from "@/app/api/v1/weddings/[weddingId]/route";
 import { resetEnvCacheForTests } from "@/lib/env";
 import { captureEmails, freshIp, signUpUser } from "../../setup/auth";
 import { setupTestDatabase } from "../../setup/database";
@@ -111,6 +122,30 @@ describe("no secret ever appears in a response body", () => {
       created,
     );
 
+    // Events and tasks, created and read back by every role.
+    const event = await call(createEvent, {
+      cookie: owner.cookie,
+      params: { weddingId },
+      body: {
+        name: "Haldi",
+        type: "haldi",
+        startsAt: "2027-02-13T04:30:00Z",
+        schedule: [{ time: "09:00", title: "Begin" }],
+      },
+    });
+    const task = await call(createTask, {
+      cookie: member.cookie,
+      params: { weddingId },
+      body: { title: "Book DJ", eventId: event.json.data.id, assigneeMemberIds: [member.memberId] },
+    });
+    responses.push(event, task);
+    for (const person of [owner, admin, member]) {
+      responses.push(
+        await call(listEvents, { method: "GET", cookie: person.cookie, params: { weddingId } }),
+        await call(listTasks, { method: "GET", cookie: person.cookie, params: { weddingId } }),
+      );
+    }
+
     for (const response of responses) {
       expect(response.status).toBeLessThan(400);
       const body = JSON.stringify(response.json);
@@ -120,6 +155,50 @@ describe("no secret ever appears in a response body", () => {
     const others = responses.filter((response) => response !== created);
     for (const response of others) {
       expect(JSON.stringify(response.json)).not.toContain(token);
+    }
+  });
+});
+
+describe("a deleted wedding's events and tasks are out of reach", () => {
+  it("answers 403 to every events and tasks route once the wedding is deleted", async () => {
+    const { weddingId, owner, title } = await setupWedding();
+    const member = await addMember(weddingId, "member");
+    const event = await call(createEvent, {
+      cookie: owner.cookie,
+      params: { weddingId },
+      body: { name: "Haldi", type: "haldi", startsAt: "2027-02-13T04:30:00Z" },
+    });
+    await call(createTask, {
+      cookie: owner.cookie,
+      params: { weddingId },
+      body: { title: "Book DJ", eventId: event.json.data.id },
+    });
+    const deleted = await call(deleteWedding, {
+      method: "DELETE",
+      cookie: owner.cookie,
+      params: { weddingId },
+      body: { confirm: title },
+    });
+    expect(deleted.status).toBe(200);
+
+    for (const person of [owner, member]) {
+      for (const handler of [listEvents, listTasks]) {
+        const read = await call(handler, {
+          method: "GET",
+          cookie: person.cookie,
+          params: { weddingId },
+        });
+        expect(read.status).toBe(403);
+      }
+      expect(
+        (
+          await call(createTask, {
+            cookie: person.cookie,
+            params: { weddingId },
+            body: { title: "after deletion" },
+          })
+        ).status,
+      ).toBe(403);
     }
   });
 });

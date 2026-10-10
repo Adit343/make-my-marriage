@@ -199,6 +199,14 @@ Step 4 deliberately returns `404`, not `403`: telling an attacker "that guest ex
 
 A `member`-role user therefore gets `403 INSUFFICIENT_ROLE` on finance and membership-management routes. This table is a recommendation, not fixed by the architecture — confirm it against the open decision before Phase 1 ships (Database Design §15, item 3).
 
+**Refinement for events and tasks (owner decisions, 2026-10-10).** The table's "all roles" rows are narrowed for the planning modules, enforced in the service with `createdBy` (the route only requires membership and `events:edit` / `tasks:edit`):
+
+- **Events:** every role can create; a `member` can edit or delete **only events they created**; `admin` and `owner` can edit or delete any (`403 INSUFFICIENT_ROLE` otherwise).
+- **Tasks:** every role can create and **edit any task** (an assignee must be able to move a task someone else wrote); a `member` can **delete only tasks they created**; `admin` and `owner` can delete any.
+- **Expenses (decided, built in Phase 4):** every role can view and record; a member edits or deletes only their own; admin/owner any. This overrides the row above that makes finance admin+ only, for expenses only.
+
+Responses carry `canManage` (events) and `canDelete` (tasks) so the UI never re-implements these rules.
+
 ### 3.3 Three request "shapes"
 
 | Shape | Who | Identified by | Example route |
@@ -441,6 +449,8 @@ Cannot set `role: "owner"` here — that only happens through transfer-ownership
 
 Removes (soft-deletes) a membership. A member may call this on **their own** `:memberId` to leave voluntarily — same endpoint, relaxed role check when `memberId == caller's own membership id`. The owner's own row is rejected (`422 BUSINESS_RULE_VIOLATION`, code detail `"Transfer ownership first"`) — matches Database Design §6.5, rule 2. Also triggers the task-assignee cleanup (`$pull` from `tasks.assigneeMemberIds`, same rule reference).
 
+*Addition (2026-10-10):* removing or leaving also takes the person off every task they were assigned to, in the same transaction, and the response includes `tasksUnassigned` (how many tasks changed).
+
 ### 6.8 `POST /api/weddings/:weddingId/members/:memberId/transfer-ownership`
 
 No body beyond the target `:memberId`. Runs the two-step transaction from Database Design §6.5, rule 2 (demote-then-promote, in that order, so the owner-unique index never briefly sees two owners or zero). `200` with both updated membership rows.
@@ -506,6 +516,13 @@ Modules: `events`, `tasks`.
 
 Every field maps directly to Database Design §6.7. `PATCH` accepts any subset; `endsAt > startsAt` is Zod-refined. `DELETE` soft-deletes the event **and** cascades to its `rsvps` rows in the same transaction (Database Design §6.7, rule 1) — the response includes how many RSVP rows were affected, so the UI can show "12 RSVPs for this event were also removed."
 
+**Implementation notes (built 2026-10-10).**
+
+- Each event in a response also has `schedule[]` (up to 50 lines of `{ id, time "HH:mm" in the event's timezone, title, notes, isPublic }`, returned in time order), `createdBy`, `canManage` and `version`. `PATCH` takes `schedule` as a **whole-list replacement**; a line keeps its `id` if the client sends it back. `null` clears optional fields (`endsAt`, `location`, `description`, `dressCode`).
+- `endsAt` must be after `startsAt`; checked in Zod when both arrive together and in the service against the stored value when only one changes (`400 VALIDATION_ERROR`, `details[0].path = "endsAt"`).
+- `timezone` defaults to the wedding's.
+- `DELETE` soft-deletes the event **and, in the same transaction, sets `eventId: null` on its tasks**; the response is `{ id, deletedAt, tasksUnlinked }`. RSVP rows join this transaction in Phase 3.
+
 ### 7.2 Tasks
 
 ```json
@@ -521,6 +538,16 @@ Every field maps directly to Database Design §6.7. `PATCH` accepts any subset; 
 - Each id in `assigneeMemberIds` must be an **active** `weddingMembers` row for this wedding (Database Design §6.8, rule "Assignees must be active members of the same wedding").
 - Setting `status: "done"` auto-sets `completedAt/completedBy` server-side; the client cannot set those fields directly (Database Design §6.8).
 - Optimistic concurrency applies (Database Design §3.7): concurrent edits return `409 VERSION_CONFLICT`.
+
+**Implementation notes (built 2026-10-10).**
+
+- Routes: `GET` and `POST /tasks`, `PATCH` and `DELETE /tasks/:taskId`. There is no `GET /tasks/:taskId` (the list and the page data already carry everything); add one if a client needs it.
+- `GET /tasks` is cursor-paginated **newest first** (`_id` descending). Filters (anything else is `400`): `status`, `priority`, `eventId`, `assigneeMemberId`, `dueBefore` (tasks due **before** that day; undated tasks never match).
+- `dueDate` is a calendar day (`YYYY-MM-DD`), never a date-time (Database Design §3.5). The Tasks screen reads "overdue" as `dueDate` before today **in the wedding's timezone** and status not `done`.
+- An id that names another wedding's event or member is `404 NOT_FOUND` (the same answer as a missing one); a suspended or removed member is also refused as an assignee.
+- Responses add `canDelete` and `createdBy`. `completedAt` is returned; `completedBy` is stored but not exposed.
+- Reopening a done task clears `completedAt` and `completedBy`; a task created already `done` records them at creation.
+- The Tasks screen reads up to 1,000 of a wedding's tasks in one server-side call (not through this endpoint) and groups and filters them in the page.
 
 ---
 ## 8. Guests, Guest Groups and RSVP
