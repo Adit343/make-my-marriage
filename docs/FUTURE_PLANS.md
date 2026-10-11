@@ -3,7 +3,7 @@
 > What is left to build, in order, with the decisions that must be made first.
 > Where the project is *now* is in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). **Read that file first.**
 >
-> Last updated: **2026-10-11** · Phases 1 to 3 complete and committed · **Phase 4 (Financials and vendors) is complete: built and verified, not yet committed. Phase 5 (wedding website and live stream) is next.**
+> Last updated: **2026-10-11** · Phases 1 to 4 complete and committed (latest `d0aa84a`) · **Phase 4 (Financials and vendors) is complete. Phase 5 (wedding website and live stream) is next.**
 
 **Contents**
 
@@ -197,12 +197,12 @@ Rate limits on public token operations (Architecture §39). Permissions: guest/g
 
 ### 5.6 Suggested steps
 
-- **3.1** ✅ guest management (built 2026-10-11, not yet committed): `guestGroups`, `guests`, `rsvps` models; groups, guests, bulk, summary, event assignment and manual replies API (16 routes, `guests:edit`); Guests screen, add/edit and detail slide-overs, Manage groups dialog; event delete cascades to RSVPs; dashboard and sidebar counts. Built from Stitch "Guests List", "Add / Edit Guest", "Guest Detail". Details in `PROJECT_STATUS.md` §13.
-- **3.2** ✅ invitations and links (built 2026-10-11, not yet committed): `tokenEnc` approved; `SecureLink` on guests (+ unique partial index on `link.tokenHash`), link get/create/rotate, `invite` and `invite-batch` (email, WhatsApp prefilled link, manual) with `emailLogs` batch and idempotency, guest invitation and reminder email templates, the delivery log and its retry; UI from Stitch "Send Invitations Dialog" and the guests screen's buttons made real.
+- **3.1** ✅ guest management (built 2026-10-11, committed `620c7fc`): `guestGroups`, `guests`, `rsvps` models; groups, guests, bulk, summary, event assignment and manual replies API (16 routes, `guests:edit`); Guests screen, add/edit and detail slide-overs, Manage groups dialog; event delete cascades to RSVPs; dashboard and sidebar counts. Built from Stitch "Guests List", "Add / Edit Guest", "Guest Detail". Details in `PROJECT_STATUS.md` §13.
+- **3.2** ✅ invitations and links (built 2026-10-11, committed `5c54fad`): `tokenEnc` approved; `SecureLink` on guests (+ unique partial index on `link.tokenHash`), link get/create/rotate, `invite` and `invite-batch` (email, WhatsApp prefilled link, manual) with `emailLogs` batch and idempotency, guest invitation and reminder email templates, the delivery log and its retry; UI from Stitch "Send Invitations Dialog" and the guests screen's buttons made real.
 - **3.3** ✅ public guest page `/i/[token]` and `GET/PATCH /public/rsvp/:token` (whitelist, rate limits), built from the owner's "Guest-Facing RSVP Page" screen.
 - **3.4** ✅ Invitations hub (Overview, RSVP responses, Delivery log), RSVP tracker with reminders (email and WhatsApp), record a reply by hand, CSV export, from the owner's "Invitations Hub" and "RSVP Tracker" screens.
 - **Still open from 3.4:** wire the Events timeline cards' guest numbers to the real replies (small follow-up); a "viewed" indicator and scheduled reminders are out of V1.
-- **3.5** ✅ Phase 3 review (built 2026-10-11, not yet committed): `explain()` checks for every new query (it found and fixed the `$type` partial index), wider leak and isolation tests, axe-core pass on 12 screens (0 violations after fixes), keyboard and focus checks, Events timeline guest numbers wired, docs. Details in `PROJECT_STATUS.md` §13.
+- **3.5** ✅ Phase 3 review (built 2026-10-11, committed `f2b2558`): `explain()` checks for every new query (it found and fixed the `$type` partial index), wider leak and isolation tests, axe-core pass on 12 screens (0 violations after fixes), keyboard and focus checks, Events timeline guest numbers wired, docs. Details in `PROJECT_STATUS.md` §13.
 
 ### 5.5 Open decisions
 
@@ -216,7 +216,7 @@ Rate limits on public token operations (Architecture §39). Permissions: guest/g
 
 ## 6. Phase 4: Financials and vendors
 
-> **Built 2026-10-11 (steps 4.1 to 4.4, not yet committed).** Details, decisions and the real-browser results are in `PROJECT_STATUS.md` §13 and §14.2. In short: expenses (everyone records and sees all; members edit only their own), payments (owners and admins record, members read), the budget overview and ledger, vendors (owners and admins) with optional Google Places search, vendor payment milestones, and the Event page's linked expenses. **Still open from Phase 4:** add `GOOGLE_PLACES_API_KEY` and try the real search once; vendor `eventIds[]`; receipts and documents (Phase 6); the fuller "Edit Wedding" screen; and a repeatable (CI) browser and accessibility run (Phase 7). The decisions below were taken with the AI's recommendations (marked in §11).
+> **Built 2026-10-11 (steps 4.1 to 4.4, committed `d0aa84a`).** Details, decisions and the real-browser results are in `PROJECT_STATUS.md` §13 and §14.2. In short: expenses (everyone records and sees all; members edit only their own), payments (owners and admins record, members read), the budget overview and ledger, vendors (owners and admins) with optional Google Places search, vendor payment milestones, and the Event page's linked expenses. **Still open from Phase 4:** add `GOOGLE_PLACES_API_KEY` and try the real search once; vendor `eventIds[]`; receipts and documents (Phase 6); the fuller "Edit Wedding" screen; and a repeatable (CI) browser and accessibility run (Phase 7). The decisions below were taken with the AI's recommendations (marked in §11).
 
 
 **Goal:** practical spending and vendor management. **No payment processing, no marketplace, no complex accounting.**
