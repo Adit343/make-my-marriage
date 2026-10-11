@@ -6,6 +6,7 @@ import { ROLE_LABEL } from "@/components/dashboard/labels";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
 import type { MemberRole } from "@/lib/constants/enums";
+import { BrandMark } from "@/components/ui/brand-mark";
 
 // Left navigation shelf, as in the Stitch Team and Settings screens: Overview … Members, with
 // Settings pinned at the bottom (showing the viewer's role when it is the active page). Website,
@@ -121,6 +122,7 @@ export function Sidebar({
     <aside className="z-40 flex w-full shrink-0 flex-col border-r border-[#2A2622]/[0.06] bg-surface-container-low select-none md:w-64">
       <div className="flex h-20 items-center justify-between border-b border-[#2A2622]/[0.05] px-6">
         <Link href="/dashboard" className="flex items-center gap-2.5">
+          <BrandMark className="h-8 w-8 shrink-0 text-primary" />
           <span className="font-headline-sm text-headline-sm font-medium tracking-tight text-primary">
             Make My Marriage
           </span>

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "@/modules/auth/server-session";
 import { findActiveMembershipByUser } from "@/modules/members/member.repository";
 import { OnboardingForm } from "./onboarding-form";
+import { BrandMark } from "@/components/ui/brand-mark";
 
 export const metadata: Metadata = { title: "Set up your wedding — Make My Marriage" };
 
@@ -55,7 +56,8 @@ export default async function OnboardingPage() {
         </svg>
 
         <div className="relative z-10 flex items-center justify-between">
-          <span className="font-display text-2xl font-medium tracking-tight text-[#FAF6F0] lg:text-3xl">
+          <span className="inline-flex items-center gap-3 font-display text-2xl font-medium tracking-tight text-[#FAF6F0] lg:text-3xl">
+            <BrandMark className="h-9 w-9 shrink-0" />
             Make My Marriage
           </span>
           <span className="inline-flex items-center rounded-full border border-[#FAF6F0]/15 bg-[#FAF6F0]/10 px-2.5 py-1 text-xs font-medium tracking-wide text-[#FAF6F0]/80">

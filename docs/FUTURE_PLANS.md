@@ -360,7 +360,7 @@ Items not belonging to a single phase. Ask the owner to prioritise.
 - [ ] Footer links (Terms, Security & Compliance, Contact Support), "Concierge Support", landing-page placeholders.
 - [ ] Dashboard "Quick Actions"/notice banner content as modules arrive.
 - [x] Accessibility pass for the Phase 1–2 screens (done 2026-10-10: focus in dialogs, menu keyboard navigation, contrast, headings; 0 axe violations). **Still for Phase 7:** make it repeatable in CI (e.g. Playwright + axe), cover Phase 3+ screens, screen-reader testing by a person, touch alternative to drag and drop if wanted.
-- [ ] **Favicon** (every page logs a 404 for `/favicon.ico`): needs a design asset.
+- [x] **Favicon and logo** (done 2026-10-11: two-rings mark in the headers, same drawing as `src/app/icon.svg`; swap in a designed logo if one arrives).
 
 **Docs and process**
 

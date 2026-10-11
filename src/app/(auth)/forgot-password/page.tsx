@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { ForgotPasswordFlow } from "./forgot-password-flow";
+import { BrandMark } from "@/components/ui/brand-mark";
 
 export const metadata: Metadata = { title: "Reset your password — Make My Marriage" };
 
@@ -22,7 +23,7 @@ export default function ForgotPasswordPage() {
         <div className="relative z-10">
           <Link href="/" className="group inline-flex items-center gap-3 focus:outline-hidden">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#FAF6F0]/20 bg-surface/10 text-[#FAF6F0] transition-colors group-hover:bg-surface/20">
-              <Icon name="account_balance" className="text-[18px]" />
+              <BrandMark className="h-7 w-7" />
             </div>
             <span className="font-headline-sm text-headline-sm font-medium tracking-tight text-[#FAF6F0]">
               Make My Marriage
@@ -72,7 +73,7 @@ export default function ForgotPasswordPage() {
       <section className="relative col-span-1 flex min-h-screen flex-col justify-between bg-[#FAF6F0] p-6 sm:p-12 lg:col-span-7 lg:p-16">
         <div className="mx-auto flex w-full max-w-xl items-center justify-between">
           <div className="flex items-center gap-2 lg:hidden">
-            <Icon name="account_balance" className="text-[20px] text-primary" />
+            <BrandMark className="h-7 w-7 text-primary" />
             <span className="font-headline-sm text-headline-sm font-medium tracking-tight text-primary">
               Make My Marriage
             </span>

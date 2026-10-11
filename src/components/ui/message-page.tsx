@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { BrandMark } from "@/components/ui/brand-mark";
 
 /** A centered card on the brand green, for pages with a single message (not found, error). */
 export function MessagePage({
@@ -14,7 +15,8 @@ export function MessagePage({
   return (
     <main className="flex min-h-screen w-full items-center justify-center bg-primary-container px-4 py-10 text-body-md selection:bg-secondary-fixed selection:text-on-secondary-fixed">
       <div className="w-full max-w-[440px]">
-        <p className="mb-6 text-center font-headline-sm text-headline-sm font-medium tracking-tight text-surface-bright">
+        <p className="mb-6 flex items-center justify-center gap-2.5 font-headline-sm text-headline-sm font-medium tracking-tight text-surface-bright">
+          <BrandMark className="h-8 w-8 shrink-0" />
           Make My Marriage
         </p>
         <div className="rounded-2xl bg-surface p-8 shadow-sm">

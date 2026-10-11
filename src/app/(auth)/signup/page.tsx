@@ -4,6 +4,7 @@ import { Icon } from "@/components/ui/icon";
 import { parseInviteToken } from "@/lib/invite-link";
 import { getServerSession } from "@/modules/auth/server-session";
 import { SignupForm } from "./signup-form";
+import { BrandMark } from "@/components/ui/brand-mark";
 
 export const metadata: Metadata = { title: "Create your wedding workspace — Make My Marriage" };
 
@@ -46,7 +47,8 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
         </div>
 
         <div className="relative z-10">
-          <span className="font-headline-sm text-headline-sm tracking-tight text-surface-bright">
+          <span className="inline-flex items-center gap-2.5 font-headline-sm text-headline-sm tracking-tight text-surface-bright">
+            <BrandMark className="h-8 w-8 shrink-0" />
             Make My Marriage
           </span>
         </div>

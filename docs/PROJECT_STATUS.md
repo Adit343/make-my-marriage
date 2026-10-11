@@ -771,7 +771,7 @@ The architecture wins over every other document when they conflict. These are **
 - No `suspended` status can be set (the field exists; nothing uses it).
 - Changing a login email is deferred (no verification in V1).
 - Google account linking/unlinking from Settings is not built.
-- The app has **no favicon**, so every page logs one `404 /favicon.ico` in the browser console (found by the browser checks; needs a design asset).
+- **Logo and favicon (added 2026-10-11):** the mark is two interlocked rings (`src/components/ui/brand-mark.tsx`, shown beside the name in the dashboard sidebar, landing header, auth screens, onboarding, join and message pages); the favicon is the same drawing on a green tile (`src/app/icon.svg`, picked up by Next automatically). It is our own simple design, not from Stitch: replace both files if you get a designed logo.
 - Drag and drop on the board uses the browser's drag events, which **phones and tablets don't fire**; touch users and keyboard users use "Change status" in the task menu. A touch drag library would be a new dependency (needs approval).
 - The axe and keyboard checks were run by hand from throwaway scripts; **they are not part of CI**. A repeatable version (e.g. Playwright with axe) is a Phase 7 item.
 - Prefix-only name search (no "contains"); one currency per wedding; one RSVP link per guest — per the design docs.

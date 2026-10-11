@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { parseInviteToken } from "@/lib/invite-link";
 import { getServerSession } from "@/modules/auth/server-session";
 import { LoginForm } from "./login-form";
+import { BrandMark } from "@/components/ui/brand-mark";
 
 export const metadata: Metadata = { title: "Log In — Make My Marriage" };
 
@@ -43,7 +44,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <div className="pointer-events-none absolute -right-24 -bottom-24 h-96 w-96 rounded-full bg-secondary-fixed/5 blur-3xl" />
         </div>
 
-        <header className="relative z-10">
+        <header className="relative z-10 flex items-center gap-2.5 text-surface-bright">
+          <BrandMark className="h-8 w-8 shrink-0" />
           <span className="font-headline-sm text-headline-sm font-medium tracking-tight text-surface-bright">
             Make My Marriage
           </span>

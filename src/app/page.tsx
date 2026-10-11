@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GuestManagerShowcase } from "@/components/landing/guest-manager-showcase";
 import { WalkthroughDialog } from "@/components/landing/walkthrough-dialog";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { BrandMark } from "@/components/ui/brand-mark";
 
 // Stitch screen: "Make My Marriage — Collaborative Wedding Planning SaaS Landing Page (Interactive)".
 // All names, numbers and quotes below are sample content from the design.
@@ -278,8 +279,9 @@ export default function LandingPage() {
         <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-6 md:px-12">
           <Link
             href="/"
-            className="font-headline-sm text-headline-sm font-medium tracking-tight text-primary transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-2.5 font-headline-sm text-headline-sm font-medium tracking-tight text-primary transition-opacity hover:opacity-90"
           >
+            <BrandMark className="h-8 w-8 shrink-0" />
             Make My Marriage
           </Link>
           <nav className="hidden items-center space-x-8 md:flex">
