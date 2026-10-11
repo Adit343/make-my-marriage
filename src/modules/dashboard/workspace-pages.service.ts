@@ -1,8 +1,11 @@
 import "server-only";
-import { todayIn } from "@/lib/dates";
+import { GUEST_LIST_PAGE_SIZE } from "@/lib/constants/guests";
+import { formatDayMonth, todayIn } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
-import { nextEventLabel, venueLine } from "@/lib/events/format";
+import { calendarDayIn, nextEventLabel, venueLine } from "@/lib/events/format";
 import { toEventDetailView, toEventViews } from "@/lib/events/view";
+import type { GuestEventInfo } from "@/lib/guests/types";
+import { partnersOf } from "@/lib/guests/view";
 import { summarize, toTaskViews, type TaskEventInfo, type TaskMember } from "@/lib/tasks/view";
 import { describeUserAgent, lastActiveLabel, type DeviceKind } from "@/lib/user-agent";
 import { getCurrentUser, listSessions } from "@/modules/auth/auth.service";
@@ -10,6 +13,8 @@ import type { AuthContext } from "@/modules/auth/session.service";
 import { getDashboard } from "@/modules/dashboard/dashboard.service";
 import type { EventDto } from "@/modules/events/event.dto";
 import { getEvent, listEvents } from "@/modules/events/event.service";
+import { listGroups } from "@/modules/guest-groups/guest-group.service";
+import { getEventHeadcount, getGuestSummary, listGuests } from "@/modules/guests/guest.service";
 import { getWeddingAuth } from "@/modules/members/guards";
 import type { InvitationDto } from "@/modules/members/invitation.dto";
 import { listInvitations } from "@/modules/members/invitation.service";
@@ -154,12 +159,13 @@ export async function getEventPage(auth: AuthContext, eventId: string) {
   if (!dashboard.workspace || !weddingAuth) return null;
 
   try {
-    const [event, { wedding }, allEvents, team, eventTasks] = await Promise.all([
+    const [event, { wedding }, allEvents, team, eventTasks, replies] = await Promise.all([
       getEvent(weddingAuth, eventId),
       getWeddingFor(weddingAuth),
       listEvents(weddingAuth),
       listTeam(weddingAuth, ALL),
       listEventTasks(weddingAuth, eventId),
+      getEventHeadcount(weddingAuth, eventId),
     ]);
     const context = taskContext(allEvents, team.items, wedding.timezone);
     return {
@@ -167,6 +173,7 @@ export async function getEventPage(auth: AuthContext, eventId: string) {
       weddingId: weddingAuth.weddingId,
       weddingTimezone: wedding.timezone,
       event: toEventDetailView(event),
+      replies,
       tasks: toTaskViews(eventTasks, context),
       taskForm: { events: context.events, members: context.members, today: context.today },
     };
@@ -226,5 +233,58 @@ export async function getTasksPage(auth: AuthContext) {
     today: context.today,
     tasks: views,
     summary: summarize(views),
+  };
+}
+
+/**
+ * Data for the Guests screen (Stitch "Guests List"): the first page of the list, the groups, the
+ * wedding's events as invitation choices, and the four numbers above the list. Later pages,
+ * searches and filters are read by the browser through the REST API.
+ */
+export async function getGuestsPage(auth: AuthContext, options: { eventId?: string } = {}) {
+  const dashboard = await getDashboard(auth);
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!dashboard.workspace || !weddingAuth) return null;
+
+  const [events, groups, { wedding }] = await Promise.all([
+    listEvents(weddingAuth),
+    listGroups(weddingAuth),
+    getWeddingFor(weddingAuth),
+  ]);
+  // An event in the address that is not (or is no longer) this wedding's is ignored.
+  const eventId = events.some((event) => event.id === options.eventId)
+    ? options.eventId
+    : undefined;
+  const [page, summary] = await Promise.all([
+    listGuests(weddingAuth, { limit: GUEST_LIST_PAGE_SIZE }),
+    getGuestSummary(weddingAuth, eventId),
+  ]);
+
+  const eventInfo: GuestEventInfo[] = events.map((event) => ({
+    id: event.id,
+    name: event.name,
+    type: event.type,
+    startsAt: event.startsAt,
+    timezone: event.timezone,
+    detail: [venueLine(event.location), event.dressCode].filter(Boolean).join(" • ") || null,
+    dateLabel: formatDayMonth(calendarDayIn(new Date(event.startsAt), event.timezone)),
+  }));
+
+  return {
+    dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+    weddingId: weddingAuth.weddingId,
+    timezone: wedding.timezone,
+    partners: partnersOf(wedding.partners),
+    events: eventInfo,
+    groups: groups.map((group) => ({
+      id: group.id,
+      name: group.name,
+      side: group.side,
+      guestCount: group.guestCount,
+      version: group.version,
+    })),
+    page: { items: page.items, nextCursor: page.meta.nextCursor, hasMore: page.meta.hasMore },
+    summary,
+    eventId,
   };
 }

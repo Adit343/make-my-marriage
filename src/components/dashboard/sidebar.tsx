@@ -9,10 +9,10 @@ import type { MemberRole } from "@/lib/constants/enums";
 
 // Left navigation shelf, as in the Stitch Team and Settings screens: Overview … Members, with
 // Settings pinned at the bottom (showing the viewer's role when it is the active page). Only
-// Overview, Events, Tasks, Members and Settings are built so far; the other sections say so instead of leading
+// Overview, Events, Guests, Tasks, Members and Settings are built so far; the other sections say so instead of leading
 // to a 404.
 
-export type NavSection = "dashboard" | "events" | "tasks" | "members" | "settings";
+export type NavSection = "dashboard" | "events" | "guests" | "tasks" | "members" | "settings";
 
 interface NavItem {
   label: string;
@@ -31,7 +31,13 @@ const NAV: NavItem[] = [
     href: "/dashboard/events",
     section: "events",
   },
-  { label: "Guests", icon: "group", detail: "Build one guest list for every function." },
+  {
+    label: "Guests",
+    icon: "group",
+    detail: "Build one guest list for every function.",
+    href: "/dashboard/guests",
+    section: "guests",
+  },
   {
     label: "Tasks",
     icon: "checklist",
@@ -73,11 +79,13 @@ function ActiveBar() {
 
 export function Sidebar({
   eventCount,
+  guestCount,
   pendingTasks,
   active,
   role,
 }: {
   eventCount: number;
+  guestCount: number;
   pendingTasks: number;
   active: NavSection;
   role: MemberRole | null;
@@ -120,6 +128,17 @@ export function Sidebar({
               {item.label === "Events" && eventCount > 0 ? (
                 <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 font-label-sm text-[10px] font-semibold text-on-primary">
                   {eventCount}
+                </span>
+              ) : null}
+              {item.label === "Guests" && guestCount > 0 ? (
+                <span
+                  className={`ml-auto rounded px-1.5 py-0.5 font-label-sm text-[10px] font-semibold ${
+                    isActive
+                      ? "bg-primary text-on-primary"
+                      : "bg-surface-container-high text-on-surface-variant"
+                  }`}
+                >
+                  {guestCount}
                 </span>
               ) : null}
               {item.label === "Tasks" && pendingTasks > 0 ? (

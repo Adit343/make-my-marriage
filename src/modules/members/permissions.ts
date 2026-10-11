@@ -31,6 +31,11 @@ export const PERMISSIONS = {
   "tasks:edit": EVERYONE,
   /** Delete tasks other people created (owner decision 2026-10-10, same pattern as events). */
   "tasks:manage-any": ADMIN_UP,
+  /**
+   * Add, edit and remove guests and groups, assign them to events, and record their replies.
+   * Every role (DB Design §15 item 3: members edit the guest list).
+   */
+  "guests:edit": EVERYONE,
 } as const satisfies Record<string, readonly MemberRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

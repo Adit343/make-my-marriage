@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ComingSoonButton } from "@/components/dashboard/coming-soon-button";
 import { canManageMembers, RELATIONSHIP_LABEL, ROLE_LABEL } from "@/components/dashboard/labels";
 import { Icon, type IconName } from "@/components/ui/icon";
 import type { MemberRole } from "@/lib/constants/enums";
+import { initialsOf } from "@/lib/text/initials";
 import type {
   Dashboard,
   NextEvent,
+  RsvpOverview,
   TeamMember,
   UpcomingTask,
 } from "@/modules/dashboard/dashboard.service";
@@ -165,7 +166,7 @@ export function StatCards({
       label: "Guests",
       icon: "person_outline",
       value: counts.guests,
-      detail: "No guests added yet",
+      detail: counts.guests > 0 ? "On your guest list" : "No guests added yet",
       accent: "primary",
     },
     {
@@ -216,22 +217,28 @@ export function StatCards({
   );
 }
 
-export function RsvpWidget() {
+export function RsvpWidget({ rsvp }: { rsvp: RsvpOverview }) {
   const breakdown = [
     {
       label: "Attending",
+      count: rsvp.attending,
+      bar: "bg-primary-container",
       dot: "bg-primary-container",
       text: "text-primary",
       box: "bg-[#F3F8F5] border-primary/5",
     },
     {
       label: "Declined",
+      count: rsvp.declined,
+      bar: "bg-secondary",
       dot: "bg-secondary",
       text: "text-secondary",
       box: "bg-[#FAF3EC] border-secondary/10",
     },
     {
       label: "Pending",
+      count: rsvp.pending,
+      bar: "bg-outline-variant",
       dot: "bg-outline",
       text: "text-on-surface-variant",
       box: "bg-surface-container border-[#2A2622]/[0.05]",
@@ -246,21 +253,41 @@ export function RsvpWidget() {
             title="RSVP Attendance"
             subtitle="Live guest response status across all functions"
           />
-          <ComingSoonButton
-            iconAfter="arrow_forward"
-            title="Guest management is coming soon"
-            message="Build one guest list for every function."
+          <Link
+            href="/dashboard/guests"
             className="group flex items-center gap-1 font-label-md text-label-md font-semibold text-primary hover:text-primary-container focus:outline-hidden"
           >
             Guest Directory
-          </ComingSoonButton>
+            <Icon
+              name="arrow_forward"
+              className="text-[14px] transition-transform group-hover:translate-x-0.5"
+            />
+          </Link>
         </div>
 
         <div className="my-6">
-          <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface-container p-0.5" />
+          <div
+            role="img"
+            aria-label={`${rsvp.attending} attending, ${rsvp.declined} declined, ${rsvp.pending} pending`}
+            className="flex h-3 w-full gap-0.5 overflow-hidden rounded-full bg-surface-container p-0.5"
+          >
+            {breakdown.map((item) =>
+              item.count > 0 ? (
+                <span
+                  key={item.label}
+                  className={`h-full rounded-full ${item.bar}`}
+                  style={{ width: `${(item.count / rsvp.invited) * 100}%` }}
+                />
+              ) : null,
+            )}
+          </div>
           <div className="mt-2 flex justify-between font-label-sm text-body-sm text-outline">
-            <span>Total Invited: 0 individuals</span>
-            <span className="font-medium text-primary">Response rate: —</span>
+            <span>
+              Total Invited: {rsvp.invited} {rsvp.invited === 1 ? "guest" : "guests"}
+            </span>
+            <span className="font-medium text-primary">
+              Response rate: {rsvp.responseRate === null ? "—" : `${rsvp.responseRate}%`}
+            </span>
           </div>
         </div>
 
@@ -269,7 +296,7 @@ export function RsvpWidget() {
             <div key={item.label} className={`rounded-lg border p-3 ${item.box}`}>
               <div className={`flex items-center gap-1.5 text-body-sm ${item.text}`}>
                 <span className={`h-2 w-2 rounded-full ${item.dot}`} />
-                <span className="font-title text-body-sm font-semibold">0</span>
+                <span className="font-title text-body-sm font-semibold">{item.count}</span>
               </div>
               <p className="mt-1 font-label-sm text-label-sm font-medium tracking-wider text-on-surface-variant uppercase">
                 {item.label}
@@ -282,7 +309,9 @@ export function RsvpWidget() {
       <div className="mt-6 flex items-center justify-between border-t border-[#2A2622]/[0.06] pt-4 text-body-sm text-on-surface-variant">
         <span className="flex items-center gap-1.5">
           <Icon name="info" className="text-[16px] text-primary" />
-          Responses appear here once invitations go out
+          {rsvp.invited > 0
+            ? "Counted per guest across all their events"
+            : "Responses appear here once guests are invited to events"}
         </span>
       </div>
     </div>
@@ -379,24 +408,63 @@ export function TasksWidget({
   );
 }
 
-export function FollowUpWidget() {
+export function FollowUpWidget({ rsvp }: { rsvp: RsvpOverview }) {
   return (
     <div className={`${CARD} p-6 lg:col-span-6`}>
       <div className={WIDGET_HEADER}>
         <WidgetTitle title="Pending RSVP Follow-up" subtitle="Guests who haven't replied yet" />
         <span className="rounded bg-surface-container-high px-2 py-0.5 font-label-sm text-[11px] font-medium text-on-surface-variant">
-          0 Priority
+          {rsvp.pendingTotal} Waiting
         </span>
       </div>
       <div className="mt-4">
-        <EmptyState
-          icon="send"
-          title="No pending RSVPs"
-          message="Guests who haven't responded will be listed here so you can send a reminder by email or WhatsApp."
-        />
+        {rsvp.followUp.length === 0 ? (
+          <EmptyState
+            icon="send"
+            title="No pending RSVPs"
+            message={
+              rsvp.invited === 0
+                ? "Guests who haven't responded will be listed here once they are invited to events."
+                : "Everyone you invited has answered."
+            }
+          />
+        ) : (
+          <ul className="divide-y divide-[#2A2622]/[0.05]">
+            {rsvp.followUp.map((guest) => (
+              <li key={guest.id} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="flex min-w-0 items-center gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/10 bg-[#FAF6F0] font-label-md text-label-md font-medium text-primary"
+                  >
+                    {initialsOf(guest.name)}
+                  </span>
+                  <span className="truncate font-body-md text-body-md font-medium text-on-surface">
+                    {guest.name}
+                  </span>
+                </span>
+                <span className="shrink-0 text-body-sm text-on-surface-variant">
+                  Waiting on {guest.waitingOn} {guest.waitingOn === 1 ? "event" : "events"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-[#2A2622]/[0.06] pt-3 text-body-sm">
-        <span className="text-body-sm text-outline">Direct member outreach</span>
+        <span className="text-body-sm text-outline">
+          {rsvp.pendingTotal > rsvp.followUp.length
+            ? `And ${rsvp.pendingTotal - rsvp.followUp.length} more`
+            : "Direct member outreach"}
+        </span>
+        {rsvp.pendingTotal > 0 ? (
+          <Link
+            href="/dashboard/guests?rsvp=pending"
+            className="font-label-md text-label-md font-semibold text-primary hover:text-primary-container"
+          >
+            Review in Guest Directory
+          </Link>
+        ) : null}
       </div>
     </div>
   );

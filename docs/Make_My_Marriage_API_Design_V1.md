@@ -521,7 +521,7 @@ Every field maps directly to Database Design §6.7. `PATCH` accepts any subset; 
 - Each event in a response also has `schedule[]` (up to 50 lines of `{ id, time "HH:mm" in the event's timezone, title, notes, isPublic }`, returned in time order), `createdBy`, `canManage` and `version`. `PATCH` takes `schedule` as a **whole-list replacement**; a line keeps its `id` if the client sends it back. `null` clears optional fields (`endsAt`, `location`, `description`, `dressCode`).
 - `endsAt` must be after `startsAt`; checked in Zod when both arrive together and in the service against the stored value when only one changes (`400 VALIDATION_ERROR`, `details[0].path = "endsAt"`).
 - `timezone` defaults to the wedding's.
-- `DELETE` soft-deletes the event **and, in the same transaction, sets `eventId: null` on its tasks**; the response is `{ id, deletedAt, tasksUnlinked }`. RSVP rows join this transaction in Phase 3.
+- `DELETE` soft-deletes the event **and, in the same transaction, sets `eventId: null` on its tasks**; the response is `{ id, deletedAt, tasksUnlinked }`. RSVP rows joined this transaction in Phase 3 step 3.1: the response is `{ id, deletedAt, tasksUnlinked, rsvpsRemoved }`.
 
 ### 7.2 Tasks
 
@@ -668,6 +668,16 @@ Guest-shape routes, no session. Validates the token exactly as Database Design �
 ```
 
 Field whitelist enforced server-side exactly as Database Design §11.2 states: only `rsvps.status`, `attendingCount`, `note`, and the guest's own `dietaryPreference` are writable. `attendingCount` must be ≤ `1 + guest.plusOnesAllowed` → violating that is `422 BUSINESS_RULE_VIOLATION`, not a generic validation error, since it's a cross-field domain rule rather than a shape problem. Sets `respondedAt`, `respondedVia: "guest_link"`.
+
+**Implementation notes (built 2026-10-11, Phase 3 step 3.1: guest management).**
+
+- Built: guest groups (§8.1), the guest list, create, read, update and delete (§8.2 to §8.4), event assignment (§8.5) and the headcount report (§8.9). **Not built yet** (step 3.2 and later): `/invite`, `/invite-batch`, `/link`, `/link/rotate`, and the public RSVP routes (§8.6 to §8.8, §8.10).
+- Every role may use every guest and group route (permission `guests:edit`); there is no per-guest ownership rule.
+- `GET /guests` filters: `search` (name prefix), `groupId` (an id, or `none` for ungrouped), `side`, `inviteStatus`, `dietaryPreference`, `eventId` and `rsvpStatus` (these two look at the guest's RSVP rows: both = "pending for Haldi", only `eventId` = "invited to Haldi", only `rsvpStatus` = "has at least one reply in that state"). Each item carries its own replies (`rsvps`, from ONE query per page) and `rsvpSummary`; never `notes` or the postal address.
+- `POST` and `PATCH /guests` accept `eventIds[]`. On create it invites the guest to those events in the same transaction; on update it is the guest's whole set of events. Both return the full guest, with `responses[]` (each event's name, date and reply).
+- **Additions:** `POST /guests/bulk` (`{action: "delete"}` or `{action: "set-group", groupId}`, up to 200 ids, all-or-nothing); `GET /guests/summary[?eventId=]` (the four numbers above the list); `PATCH /guests/:guestId/rsvps/:eventId` (a member records a reply by hand: `{status, attendingCount?, note?}`; a count above 1 + plus-ones is `422`); `DELETE /guests/:guestId/rsvps/:eventId` (take a guest off an event).
+- `DELETE /guest-groups/:groupId` takes `{reassignTo: null | groupId}` and answers `{id, deletedAt, guestsMoved}`; `DELETE /guests/:guestId` answers `{id, deletedAt, rsvpsRemoved}`.
+- A duplicate group name (ignoring case and spacing) is `409 CONFLICT`; a stale `version` is `409 VERSION_CONFLICT`; ids from another wedding are `404`.
 
 ---
 

@@ -4,8 +4,11 @@
 
 import "@/models/emailLog.model";
 import "@/models/event.model";
+import "@/models/guest.model";
+import "@/models/guestGroup.model";
 import "@/models/passwordResetToken.model";
 import "@/models/rateLimitCounter.model";
+import "@/models/rsvp.model";
 import "@/models/session.model";
 import "@/models/task.model";
 import "@/models/user.model";

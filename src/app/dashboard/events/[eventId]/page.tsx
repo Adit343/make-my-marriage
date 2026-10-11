@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/dashboard/app-shell";
-import { ComingSoonButton } from "@/components/dashboard/coming-soon-button";
 import { DashboardFooter } from "@/components/dashboard/sections";
 import { EventDetailActions } from "@/components/events/event-detail-actions";
 import { ScheduleCard } from "@/components/events/schedule-card";
@@ -165,7 +164,8 @@ export default async function EventPage({ params }: { params: Promise<{ eventId:
   const page = await getEventPage(auth, eventId);
   if (!page) redirect("/onboarding");
   if (page === "not_found") notFound();
-  const { event } = page;
+  const { event, replies } = page;
+  const invited = Object.values(replies.byStatus).reduce((sum, count) => sum + count, 0);
   const hasVenue = Boolean(event.venueName ?? event.address);
 
   return (
@@ -277,48 +277,73 @@ export default async function EventPage({ params }: { params: Promise<{ eventId:
                 <h2 className="font-headline-sm text-headline-sm font-normal text-[#2A2622]">
                   Guest responses
                 </h2>
-                <span className={BADGE_ROW}>0 Total</span>
+                <span className={BADGE_ROW}>{invited} Total</span>
               </div>
               <div className="mt-5 flex items-baseline gap-3">
                 <span className="font-display text-display leading-none font-light tracking-tight text-[#1F4D3D]">
-                  0
+                  {replies.byStatus.attending}
                 </span>
                 <div>
                   <div className="text-body-md font-medium text-[#2A2622]">Attending</div>
-                  <div className="text-[12px] text-on-surface-variant">out of 0 invited</div>
+                  <div className="text-[12px] text-on-surface-variant">
+                    out of {invited} invited
+                  </div>
                 </div>
               </div>
               <div className="mt-5 space-y-2">
-                <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#EAE1DA]" />
+                <div className="flex h-2.5 w-full gap-0.5 overflow-hidden rounded-full bg-[#EAE1DA]">
+                  {(
+                    [
+                      ["attending", "bg-[#1F4D3D]"],
+                      ["declined", "bg-[#B5714A]"],
+                      ["maybe", "bg-[#D9A148]"],
+                      ["pending", "bg-[#C0C8C3]"],
+                    ] as const
+                  ).map(([status, color]) =>
+                    replies.byStatus[status] > 0 ? (
+                      <span
+                        key={status}
+                        className={`h-full ${color}`}
+                        style={{ width: `${(replies.byStatus[status] / invited) * 100}%` }}
+                      />
+                    ) : null,
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-y-2 pt-2 text-[12px]">
                   {[
-                    ["Attending", "bg-[#1F4D3D]"],
-                    ["Declined", "bg-[#B5714A]"],
-                    ["Maybe", "bg-[#D9A148]"],
-                    ["Pending", "bg-[#C0C8C3]"],
-                  ].map(([label, dot]) => (
+                    ["Attending", "bg-[#1F4D3D]", replies.byStatus.attending],
+                    ["Declined", "bg-[#B5714A]", replies.byStatus.declined],
+                    ["Maybe", "bg-[#D9A148]", replies.byStatus.maybe],
+                    ["Pending", "bg-[#C0C8C3]", replies.byStatus.pending],
+                  ].map(([label, dot, count]) => (
                     <div key={label} className="flex items-center gap-1.5">
                       <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
                       <span className="text-[#2A2622]">
-                        {label}: <strong className="font-semibold">0</strong>
+                        {label}: <strong className="font-semibold">{count}</strong>
                       </span>
                     </div>
                   ))}
                 </div>
               </div>
               <div className="mt-5 flex items-center justify-between rounded-lg border border-[#2A2622]/[0.05] bg-[#FAF6F0] p-3 text-[12px] text-on-surface-variant">
-                <span>Responses appear here once invitations go out</span>
+                <span>
+                  {invited === 0
+                    ? "Invite guests to this event to see their replies here"
+                    : `${replies.totalAttendingCount} ${replies.totalAttendingCount === 1 ? "person" : "people"} attending, plus-ones included`}
+                </span>
               </div>
             </div>
             <div className="mt-6 border-t border-[#2A2622]/[0.05] pt-5">
-              <ComingSoonButton
-                iconAfter="arrow_forward"
-                title="Guest management is coming soon"
-                message="Build one guest list and invite people to each function."
+              <Link
+                href={`/dashboard/guests?event=${event.id}`}
                 className="group flex items-center gap-1.5 text-body-sm font-semibold text-[#1F4D3D] transition-colors hover:text-[#023627]"
               >
                 View guest list for {event.name}
-              </ComingSoonButton>
+                <Icon
+                  name="arrow_forward"
+                  className="text-[14px] transition-transform group-hover:translate-x-0.5"
+                />
+              </Link>
             </div>
           </div>
 

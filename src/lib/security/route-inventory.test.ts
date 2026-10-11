@@ -65,6 +65,25 @@ const INVENTORY: Record<string, Access> = {
   "PATCH /api/v1/weddings/[weddingId]/tasks/[taskId]": "wedding:tasks:edit",
   "DELETE /api/v1/weddings/[weddingId]/tasks/[taskId]": "wedding:tasks:edit",
 
+  "GET /api/v1/weddings/[weddingId]/guest-groups": "wedding:wedding:view",
+  "POST /api/v1/weddings/[weddingId]/guest-groups": "wedding:guests:edit",
+  "PATCH /api/v1/weddings/[weddingId]/guest-groups/[groupId]": "wedding:guests:edit",
+  "DELETE /api/v1/weddings/[weddingId]/guest-groups/[groupId]": "wedding:guests:edit",
+
+  // Every role edits the guest list (permission guests:edit); there is no per-guest ownership rule.
+  "GET /api/v1/weddings/[weddingId]/guests": "wedding:wedding:view",
+  "POST /api/v1/weddings/[weddingId]/guests": "wedding:guests:edit",
+  "POST /api/v1/weddings/[weddingId]/guests/bulk": "wedding:guests:edit",
+  "GET /api/v1/weddings/[weddingId]/guests/summary": "wedding:wedding:view",
+  "GET /api/v1/weddings/[weddingId]/guests/[guestId]": "wedding:wedding:view",
+  "PATCH /api/v1/weddings/[weddingId]/guests/[guestId]": "wedding:guests:edit",
+  "DELETE /api/v1/weddings/[weddingId]/guests/[guestId]": "wedding:guests:edit",
+  "GET /api/v1/weddings/[weddingId]/guests/[guestId]/rsvps": "wedding:wedding:view",
+  "POST /api/v1/weddings/[weddingId]/guests/[guestId]/rsvps": "wedding:guests:edit",
+  "PATCH /api/v1/weddings/[weddingId]/guests/[guestId]/rsvps/[eventId]": "wedding:guests:edit",
+  "DELETE /api/v1/weddings/[weddingId]/guests/[guestId]/rsvps/[eventId]": "wedding:guests:edit",
+  "GET /api/v1/weddings/[weddingId]/rsvps": "wedding:wedding:view",
+
   // Token routes: the secret in the path is the credential (hash lookup, rate limited).
   "GET /api/v1/public/invitations/[token]": "public",
   "POST /api/v1/invitations/accept": "session",
@@ -155,6 +174,12 @@ describe("API route inventory", () => {
         "/api/v1/weddings/[weddingId]/events",
         "/api/v1/weddings/[weddingId]/events/[eventId]",
         "/api/v1/weddings/[weddingId]/tasks",
+        "/api/v1/weddings/[weddingId]/guest-groups",
+        "/api/v1/weddings/[weddingId]/guests",
+        "/api/v1/weddings/[weddingId]/guests/summary",
+        "/api/v1/weddings/[weddingId]/guests/[guestId]",
+        "/api/v1/weddings/[weddingId]/guests/[guestId]/rsvps",
+        "/api/v1/weddings/[weddingId]/rsvps",
         "/api/v1/public/invitations/[token]",
       ].sort(),
     );

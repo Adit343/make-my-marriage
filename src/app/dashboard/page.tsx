@@ -45,12 +45,12 @@ export default async function DashboardPage() {
       <StatCards counts={workspace.counts} nextEvent={workspace.nextEvent} />
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <RsvpWidget />
+        <RsvpWidget rsvp={workspace.rsvp} />
         <TasksWidget
           pendingTasks={workspace.counts.pendingTasks}
           upcoming={workspace.upcomingTasks}
         />
-        <FollowUpWidget />
+        <FollowUpWidget rsvp={workspace.rsvp} />
         <TeamWidget team={workspace.team} viewerRole={viewer.role} />
       </section>
 

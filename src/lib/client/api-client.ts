@@ -16,13 +16,30 @@ export class ApiError extends Error {
 interface Envelope<T> {
   success: boolean;
   data?: T;
+  meta?: Record<string, unknown>;
   error?: { code?: string; message?: string; details?: unknown };
 }
 
 export async function apiRequest<T>(
   path: string,
-  options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown } = {},
+  options: {
+    method?: "GET" | "POST" | "PATCH" | "DELETE";
+    body?: unknown;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<T> {
+  return (await apiRequestWithMeta<T>(path, options)).data;
+}
+
+/** Like apiRequest, but also returns the envelope's `meta` (for example the next page cursor). */
+export async function apiRequestWithMeta<T>(
+  path: string,
+  options: {
+    method?: "GET" | "POST" | "PATCH" | "DELETE";
+    body?: unknown;
+    signal?: AbortSignal;
+  } = {},
+): Promise<{ data: T; meta: Record<string, unknown> }> {
   let response: Response;
   try {
     response = await fetch(path, {
@@ -30,8 +47,11 @@ export async function apiRequest<T>(
       headers: options.body === undefined ? undefined : { "content-type": "application/json" },
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
       credentials: "same-origin",
+      signal: options.signal,
     });
-  } catch {
+  } catch (error) {
+    // A request the caller cancelled (a newer search replaced it) is not a network failure.
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new ApiError(
       "NETWORK_ERROR",
       "Couldn't reach the server. Check your connection and try again.",
@@ -40,7 +60,7 @@ export async function apiRequest<T>(
   }
 
   const payload = (await response.json().catch(() => null)) as Envelope<T> | null;
-  if (payload?.success) return payload.data as T;
+  if (payload?.success) return { data: payload.data as T, meta: payload.meta ?? {} };
   throw new ApiError(
     payload?.error?.code ?? "INTERNAL_ERROR",
     payload?.error?.message ?? "Something went wrong. Please try again.",

@@ -103,12 +103,7 @@ export function useEventActions({
       {
         icon: "group",
         label: "Manage guests",
-        onSelect: () =>
-          toast({
-            type: "info",
-            title: "Guest management is coming soon",
-            message: "Build one guest list and invite people to each function.",
-          }),
+        onSelect: () => router.push(`/dashboard/guests?event=${event.id}`),
       },
       {
         icon: "content_copy",

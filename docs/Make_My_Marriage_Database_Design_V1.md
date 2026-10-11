@@ -676,6 +676,15 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 - *Drawback:* rows = guests × events. 800 guests × 5 events = 4,000 tiny documents, which is trivial for MongoDB, but every assignment change is a write.
 - *Alternative:* store `eventIds[]` on each guest and create `rsvps` only when someone responds. That is fewer writes, but "who hasn't replied to Haldi" becomes an awkward anti-join instead of a simple `status: pending` filter. **Chosen approach favors simple, reliable reporting.**
 
+**Implementation notes (built 2026-10-11, Phase 3 step 3.1).** `guestGroups`, `guests` and `rsvps` are built as specified, with these points settled while building:
+
+- `guests.link` (the `SecureLink`) is **not built yet**; it and its unique partial index on `link.tokenHash` arrive with the invitations step. Adding an optional field is an additive change.
+- Deleting an event soft-deletes its `rsvps` rows in the same transaction as its tasks' `eventId: null` (§6.7 rule 1); deleting a guest, or several, soft-deletes their rows the same way (§6.10 rule 3).
+- `rsvps.attendingCount` is checked against `1 + guest.plusOnesAllowed` in the service (422), and the service also refuses lowering `plusOnesAllowed` below a count already recorded.
+- `rsvps.respondedByUserId` is stored but never returned by the API.
+- A guest's events are saved as a whole set (`eventIds`): events added get a pending row, events left out lose theirs, events kept keep their reply.
+- Name search is the anchored prefix on `nameNormalized`; repeated inner spaces in a name are collapsed on the way in.
+
 ---
 
 ### 6.12 `expenses`

@@ -4,7 +4,7 @@
 > how the code is organised, every decision made with the product owner, and how to work on this
 > project. The plan for what comes next is in [`FUTURE_PLANS.md`](FUTURE_PLANS.md).
 >
-> Last updated: **2026-10-10** · Branch: **`dev`** · Last commit when written: `983d15c`
+> Last updated: **2026-10-10** · Branch: **`dev`** · Last commit when written: `236c87e` (Phase 3 step 3.1 below is built and verified but **not yet committed**)
 
 **Contents**
 
@@ -40,10 +40,10 @@ they use secure links. (Full product definition: `docs/Make_My_Marriage_PRD.md`.
 
 | Item                | State                                                                                                |
 | ------------------- | ---------------------------------------------------------------------------------------------------- |
-| Release phase       | **Phase 1 (Foundation) is complete.** Steps 1.1 to 1.9 are built, tested, committed and pushed.      |
-| Next phase          | **Phase 2 (Planning) is complete and pushed** (events, schedule, tasks, review). **Phase 3 (Guests and invitations) is next and has not been started.** It needs a plan, a decision on `tokenEnc`/`TOKEN_ENCRYPTION_KEY`, and Stitch designs first (see `FUTURE_PLANS.md` §5). |
+| Release phase       | **Phases 1 and 2 are complete.** **Phase 3 (Guests and invitations) is in progress: step 3.1, guest management, is built.** |
+| Next phase          | **Phase 3, step 3.2: sending invitations and personal RSVP links** (Stitch has a "Send Invitations Dialog" screen). It first needs the owner's decision on `tokenEnc`/`TOKEN_ENCRYPTION_KEY` (see `FUTURE_PLANS.md` §5). |
 | Git                 | Single working branch **`dev`** (never commit to `main`). Local and `origin/dev` are in sync.        |
-| Tests               | **458 tests in 50 files, all passing** (276 at end of Phase 1). Typecheck, lint, Prettier and production build all clean. |
+| Tests               | **618 tests in 57 files, all passing** (458 at end of Phase 2, 276 at end of Phase 1). Typecheck, lint, Prettier and production build all clean. |
 | Dependencies        | `npm audit --omit=dev`: 0 known vulnerabilities (checked 2026-10-06).                                |
 | Deployed?           | **No.** Runs locally only. Planned host: Vercel (Hobby), later AWS ECS/Fargate.                       |
 | Real email          | **Not working for arbitrary recipients yet** (no verified Resend domain). See §12.                   |
@@ -61,8 +61,9 @@ they use secure links. (Full product definition: `docs/Make_My_Marriage_PRD.md`.
 - Manage tasks: a list grouped by event or a drag-and-drop board (To do / In progress / Done), filtered by event, person, priority and due date; add, edit, assign (up to 10 people), mark done, delete; see an event's tasks on its page and the next tasks on the dashboard.
 - Plan the wedding's events on a timeline: add, edit, duplicate and delete Mehendi, Haldi, Sangeet and so on, each with times in its own timezone, a venue, a dress code and a description; open one event's page; see the next event on the dashboard.
 
-**What does not exist yet:** guests, RSVP, expenses, vendors, website,
-live stream, gallery. The sidebar shows these as "coming soon".
+- Keep one guest list: add, edit and delete guests (name, phone, email, side, relation, age group, plus-ones, dietary preference, postal address, private notes), put them in groups, invite them to events, search by name, filter, page through the list, act on several guests at once, open a guest's page, and record by hand how they replied to each event.
+
+**What does not exist yet:** sending invitations (email, WhatsApp), personal RSVP links and the guest-facing RSVP page, the RSVP dashboard and reminders, expenses, vendors, website, live stream, gallery. The sidebar shows the unbuilt ones as "coming soon"; on the Guests screen, "Send invitation", "Copy invite link" and "Share on WhatsApp" say so too.
 
 ---
 
@@ -277,7 +278,7 @@ alphabetically sorted list**), `src/components/ui/toast.tsx` (react-toastify-sty
 
 ## 7. Data model
 
-Ten collections exist (eight from Phase 1, plus `events` and `tasks` from Phase 2). Full spec: `docs/Make_My_Marriage_Database_Design_V1.md`.
+Thirteen collections exist (eight from Phase 1, `events` and `tasks` from Phase 2, `guestGroups`, `guests` and `rsvps` from Phase 3). Full spec: `docs/Make_My_Marriage_Database_Design_V1.md`.
 
 | Collection            | Purpose                                              | Delete type                    | Key rules and indexes                                                                                                                                                               |
 | --------------------- | ---------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -293,7 +294,11 @@ Ten collections exist (eight from Phase 1, plus `events` and `tasks` from Phase 
 | `events`              | Wedding functions (Haldi, Sangeet…) with an embedded run-of-show | Soft                | `weddingId`, `name`, `type` (EVENT_TYPES), `startsAt`/`endsAt` (UTC instants, end after start), `timezone` (defaults from the wedding), `location`, `description`, `dressCode`, `sortOrder` (same-time tie-break), `isPublic` (for the Phase 5 website), **`schedule[]`** (≤50 lines of `{time "HH:mm" in the event timezone, title, notes, isPublic}`, each with its own id), `createdBy`; optimistic concurrency; index `{weddingId, startsAt}` |
 | `tasks` | To-dos for the team, optionally linked to an event | Soft | `weddingId`, `eventId` (null = general), `title` ≤200, `description` ≤2000, `status` (`todo`/`in_progress`/`done`), `priority` (`low`/`medium`/`high`), `dueDate` (`"YYYY-MM-DD"` string, not an instant), `assigneeMemberIds[]` (≤10, **membership** ids of active members of this wedding), `completedAt`/`completedBy` (set by the server when a task becomes done, cleared when reopened), `createdBy`; optimistic concurrency; indexes `{weddingId,status,dueDate}`, `{weddingId,eventId}`, `{weddingId,assigneeMemberIds}` |
 
-Not yet created (later phases): guestGroups, guests, rsvps, expenses, vendors, vendorPayments, weddingWebsites, liveStreams, galleries, galleryAlbums, galleryAssets, galleryAccessTokens.
+| `guestGroups` | Buckets for guests ("Sharma Family") | Soft | `name`/`nameNormalized`, `side` (partnerOne/partnerTwo/both), `notes`, `sortOrder`; unique partial `{weddingId, nameNormalized}` (live groups only, so a deleted group's name can be reused); deleting a group moves its guests (ungrouped or into another group), never deletes them |
+| `guests` | People being invited (no accounts) | Soft | `groupId`, `name`/`nameNormalized`, `email` (lowercased), `phone` (E.164), `address`, `side`, `relationLabel`, `ageCategory`, `plusOnesAllowed` 0-10, `dietaryPreference`, private `notes`, `invitation` {status, lastSentAt, lastChannel, sendCount}; optimistic concurrency; indexes `{weddingId,nameNormalized,_id}`, `{weddingId,groupId}`, `{weddingId,phone}` sparse. **The personal link (`link`, tokenHash/tokenEnc) is not there yet**: it arrives with step 3.2 |
+| `rsvps` | One row per guest per event: the row existing = invited, `status` = reply | Soft | `guestId`, `eventId`, `status` (pending/attending/declined/maybe), `attendingCount` (everyone coming, guest included; 0 unless attending or maybe; at most 1 + plus-ones), `respondedAt`, `respondedVia` (member now; guest_link later), `respondedByUserId`, `note`; unique partial `{guestId, eventId}`, `{weddingId,eventId,status}` |
+
+Not yet created (later phases): expenses, vendors, vendorPayments, weddingWebsites, liveStreams, galleries, galleryAlbums, galleryAssets, galleryAccessTokens.
 
 **Wedding deletion workflow (DB Design §10.3), as built:** in one transaction, set the wedding's `deletedAt/deletedBy`, `status: archived`, `purgeAfter = +30 days`, and soft-delete **every membership** (reason `wedding_deleted`), which frees each person's one-wedding slot. Child rows are **not** individually soft-deleted: every request is gated on the wedding being live, so they become unreachable at once. Restore (former owner, within 30 days) clears the deletion, sets status back to `planning`, and re-activates the owner **and** the other members removed by the deletion (skipping anyone who has since joined a different wedding). The permanent-purge script does **not exist yet** (Phase 7).
 
@@ -303,7 +308,7 @@ Not yet created (later phases): guestGroups, guests, rsvps, expenses, vendors, v
 
 ## 8. API endpoints
 
-All under `/api/v1`. 40 route handlers across 28 files. **A route-inventory test
+All under `/api/v1`. 56 route handlers across 37 files. **A route-inventory test
 (`src/lib/security/route-inventory.test.ts`) lists every one with its guard; adding or weakening a
 route fails the build until that table is updated on purpose.**
 
@@ -350,6 +355,22 @@ Access legend: **public** = no session; **session** = any signed-in user; **opti
 | POST   | `/weddings/:id/tasks`                                         | tasks:edit (all roles)       | Create; `eventId` and every assignee must belong to this wedding (else 404); `status: done` records `completedAt/By` |
 | PATCH  | `/weddings/:id/tasks/:taskId`                                 | tasks:edit (all roles)       | Any subset + required `version`; **every role may edit any task**; becoming done sets `completedAt`, reopening clears it; `completedAt` is never accepted from a client |
 | DELETE | `/weddings/:id/tasks/:taskId`                                 | tasks:edit (+ rule)          | Soft delete; a member only their own tasks, admin/owner any (`INSUFFICIENT_ROLE` otherwise)  |
+| GET    | `/weddings/:id/guest-groups`                                  | wedding:view                 | A to Z with `guestCount`; not paginated                                                      |
+| POST   | `/weddings/:id/guest-groups`                                  | guests:edit (all roles)      | `{name, side, notes?}`; a duplicate name (ignoring case and spacing) is `409 CONFLICT`       |
+| PATCH  | `/weddings/:id/guest-groups/:groupId`                         | guests:edit                  | Any subset + `version`                                                                       |
+| DELETE | `/weddings/:id/guest-groups/:groupId`                         | guests:edit                  | Body `{reassignTo: null \| groupId}` is required; guests move, never deleted; response `guestsMoved` |
+| GET    | `/weddings/:id/guests`                                        | wedding:view                 | Cursor-paginated A to Z; filters `search` (name prefix), `groupId` (or `none`), `side`, `inviteStatus`, `dietaryPreference`, `eventId`, `rsvpStatus`; list shape has each guest's replies, no notes or address |
+| POST   | `/weddings/:id/guests`                                        | guests:edit                  | Create; `eventIds[]` invites the guest to those events in the same transaction; returns the full guest |
+| POST   | `/weddings/:id/guests/bulk`                                   | guests:edit                  | **Addition:** `{action: "delete"\|"set-group", guestIds (1-200), groupId?}`; a stale id fails the whole request (404) |
+| GET    | `/weddings/:id/guests/summary`                                | wedding:view                 | **Addition:** total, expected headcount, unsent invitations, awaiting reply; optional `?eventId=` |
+| GET    | `/weddings/:id/guests/:guestId`                               | wedding:view                 | Full private shape: notes, address, each event's reply                                        |
+| PATCH  | `/weddings/:id/guests/:guestId`                               | guests:edit                  | Any subset + `version`; `eventIds[]` is the guest's WHOLE set of events (adds pending rows, removes the rest); lowering plus-ones below a recorded count is `422` |
+| DELETE | `/weddings/:id/guests/:guestId`                               | guests:edit                  | Soft delete + their RSVP rows in one transaction; response `rsvpsRemoved`                    |
+| GET    | `/weddings/:id/guests/:guestId/rsvps`                         | wedding:view                 | The guest's event assignments                                                                |
+| POST   | `/weddings/:id/guests/:guestId/rsvps`                         | guests:edit                  | `{eventId}`: invite to one more event (pending); already invited is `409`                    |
+| PATCH  | `/weddings/:id/guests/:guestId/rsvps/:eventId`                | guests:edit                  | **Addition:** record a reply by hand: `{status, attendingCount?, note?}`; count above 1 + plus-ones is `422` |
+| DELETE | `/weddings/:id/guests/:guestId/rsvps/:eventId`                | guests:edit                  | **Addition:** take the guest off the event (its reply goes with the row)                     |
+| GET    | `/weddings/:id/rsvps?eventId=`                                | wedding:view                 | Replies by status and total attending for one event (catering number)                         |
 | GET    | `/public/invitations/:token`                                  | public (60/15min/IP)         | Landing preview; any bad link → `{valid: false}`                                             |
 | POST   | `/invitations/accept`                                         | session (10/h/user)          | Claim invitation + create membership atomically; `409 ALREADY_IN_WEDDING` leaves it pending  |
 
@@ -391,7 +412,7 @@ Table lives in `src/modules/members/permissions.ts` (one reviewable map; add row
 | Edit wedding details                                 |  ✔   |  ✔   |   —   |
 | Invite, change roles, remove members                 |  ✔   |  ✔   |   —   |
 | Delete/restore the wedding, transfer ownership       |  ✔   |   —   |   —   |
-| Create events (built); edit tasks, guests, gallery *(future)* |  ✔   |  ✔   |   ✔   |
+| Create events (built); edit tasks; **add, edit and delete guests and groups, record replies** (`guests:edit`, built step 3.1); gallery *(future)* |  ✔   |  ✔   |   ✔   |
 | **Edit/delete events** *(decided 2026-10-10)* | any | any | **own only** |
 | **Create and edit tasks** (any task; assignees must be able to move tasks others wrote) | ✔ | ✔ | ✔ |
 | **Delete tasks** *(decided 2026-10-10)* | any | any | **own only** |
@@ -421,6 +442,7 @@ endpoint by passing their own member id.
 | `/dashboard/team`             | "Team & Member Management (Owner View)"                                       | Table + actions menu, "Invite member" slide-over, pending invitations                                |
 | `/dashboard/settings`         | "Settings (Owner View)"                                                       | Profile, Wedding details, Security, Active sessions, Danger zone                                     |
 | `/dashboard/tasks`            | "Tasks (List View Grouped by Event)", "Tasks (Board View)" and "Add / Edit Task (Slide-over)" | List/board toggle (`?view=board`), stats strip, four filter pills (`?event=<id>` starts filtered), list grouped by event with progress, drag-and-drop board, per-task menu (Edit, Change status, Assign to..., Delete), slide-over form. Real data |
+| `/dashboard/guests`           | "Guests List (Owner View)", "Add / Edit Guest (Slide-over)" and "Guest Detail (Slide-over)" | Four stat cards (they follow the chosen event), "Showing responses for" event selector (`?event=<id>`), name search, Group / Side / Invitation / RSVP / Dietary filter pills, selection bar (Send invitations [soon], Change group, Delete), table with row menu, "Load more guests"; slide-overs for add/edit (with "Save and add another") and detail (replies, "Record response manually"); **Manage groups** dialog (no Stitch screen; built in the app's dialog style). Real data |
 | `/dashboard/events`           | "Events Timeline (Owner View)" and "Add / Edit Event (Slide-over)"            | Vertical timeline, summary strip, card menu (Edit, Manage guests, Duplicate, Delete), slide-over form. Real data; RSVP column says "No guests invited yet" until Phase 3 |
 | `/dashboard/events/[eventId]` | "Event Detail (Haldi)"                                                        | Date/time with duration, venue + address + map card (Google Maps link), dress code, description. Guest responses, tasks and linked expenses cards show designed empty states |
 | `/join/[token]`               | **No Stitch design** (built in auth-screen style)                              | Four states: invalid link / signed-out / already in a wedding / ready to accept                      |
@@ -441,7 +463,7 @@ Map `shadow-sm→shadow-xs`, `shadow→shadow-sm`, `backdrop-blur-sm→backdrop-
 
 ### 11.4 Things in the designs that are not (fully) real yet
 
-- Sidebar entries Guests, Tasks, Expenses, Vendors, Invitations, Website, Gallery, Live Stream, and Concierge Support/notifications bell: "coming soon" toasts or empty states.
+- Sidebar entries Expenses, Vendors, Invitations, Website, Gallery, Live Stream, and Concierge Support/notifications bell: "coming soon" toasts or empty states.
 - Settings: Google "Connect/Disconnect" shows an explanatory toast (no link/unlink endpoint). The "Strong" password badge and session **locations** were left out (not knowable / IPs are not stored). City/State fields are not in the Settings design, so they are not editable there (venue label and city set at onboarding are preserved on save). Timezone/currency selects offer the design's five options each.
 - The footer links ("Terms", "Security & Compliance", "Contact Support") are placeholders.
 - Onboarding footnote text ("256-bit encrypted", "real time") is design copy kept as designed.
@@ -515,6 +537,13 @@ Everything below is on branch `dev`. Dates 2026-10-04 to 2026-10-06.
 - **Regression runs** in headless Edge after the changes: events 45/46 (only the missing favicon), schedule 22/22, tasks 54/54.
 - **Docs:** DB and API design docs updated with what was built (role refinements, `schedule[]`, `tasksUnlinked`/`tasksUnassigned`, `canManage`/`canDelete`, filters, the new index). Tests 445 → 458.
 
+**Phase 3, step 3.1: guest management (2026-10-10/11, built and verified; not yet committed).** The owner asked to start Phase 3 with guest management, built from four Stitch screens ("Guests List (Owner View)", "Add / Edit Guest (Slide-over)", "Guest Detail (Slide-over)", and the "Send Invitations Dialog", which is for step 3.2).
+
+- **Backend.** Enums (`GUEST_SIDES`, `AGE_CATEGORIES`, `DIETARY_PREFERENCES`, `GUEST_INVITE_STATUSES`, `INVITE_CHANNELS`, `RSVP_STATUSES`, `RESPONDED_VIA`), limits in `src/lib/constants/guests.ts`, models `guestGroup`, `guest`, `rsvp`, modules `src/modules/guest-groups/` and `src/modules/guests/` (schemas, DTOs, repositories, services; `rsvp.repository.ts` lives in `guests/`), 16 routes, permission `guests:edit` (all roles). Event deletion now also soft-deletes the event's RSVP rows in its transaction and reports `rsvpsRemoved` (the hook Phase 2 left open).
+- **UI.** `src/components/guests/*` (manager, add/edit slide-over, detail slide-over, groups dialog, browser API calls), `src/lib/guests/{phone,view,types}.ts`, page `/dashboard/guests`, sidebar Guests link with a count badge, the dashboard Guests card and sidebar now show the real count, **the dashboard RSVP Attendance and Pending RSVP Follow-up widgets and the event page's Guest responses card use the real replies** (one answer per guest: attending if coming to any event, else not confirmed while any reply is pending or maybe, else declined; "Guest Directory" and "View guest list" are real links, and "Review in Guest Directory" opens `/dashboard/guests?rsvp=pending`), the Events menu's "Manage guests" opens the guest list on that event. The shared popover menu gained an `inline` trigger; `apiRequestWithMeta` returns the pagination cursor; 11 icons were added to the subset.
+- **Tests: 458 → 618.** `tests/integration/guests/` (groups, guests, replies and numbers, leak and isolation scans; 96+ tests), models, query plans (explain on every guest and RSVP query: indexed, one wedding only), page data, phone/display unit tests, role matrix and route inventory updated.
+- **Real-browser check:** headless Edge against a production build and a throwaway database: 53 of 53 checks passed (search, filters, event selector and RSVP filter, load more, add with validation and a new group, detail, record a reply, edit, bulk change group and delete, delete from the drawer, manage groups, "Manage guests" from Events, dashboard count, phone width with no horizontal scroll, Escape closes, console clean apart from the known favicon 404).
+
 **After 1.9 (2026-10-06).** Debugging with the owner: invitation email failed because the Resend test sender only delivers to the account owner. Added `emailError` to invitation responses and surfaced Resend's actual reason in the Team page toast (committed by the owner as `983d15c "fixed issue"`). Explained that `*.vercel.app` can't be a Resend domain and that Copy invite link is the interim path. Explained the "You already belong to a wedding" screen (owner testing their own invite link in the same browser; test with a different browser profile or incognito).
 
 ---
@@ -553,6 +582,8 @@ Everything below is on branch `dev`. Dates 2026-10-04 to 2026-10-06.
 - **Choices made in the review (2.7), flagged; change if disliked:** (1) **The `--color-outline` colour token changed from Stitch's `#717974` to `#686f6a`** (`src/app/globals.css`). The original is 4.26:1 on the cream background, below the 4.5:1 WCAG AA minimum for small text, and it is the grey of every small caption across the app (the top bar's date line, hints, labels). The new colour looks the same and passes everywhere; revert that one line if you want Stitch's exact value. (2) A few small text colours in the new screens were darkened for the same reason (Haldi chip and event-page dress code and "Haldi Ritual" text, finished-task text). (3) Overview, Members and Settings got an **invisible `h1`** and Overview's card titles moved from `h3/h4` to `h2/h3`: no visual change. (4) Added a **`tasks` index `{weddingId, _id: -1}`** beyond the DB design's list (see above).
 - **Phase 2 decisions (2026-10-10):** a `member` can delete only events/tasks they created; `admin`/`owner` can delete any (no separate "manager" role); tasks keep a single `description` field (no `notes`); statuses `todo`/`in_progress`/`done` shown as To Do / In Progress / Completed; no task comments or subtasks in V1; owner will supply Stitch designs for Events, Tasks and Schedule before the UI step.
 
+- **Choices made while building guest management (3.1), flagged; change if disliked:** (1) **Only the first three Stitch screens were built**; the "Send Invitations Dialog" is step 3.2, so **Send invitation(s)**, **Copy invite link** and **Share on WhatsApp** show a "coming soon" toast instead of pretending. The guest has no personal link yet. (2) **"Manage groups"** has no Stitch screen; it is a dialog in the app's usual cream style (add, rename, change side, delete with a choice of where the guests go). (3) The shared shell was kept (same as 2.3); the "Auto-saving draft" note is replaced by "Shared with your team". (4) The form's **dietary preference defaults to No preference** (the design's "Vegetarian" was sample data) and **every event starts ticked**, as in the design. (5) **"Showing responses for" only chooses whose reply the RSVP column shows and which event the four numbers describe**; it does not hide guests. Combine it with the RSVP filter for "who has not replied to Haldi". (6) **Number meanings:** *Expected headcount* = people attending (guest + plus-ones) for the chosen event, or for the busiest event when "All events"; *Awaiting response* = guests with at least one pending reply (for the chosen event); *Unsent invitations* = guests not yet marked invited, which stays everyone until step 3.2. (7) **The RSVP column for "All events"** shows Attending if they are coming to any event, else Maybe, else Pending while any reply is outstanding, else Declined. (8) **Phone** is typed as "98765 43210" and saved as E.164 (+91 assumed for a 10-digit number; other countries need "+"). (9) **Names have repeated spaces collapsed**, so "Rahul   Sharma" is saved "Rahul Sharma". (10) Taking a guest off an event (in the form or detail screen) removes the reply recorded for it; the form warns first. (11) Additions to the API doc: `POST /guests/bulk`, `GET /guests/summary`, `PATCH`/`DELETE /guests/:id/rsvps/:eventId` (see §15). (12) After any change the list reloads from its first page (a long scroll position is not kept).
+
 ### 14.3 Choices the AI made without asking (flagged to the owner; change if disliked)
 
 1. An **admin can change or remove other admins** (never the owner, never their own role).
@@ -573,6 +604,8 @@ Everything below is on branch `dev`. Dates 2026-10-04 to 2026-10-06.
 
 The architecture wins over every other document when they conflict. These are **additions** that need the owner's awareness (the API doc itself asks to flag additions):
 
+- Guest module additions (step 3.1): `POST /guests/bulk`, `GET /guests/summary`, `PATCH` and `DELETE /guests/:guestId/rsvps/:eventId` (record a reply by hand; unassign), `eventIds[]` on guest create/update, `guestsMoved`, `rsvpsRemoved` in delete responses, permission `guests:edit` (every role, the DB doc's own recommendation).
+
 - Response envelope `{success, data, meta}` (API doc §2.3, already flagged there).
 - `rateLimitCounters` collection (API doc §14.3).
 - `POST /weddings/:id/invitations/:invitationId/resend` (API doc §6.9 says "resend" but defines no route).
@@ -592,7 +625,7 @@ The architecture wins over every other document when they conflict. These are **
 ## 16. Testing and verification
 
 - **Commands:** `npm test` (all), `npm run test:unit`, `npm run test:integration`, `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run build`. CI runs all of them on every push to `main`/`dev` and on pull requests.
-- **Totals:** 276 tests in 41 files. Unit tests live next to code (`src/**/*.test.ts`); integration tests in `tests/integration/{auth,dashboard,database,journeys,models,security,weddings}`.
+- **Totals:** 618 tests in 57 files (276 at the end of Phase 1). Unit tests live next to code (`src/**/*.test.ts`); integration tests in `tests/integration/{auth,dashboard,database,events,guests,journeys,models,security,tasks,weddings}`.
 - **How integration tests work:** call route handlers directly with real `Request` objects (`tests/setup/http.ts`), against an in-memory MongoDB **replica set** (transactions and partial indexes need a real one). Helpers: `signUpUser`, `captureEmails`, `setupWedding`, `addMember`, `freshIp` (avoids per-IP signup limits).
 - **Security tests worth knowing:** route inventory; hardening (cache headers, cookie flags, secrets scan, cross-wedding invitation denial, reset enumeration); role matrix; concurrency (simultaneous edits, accepts, transfers); the Phase 1 journey (couple → wedding → family/planner → dashboards) and the forgotten-password journey.
 - **Real-browser verification** (done by the AI during development, scripts were throwaway and not committed): headless Edge driven over the DevTools protocol against a production build on port 3130 and an in-memory database. Covered: auth flows, dashboard, onboarding, join flow (new and existing accounts), Team and Settings (all actions), CSP violations on every page, fonts/icons loading, framing blocked, mobile overflow. Rule: **after UI work, verify in a real browser against a throwaway DB, never the owner's.**
@@ -612,7 +645,9 @@ The architecture wins over every other document when they conflict. These are **
 
 - Schedule/timeline model (PRD §27) is not in the DB doc: **decided 2026-10-10** to embed a bounded `schedule[]` in each event (§14.2); the DB doc still needs a note when it is built.
 - Expense "date/amount" fields vs PRD §13 mismatch (expense visibility/recording by members is now **decided**, see §14.2); vendor events/documents; gallery favourites; livestream end time; in-app notifications (PRD §28); per-wedding storage quota; household-level vs per-guest RSVP links; storing Google-Places-sourced fields (check Google's terms before Phase 4); cached counters (recommended: not yet).
-- `TOKEN_ENCRYPTION_KEY` / `tokenEnc` for re-showable guest links needs owner approval before Phase 3.
+- `TOKEN_ENCRYPTION_KEY` / `tokenEnc` for re-showable guest links needs owner approval before step 3.2.
+- The Events timeline cards (guests pill, RSVP column) still show "No guests invited yet"; wiring them to the real replies is a small follow-up. (The dashboard widgets and the event page card are wired.)
+- Guest search is a name prefix only; there is no CSV import, and no duplicate-guest warning (the phone index exists for it).
 
 **Technical limitations accepted for now**
 
@@ -643,6 +678,7 @@ The architecture wins over every other document when they conflict. These are **
 | Integration test fails with env undefined after your own env stubbing | Don't use `vi.unstubAllEnvs()`; see §16.                                                                                                                          |
 | Browser-check script: signup returns 429 / INTERNAL                  | Per-IP signup limit hit on the throwaway DB; restart the throwaway DB and server.                                                                                |
 | Deleted a wedding but a member can still sign in                     | Expected: their membership ended; they land on onboarding and can create/join another. Restore (owner, within 30 days) brings members back.                      |
+| Browser check on a production build accepts duplicates (for example two groups with one name) | Production mode does not build indexes. Run `npm run db:sync-indexes -- --apply` against the throwaway database first, and make sure it is the SAME database the app is using. |
 | `git push` rejected                                                   | `origin/dev` has newer commits; `git pull --rebase origin dev`, then push. Never force-push.                                                                     |
 
 ---
@@ -672,4 +708,5 @@ The architecture wins over every other document when they conflict. These are **
 | `02b5e58` | 2026-10-10 | Phase 2 step 2.3: events timeline, event page and slide-over form                        |
 | `28737e3` | 2026-10-10 | Phase 2 step 2.4: event schedule editor                                                  |
 | `fcdb812` | 2026-10-10 | Phase 2 steps 2.5–2.6: tasks API, list and board screens, task form                      |
-| *(next)*  | 2026-10-10 | Phase 2 step 2.7: review and hardening (indexes, accessibility, docs)                    |
+| `236c87e` | 2026-10-10 | Phase 2 step 2.7: review and hardening (indexes, accessibility, docs)                    |
+| *(next)*  | 2026-10-11 | Phase 3 step 3.1: guest management (models, API, screens, tests, docs)                   |

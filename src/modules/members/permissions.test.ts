@@ -14,6 +14,7 @@ describe("role matrix", () => {
     "events:manage-any": [true, true, false],
     "tasks:edit": [true, true, true],
     "tasks:manage-any": [true, true, false],
+    "guests:edit": [true, true, true],
   };
 
   it.each(Object.entries(expected) as [Permission, boolean[]][])("%s", (permission, allowed) => {

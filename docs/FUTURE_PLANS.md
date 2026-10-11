@@ -3,7 +3,7 @@
 > What is left to build, in order, with the decisions that must be made first.
 > Where the project is *now* is in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). **Read that file first.**
 >
-> Last updated: **2026-10-10** · Phases 1 and 2 complete · **Phase 3 (Guests and invitations) is next and has NOT been started.**
+> Last updated: **2026-10-10** · Phases 1 and 2 complete · **Phase 3 (Guests and invitations) is in progress: step 3.1 (guest management) is built; step 3.2 (sending invitations and links) is next.**
 
 **Contents**
 
@@ -28,12 +28,12 @@
 1. Open the project folder in Claude Code (the four design docs, `PROJECT_STATUS.md` and this file are
    imported automatically through `CLAUDE.md`).
 2. If working on a new machine, follow `PROJECT_STATUS.md` §3 (Node 24, `npm ci`, `.env.local`, branch `dev`, Stitch MCP).
-3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **458 passing**).
+3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **618 passing**).
 4. Start the next piece of work with a prompt like:
 
-   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. We are starting **Phase 3**. Do not create
-   > files, install anything or write code yet. Check my Stitch project for Guests, Invitations and RSVP screens,
-   > then propose a step-by-step plan (like Phase 1's steps) with the open decisions you need answered.
+   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. We are continuing **Phase 3** (step 3.1,
+   > guest management, is built). Do not create files, install anything or write code yet. Look at the Stitch
+   > "Send Invitations Dialog" screen, then propose a plan for step 3.2 with the open decisions you need answered.
    > Wait for my approval.
 
 5. **After each step**, the AI must update `PROJECT_STATUS.md` (what was built, decisions, new endpoints,
@@ -87,7 +87,7 @@ These come from `CLAUDE.md`, the architecture and the working agreement. Repeat 
 | ----- | ----------------------- | -------------------------------------------------------- | ------------------------------------------------------- |
 | 1     | Foundation              | users, sessions, passwordResetTokens, weddings, weddingMembers, weddingInvitations, emailLogs, rateLimitCounters | **Done** (steps 1.1–1.9)                |
 | 2     | Planning                | events (with embedded schedule), tasks                   | **Done** (steps 2.1–2.7)                                |
-| 3     | Guests & Invitations    | guestGroups, guests, rsvps (emailLogs already exists)    | Not started; needs a verified email domain in practice  |
+| 3     | Guests & Invitations    | guestGroups, guests, rsvps (emailLogs already exists)    | **In progress:** 3.1 guest management built; needs a verified email domain in practice for step 3.2 |
 | 4     | Financials & Vendors    | expenses, vendors, vendorPayments                        | Not started; PRD/role conflict to resolve (§6)          |
 | 5     | Wedding Experience      | weddingWebsites, liveStreams                             | Not started                                             |
 | 6     | Memories                | galleries, galleryAlbums, galleryAssets, galleryAccessTokens | Not started; needs AWS                              |
@@ -127,7 +127,7 @@ New enums: `EVENT_TYPE`, `TASK_STATUS`, `TASK_PRIORITY` (already listed in DB do
 | POST   | `/weddings/:id/events`                  | `endsAt > startsAt` refine                                                                            |
 | GET    | `/weddings/:id/events/:eventId`         |                                                                                                       |
 | PATCH  | `/weddings/:id/events/:eventId`         | `version` required                                                                                    |
-| DELETE | `/weddings/:id/events/:eventId`         | Soft delete **and** cascade soft-delete of its RSVP rows in one transaction (no RSVPs exist until Phase 3: build the hook, response reports rows affected); set `eventId: null` on its tasks (and later expenses) |
+| DELETE | `/weddings/:id/events/:eventId`         | Soft delete **and** cascade soft-delete of its RSVP rows in one transaction (done in step 3.1; the response reports `rsvpsRemoved`); set `eventId: null` on its tasks (and later expenses) |
 | GET    | `/weddings/:id/tasks`                   | Filters `status`, `eventId`, `assigneeMemberId`, `dueBefore`; **cursor-paginated**                    |
 | POST   | `/weddings/:id/tasks`                   | Verify `eventId` and every assignee belong to this wedding (assignees must be *active* members)       |
 | PATCH  | `/weddings/:id/tasks/:taskId`           | `version`; `done` auto-sets `completedAt/By`                                                          |
@@ -194,6 +194,14 @@ Rate limits on public token operations (Architecture §39). Permissions: guest/g
 - New email templates: guest invitation, RSVP reminder (in `templates.ts`, all user text escaped).
 - WhatsApp: build `https://wa.me/<phone>?text=<prefilled>` links; the user presses Send; mark `invitation.status: invited` optimistically (cannot know delivery). No API, no background process.
 - **Practical dependency:** emailing real guests needs a **verified Resend domain** (see `PROJECT_STATUS.md` §12). Without it, use WhatsApp/manual links.
+
+### 5.6 Suggested steps
+
+- **3.1** ✅ guest management (built 2026-10-11, not yet committed): `guestGroups`, `guests`, `rsvps` models; groups, guests, bulk, summary, event assignment and manual replies API (16 routes, `guests:edit`); Guests screen, add/edit and detail slide-overs, Manage groups dialog; event delete cascades to RSVPs; dashboard and sidebar counts. Built from Stitch "Guests List", "Add / Edit Guest", "Guest Detail". Details in `PROJECT_STATUS.md` §13.
+- **3.2** invitations and links: owner approves `tokenEnc`/`TOKEN_ENCRYPTION_KEY` first; `SecureLink` on guests (+ unique partial index on `link.tokenHash`), `GET .../link`, `POST .../link/rotate`, `POST .../guests/:id/invite` (email, whatsapp prefilled link, manual), `POST .../guests/invite-batch` with `emailLogs` batch and idempotency, email templates; UI from Stitch "Send Invitations Dialog" (the screens' "coming soon" buttons become real).
+- **3.3** public guest page `/i/[token]` and `GET/PATCH /public/rsvp/:token` (whitelist, rate limits), guest-facing invitation/RSVP UI (needs a Stitch screen).
+- **3.4** RSVP dashboard and reminders (email and WhatsApp), dashboard RSVP widgets, wire the Events screens' guest numbers.
+- **3.5** Phase 3 review: isolation and leak tests, `explain()`, accessibility pass, docs.
 
 ### 5.5 Open decisions
 

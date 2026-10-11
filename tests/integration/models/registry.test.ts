@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import "@/models";
 import { setupTestDatabase } from "../../setup/database";
 
-// The index catalog from DB Design §8.2 for the Phase 1–2 collections, written out independently
+// The index catalog from DB Design §8.2 for the Phase 1–3 collections, written out independently
 // of the schemas so an accidentally dropped or altered index fails a test.
 const EXPECTED_INDEXES: Record<string, string[]> = {
   users: [
@@ -19,6 +19,13 @@ const EXPECTED_INDEXES: Record<string, string[]> = {
     "weddingId_1_assigneeMemberIds_1",
     "weddingId_1__id_-1",
   ],
+  guestGroups: ["weddingId_1_nameNormalized_1 unique partial"],
+  guests: [
+    "weddingId_1_nameNormalized_1__id_1",
+    "weddingId_1_groupId_1",
+    "weddingId_1_phone_1 sparse",
+  ],
+  rsvps: ["guestId_1_eventId_1 unique partial", "weddingId_1_eventId_1_status_1"],
   weddings: ["purgeAfter_1 partial"],
   weddingMembers: ["userId_1 unique partial", "weddingId_1", "weddingId_1_role_1 unique partial"],
   weddingInvitations: [

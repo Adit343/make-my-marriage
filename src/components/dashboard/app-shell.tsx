@@ -24,6 +24,7 @@ export function AppShell({
     <div className="dashboard-icons relative flex h-dvh flex-col overflow-hidden bg-surface text-body-md text-on-surface selection:bg-primary-fixed selection:text-primary md:flex-row">
       <Sidebar
         eventCount={workspace.counts.events}
+        guestCount={workspace.counts.guests}
         pendingTasks={workspace.counts.pendingTasks}
         active={active}
         role={viewer.role}

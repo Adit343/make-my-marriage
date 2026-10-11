@@ -25,7 +25,7 @@ export function EventMenu({
 }: {
   eventName: string;
   items: EventMenuItem[];
-  trigger?: "vertical" | "horizontal";
+  trigger?: "vertical" | "horizontal" | "inline";
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<{ top: number; right: number } | null>(null);
@@ -104,6 +104,7 @@ export function EventMenu({
 
   const firstDanger = items.findIndex((item) => item.danger);
   const horizontal = trigger === "horizontal";
+  const inline = trigger === "inline";
 
   return (
     <>
@@ -115,16 +116,25 @@ export function EventMenu({
         aria-expanded={open}
         onClick={toggle}
         className={
-          horizontal
-            ? "flex h-9 w-9 items-center justify-center rounded-lg border border-[#D9D1C7] bg-[#FFFDF9] text-[#2A2622] shadow-sm transition-colors hover:bg-[#F4EFEA]"
-            : `flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+          inline
+            ? `rounded p-1 transition-colors ${
                 open
-                  ? "bg-surface-container text-primary ring-2 ring-primary/20"
-                  : "text-outline hover:bg-surface-container-low hover:text-[#2A2622]"
+                  ? "bg-[#FAF6F0] text-primary"
+                  : "text-on-surface-variant/70 hover:bg-[#FAF6F0] hover:text-on-surface"
               }`
+            : horizontal
+              ? "flex h-9 w-9 items-center justify-center rounded-lg border border-[#D9D1C7] bg-[#FFFDF9] text-[#2A2622] shadow-sm transition-colors hover:bg-[#F4EFEA]"
+              : `flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                  open
+                    ? "bg-surface-container text-primary ring-2 ring-primary/20"
+                    : "text-outline hover:bg-surface-container-low hover:text-[#2A2622]"
+                }`
         }
       >
-        <Icon name={horizontal ? "more_horiz" : "more_vert"} className="text-[18px]" />
+        <Icon
+          name={horizontal || inline ? "more_horiz" : "more_vert"}
+          className={inline ? "text-[20px]" : "text-[18px]"}
+        />
       </button>
       {open && position ? (
         <div
