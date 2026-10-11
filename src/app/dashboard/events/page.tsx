@@ -21,6 +21,7 @@ export default async function EventsPage() {
         weddingId={page.weddingId}
         weddingTimezone={page.weddingTimezone}
         events={page.events}
+        guestNumbers={page.guestNumbers}
         summary={page.summary}
         canCreate={page.canCreate}
       />

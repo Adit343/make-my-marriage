@@ -31,13 +31,13 @@ const CHOICES: { value: Exclude<Choice, null>; label: string }[] = [
 
 const CHOICE_ACTIVE: Record<Exclude<Choice, null>, string> = {
   attending: "bg-primary-container text-on-primary shadow-sm",
-  maybe: "bg-[#B5714A] text-white shadow-sm",
+  maybe: "bg-[#A0623C] text-white shadow-sm",
   declined: "bg-secondary text-on-secondary shadow-sm",
 };
 
 const ANSWER_DOT: Record<RsvpStatus, string> = {
   attending: "bg-primary text-primary",
-  maybe: "bg-[#B5714A] text-[#B5714A]",
+  maybe: "bg-[#A0623C] text-[#A0623C]",
   declined: "bg-secondary text-secondary",
   pending: "bg-outline text-on-surface-variant",
 };
@@ -433,10 +433,10 @@ export function RsvpForm({ token, initial }: { token: string; initial: RsvpPageV
         </div>
 
         <div className="space-y-2 px-4 pt-2 pb-6 text-center">
-          <p className="font-body-sm text-[12px] leading-relaxed text-on-surface-variant/80">
+          <p className="font-body-sm text-[12px] leading-relaxed text-on-surface-variant">
             You can come back to this link and change your answers any time.
           </p>
-          <div className="inline-flex items-center gap-1.5 font-label-sm text-[11px] font-medium tracking-wide text-on-surface-variant/60">
+          <div className="inline-flex items-center gap-1.5 font-label-sm text-[11px] font-medium tracking-wide text-on-surface-variant">
             <Icon name="lock" className="text-[14px]" />
             <span>Private link, just for you</span>
           </div>

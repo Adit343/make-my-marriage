@@ -4,7 +4,7 @@
 > how the code is organised, every decision made with the product owner, and how to work on this
 > project. The plan for what comes next is in [`FUTURE_PLANS.md`](FUTURE_PLANS.md).
 >
-> Last updated: **2026-10-11** · Branch: **`dev`** · Last commit when written: `620c7fc` (step 3.1). **Steps 3.2 to 3.4 (invitations, personal links, guest RSVP page, RSVP tracker) are built and verified but not yet committed.**
+> Last updated: **2026-10-11** · Branch: **`dev`** · Last commit when written: `5c54fad` (steps 3.2 to 3.4). **Step 3.5 (the Phase 3 review: accessibility fixes, Events timeline numbers, more safety tests) is built and verified but not yet committed.**
 
 **Contents**
 
@@ -40,10 +40,10 @@ they use secure links. (Full product definition: `docs/Make_My_Marriage_PRD.md`.
 
 | Item                | State                                                                                                |
 | ------------------- | ---------------------------------------------------------------------------------------------------- |
-| Release phase       | **Phases 1 and 2 are complete.** **Phase 3 (Guests and invitations) is functionally built: guest management (3.1), invitations and personal links (3.2), the guest RSVP page (3.3) and the RSVP tracker with reminders (3.4).** Only the Phase 3 review step (3.5) remains. |
-| Next phase          | **Phase 3, step 3.5: review and hardening** (isolation and leak re-scan, accessibility pass, docs), then **Phase 4: expenses and vendors** (it first needs the Google Places terms check, `FUTURE_PLANS.md` §6). |
+| Release phase       | **Phases 1 and 2 are complete.** **Phase 3 (Guests and invitations) is complete: guest management (3.1), invitations and personal links (3.2), the guest RSVP page (3.3), the RSVP tracker with reminders (3.4) and the review (3.5).** |
+| Next phase          | **Phase 4: expenses and vendors** (it first needs the Google Places terms check and a few owner decisions, `FUTURE_PLANS.md` §6). Before it, the owner should commit step 3.5 and set `TOKEN_ENCRYPTION_KEY` wherever the app is deployed. |
 | Git                 | Single working branch **`dev`** (never commit to `main`). Local and `origin/dev` are in sync.        |
-| Tests               | **703 tests in 64 files, all passing** (618 after step 3.1, 458 at end of Phase 2, 276 at end of Phase 1). Typecheck, lint, Prettier and production build all clean. A 45-check real-browser run of the invitation flows also passed (§13). |
+| Tests               | **716 tests in 66 files, all passing** (703 after step 3.4, 618 after step 3.1, 458 at end of Phase 2, 276 at end of Phase 1). Typecheck, lint, Prettier and production build all clean. A 45-check real-browser run of the invitation flows also passed (§13). |
 | Dependencies        | `npm audit --omit=dev`: 0 known vulnerabilities (checked 2026-10-06).                                |
 | Deployed?           | **No.** Runs locally only. Planned host: Vercel (Hobby), later AWS ECS/Fargate.                       |
 | Real email          | **Not working for arbitrary recipients yet** (no verified Resend domain). See §12.                   |
@@ -571,6 +571,17 @@ Everything below is on branch `dev`. Dates 2026-10-04 to 2026-10-06.
 - **Tests: 618 → 703.** `tests/integration/invitations/` (links 10, sending 20, public RSVP 20, overview and tracker 13, log access 2), unit tests for the secret box, env rules, message wording and view helpers, `explain()` checks for the new queries (which **caught the `$type` partial index that scanned every guest**), registry, route inventory and permission matrix updated.
 - **Real-browser check:** production build on port 3130 against a throwaway in-memory database, with the Resend call replaced by a throwaway shim (a mailbox-full bounce for chosen recipients). 45 of 45 checks passed: overview numbers, Send dialog (verification, skipped reasons, dispatch summary, retry without re-emailing the delivered), WhatsApp prepare then tap, the guest page as a guest (own events only, no leaks, timezone, stepper stops at plus-ones, confirmation, reopening shows earlier answers, invalid link), the tracker (headcount, not-replied list, latest feed, record by hand, reminder dialog), delivery log (admin only, failed filter), phone widths with no horizontal scroll, console clean.
 
+**Phase 3, step 3.5: review and hardening (2026-10-11, built and verified; not yet committed).** Closes Phase 3.
+
+- **Accessibility pass with axe-core** (run from a scratch folder, not added to the project, like step 2.7) on 12 screens and states: Overview, RSVP responses, Delivery log, the Send dialog (before sending, as a reminder with warnings, and the dispatch summary), the Record-response drawer, the guest detail drawer, the replace-link dialog, and the guest page (form, confirmation, invalid link) at phone width. First run: **7 groups of violations; after the fixes: 0 on every screen.** Fixed: low-opacity small text (the Overview's "Needs your attention", the guest page footer, the Guests screen's labels and stat cards, the invalid-link footer), the guest page's "Maybe" colour and the "Maybe" accent, dark initials on the dark-green avatar in the guest detail drawer (a step 3.1 bug), and a button whose accessible name did not contain its visible text ("View details for …" on the guest rows; the visible name now names the button).
+- **Keyboard and focus (13 checks, real browser):** focus moves into the Send dialog and the Record-response drawer; Tab and Shift+Tab never leave them; a channel can be chosen with the keyboard; Escape closes them and focus returns to the control that opened them; a guest can answer with Space; every control on the guest page has a name; one `h1` and a heading per event; tap targets are 40px or more.
+- **Colour change to flag:** the design's brass `#B5714A` ("Maybe" on the guest page, the accent on the Guests screen) fails the 4.5:1 minimum on white (3.8 to 3.9). It is now `#A0623C` (4.9:1). Same kind of change as `--color-outline` in step 2.7; revert that one value if you want Stitch's exact brass.
+- **Events timeline wired (the open follow-up from 3.1):** each event card now says "N of M replied · P coming" with a progress bar (one aggregation for all events, `getGuestNumbersByEvent`), and still "No guests invited yet" for an event with nobody invited.
+- **More safety tests (`safety.test.ts`, 8):** no internal field or link token in any member-facing invitation response for owner, admin and member; the guest's link survives wedding delete and restore (same link works again); a wedding B guest link cannot name or answer wedding A's events; altered, lower-cased, extended or guessed tokens find nothing; a rotated link is dead everywhere; guest and event text is HTML-escaped in the email; tokens are redacted from request logs; the public answer route is rate limited. Plus page-data tests (`invitations-pages.test.ts`, 5) for the Invitations page, the Guests page's `canViewLog` and the Events numbers.
+- **Re-verified in the real browser after the fixes:** the 45-check invitation run (colour assertions updated), the audit and keyboard runs, and the Events timeline numbers.
+- **Known limitation noted, not changed:** two *simultaneous* identical sends with the *same* `batchId` could both email a guest, because the idempotency check is read-then-send. A retry (the real use) and a double click (the dialog disables its button) are safe; closing it fully would need a claim row before sending.
+- Tests 703 → 716.
+
 **After 1.9 (2026-10-06).** Debugging with the owner: invitation email failed because the Resend test sender only delivers to the account owner. Added `emailError` to invitation responses and surfaced Resend's actual reason in the Team page toast (committed by the owner as `983d15c "fixed issue"`). Explained that `*.vercel.app` can't be a Resend domain and that Copy invite link is the interim path. Explained the "You already belong to a wedding" screen (owner testing their own invite link in the same browser; test with a different browser profile or incognito).
 
 ---
@@ -667,7 +678,7 @@ The architecture wins over every other document when they conflict. These are **
 ## 16. Testing and verification
 
 - **Commands:** `npm test` (all), `npm run test:unit`, `npm run test:integration`, `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run build`. CI runs all of them on every push to `main`/`dev` and on pull requests.
-- **Totals:** 703 tests in 64 files (276 at the end of Phase 1). Unit tests live next to code (`src/**/*.test.ts`); integration tests in `tests/integration/{auth,dashboard,database,events,guests,invitations,journeys,models,security,tasks,weddings}`. `tests/setup/database.ts` stubs `TOKEN_ENCRYPTION_KEY` (needed whenever a test switches `NODE_ENV` to production).
+- **Totals:** 716 tests in 66 files (276 at the end of Phase 1). Unit tests live next to code (`src/**/*.test.ts`); integration tests in `tests/integration/{auth,dashboard,database,events,guests,invitations,journeys,models,security,tasks,weddings}`. `tests/setup/database.ts` stubs `TOKEN_ENCRYPTION_KEY` (needed whenever a test switches `NODE_ENV` to production).
 - **How integration tests work:** call route handlers directly with real `Request` objects (`tests/setup/http.ts`), against an in-memory MongoDB **replica set** (transactions and partial indexes need a real one). Helpers: `signUpUser`, `captureEmails`, `setupWedding`, `addMember`, `freshIp` (avoids per-IP signup limits).
 - **Security tests worth knowing:** route inventory; hardening (cache headers, cookie flags, secrets scan, cross-wedding invitation denial, reset enumeration); role matrix; concurrency (simultaneous edits, accepts, transfers); the Phase 1 journey (couple → wedding → family/planner → dashboards) and the forgotten-password journey.
 - **Real-browser verification** (done by the AI during development, scripts were throwaway and not committed): headless Edge driven over the DevTools protocol against a production build on port 3130 and an in-memory database. Covered: auth flows, dashboard, onboarding, join flow (new and existing accounts), Team and Settings (all actions), CSP violations on every page, fonts/icons loading, framing blocked, mobile overflow. Rule: **after UI work, verify in a real browser against a throwaway DB, never the owner's.**
@@ -757,4 +768,5 @@ The architecture wins over every other document when they conflict. These are **
 | `fcdb812` | 2026-10-10 | Phase 2 steps 2.5–2.6: tasks API, list and board screens, task form                      |
 | `236c87e` | 2026-10-10 | Phase 2 step 2.7: review and hardening (indexes, accessibility, docs)                    |
 | `620c7fc` | 2026-10-11 | Phase 3 step 3.1: guest management (models, API, screens, tests, docs)                   |
-| *(next)*  | 2026-10-11 | Phase 3 steps 3.2 to 3.4: invitations, personal links, guest RSVP page, RSVP tracker     |
+| `5c54fad` | 2026-10-11 | Phase 3 steps 3.2 to 3.4: invitations, personal links, guest RSVP page, RSVP tracker     |
+| *(next)*  | 2026-10-11 | Phase 3 step 3.5: review (accessibility, Events timeline numbers, safety tests, docs)    |

@@ -3,7 +3,7 @@
 > What is left to build, in order, with the decisions that must be made first.
 > Where the project is *now* is in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). **Read that file first.**
 >
-> Last updated: **2026-10-11** · Phases 1 and 2 complete · **Phase 3 (Guests and invitations): steps 3.1 to 3.4 are built (guest management, invitations and personal links, the guest RSVP page, the RSVP tracker and reminders; 3.2 to 3.4 not yet committed). Step 3.5 (review) is next.**
+> Last updated: **2026-10-11** · Phases 1 and 2 complete · **Phase 3 (Guests and invitations) is complete: steps 3.1 to 3.5 built (3.5, the review, not yet committed). Phase 4 (expenses and vendors) is next.**
 
 **Contents**
 
@@ -28,13 +28,13 @@
 1. Open the project folder in Claude Code (the four design docs, `PROJECT_STATUS.md` and this file are
    imported automatically through `CLAUDE.md`).
 2. If working on a new machine, follow `PROJECT_STATUS.md` §3 (Node 24, `npm ci`, `.env.local`, branch `dev`, Stitch MCP).
-3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **703 passing**).
+3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **716 passing**).
 4. Start the next piece of work with a prompt like:
 
-   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. We are continuing **Phase 3** (steps 3.1 to
-   > 3.4 are built: guests, invitations, the guest RSVP page, the RSVP tracker). Do not create files, install
-   > anything or write code yet. Propose the plan for step 3.5 (Phase 3 review and hardening) and list any
-   > decisions you need from me. Wait for my approval.
+   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. Phase 3 is complete (steps 3.1 to
+   > 3.5). We are starting **Phase 4** (expenses and vendors). Do not create files, install anything or write
+   > code yet. Look at the Stitch screens for it, then propose a plan for step 4.1 and list the open decisions
+   > from section 6.4 you need answered. Wait for my approval.
 
 5. **After each step**, the AI must update `PROJECT_STATUS.md` (what was built, decisions, new endpoints,
    test totals, commit) and tick things off here, so the next session starts correct.
@@ -87,7 +87,7 @@ These come from `CLAUDE.md`, the architecture and the working agreement. Repeat 
 | ----- | ----------------------- | -------------------------------------------------------- | ------------------------------------------------------- |
 | 1     | Foundation              | users, sessions, passwordResetTokens, weddings, weddingMembers, weddingInvitations, emailLogs, rateLimitCounters | **Done** (steps 1.1–1.9)                |
 | 2     | Planning                | events (with embedded schedule), tasks                   | **Done** (steps 2.1–2.7)                                |
-| 3     | Guests & Invitations    | guestGroups, guests, rsvps (emailLogs already exists)    | **Built except the 3.5 review.** Real guest email needs a verified Resend domain in practice; WhatsApp, copy link and "invited in person" work today |
+| 3     | Guests & Invitations    | guestGroups, guests, rsvps (emailLogs already exists)    | **Done** (steps 3.1 to 3.5). Real guest email needs a verified Resend domain in practice; WhatsApp, copy link and "invited in person" work today |
 | 4     | Financials & Vendors    | expenses, vendors, vendorPayments                        | Not started; PRD/role conflict to resolve (§6)          |
 | 5     | Wedding Experience      | weddingWebsites, liveStreams                             | Not started                                             |
 | 6     | Memories                | galleries, galleryAlbums, galleryAssets, galleryAccessTokens | Not started; needs AWS                              |
@@ -202,7 +202,7 @@ Rate limits on public token operations (Architecture §39). Permissions: guest/g
 - **3.3** ✅ public guest page `/i/[token]` and `GET/PATCH /public/rsvp/:token` (whitelist, rate limits), built from the owner's "Guest-Facing RSVP Page" screen.
 - **3.4** ✅ Invitations hub (Overview, RSVP responses, Delivery log), RSVP tracker with reminders (email and WhatsApp), record a reply by hand, CSV export, from the owner's "Invitations Hub" and "RSVP Tracker" screens.
 - **Still open from 3.4:** wire the Events timeline cards' guest numbers to the real replies (small follow-up); a "viewed" indicator and scheduled reminders are out of V1.
-- **3.5** Phase 3 review: isolation and leak tests, `explain()`, accessibility pass, docs.
+- **3.5** ✅ Phase 3 review (built 2026-10-11, not yet committed): `explain()` checks for every new query (it found and fixed the `$type` partial index), wider leak and isolation tests, axe-core pass on 12 screens (0 violations after fixes), keyboard and focus checks, Events timeline guest numbers wired, docs. Details in `PROJECT_STATUS.md` §13.
 
 ### 5.5 Open decisions
 

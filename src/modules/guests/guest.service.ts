@@ -396,3 +396,31 @@ export async function getEventHeadcount(auth: WeddingAuth, eventId: string) {
     totalAttendingCount: row?.attendingCount ?? 0,
   };
 }
+
+/** How many guests are invited to each event and how many have replied (the Events timeline). */
+export interface EventGuestNumbers {
+  invited: number;
+  replied: number;
+  /** People coming, plus-ones included. */
+  attendingPeople: number;
+}
+
+/** One aggregation for every event at once, keyed by event id. */
+export async function getGuestNumbersByEvent(
+  auth: WeddingAuth,
+): Promise<Record<string, EventGuestNumbers>> {
+  const rows = await headcountByEvent(auth.weddingId);
+  return Object.fromEntries(
+    rows.map((row) => {
+      const { attending, declined, maybe, pending } = row.byStatus;
+      return [
+        row.eventId,
+        {
+          invited: attending + declined + maybe + pending,
+          replied: attending + declined + maybe,
+          attendingPeople: row.attendingCount,
+        },
+      ];
+    }),
+  );
+}

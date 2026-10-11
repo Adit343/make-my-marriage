@@ -78,7 +78,7 @@ export default async function GuestRsvpPage({ params }: PageProps<"/i/[token]">)
                 </div>
               </div>
             </div>
-            <p className="pt-10 font-headline-sm text-headline-sm font-normal text-outline-variant italic">
+            <p className="pt-10 font-headline-sm text-headline-sm font-normal text-outline italic">
               Make My Marriage
             </p>
           </div>

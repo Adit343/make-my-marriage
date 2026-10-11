@@ -487,7 +487,7 @@ export function GuestsManager({
               />
             </div>
           </div>
-          <span className="font-label-sm text-label-sm text-on-surface-variant/60">
+          <span className="font-label-sm text-label-sm text-on-surface-variant">
             {updatedLabel}
           </span>
         </div>
@@ -510,7 +510,7 @@ export function GuestsManager({
             />
             <div
               title="Matches names that start with your text"
-              className="pointer-events-none absolute top-2.5 right-3 flex items-center gap-1 text-on-surface-variant/50"
+              className="pointer-events-none absolute top-2.5 right-3 flex items-center gap-1 text-on-surface-variant"
             >
               <span className="font-label-sm text-label-sm">Matches name</span>
               <Icon name="info" className="text-[15px]" />
@@ -520,7 +520,7 @@ export function GuestsManager({
             type="button"
             onClick={clearFilters}
             disabled={!filtering}
-            className="self-center font-body-sm text-body-sm font-medium text-[#B5714A] hover:underline disabled:opacity-0"
+            className="self-center font-body-sm text-body-sm font-medium text-[#A0623C] hover:underline disabled:opacity-0"
           >
             Clear filters
           </button>
@@ -723,7 +723,7 @@ export function GuestsManager({
                       <button
                         type="button"
                         onClick={failed ? refresh : clearFilters}
-                        className="mt-2 font-body-sm text-body-sm font-medium text-[#B5714A] hover:underline"
+                        className="mt-2 font-body-sm text-body-sm font-medium text-[#A0623C] hover:underline"
                       >
                         {failed ? "Try again" : "Clear filters"}
                       </button>
@@ -734,7 +734,7 @@ export function GuestsManager({
             </table>
           </div>
           <div className="flex flex-col items-center justify-between gap-4 border-t border-[#2A2622]/[0.06] px-6 py-4 sm:flex-row">
-            <span className="font-body-sm text-body-sm text-on-surface-variant/70" role="status">
+            <span className="font-body-sm text-body-sm text-on-surface-variant" role="status">
               Showing <strong className="font-semibold text-on-surface">{items.length}</strong>
               {!filtering && summary.totalGuests > 0 ? (
                 <>
@@ -899,7 +899,7 @@ function StatCard({
       <div className="flex items-center justify-between text-on-surface-variant">
         <span
           className={`font-label-md text-label-md tracking-wider uppercase ${
-            accent ? "text-[#B5714A]" : "text-on-surface-variant/70"
+            accent ? "text-[#A0623C]" : "text-on-surface-variant"
           }`}
         >
           {label}
@@ -909,7 +909,7 @@ function StatCard({
       <div className="mt-2 flex items-baseline gap-2">
         <span
           className={`font-headline-md text-headline-md ${
-            accent ? "text-[#B5714A]" : plainValue ? "text-on-surface" : "text-primary"
+            accent ? "text-[#A0623C]" : plainValue ? "text-on-surface" : "text-primary"
           }`}
         >
           {value}
@@ -934,7 +934,7 @@ function FilterPill({
   const selected = options.find((option) => option.value === value);
   return (
     <label className="relative inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#2A2622]/[0.08] bg-[#FAF6F0] px-2.5 py-1 text-on-surface-variant focus-within:border-primary/50 hover:border-[#2A2622]/20">
-      <span className="font-label-sm text-label-sm text-on-surface-variant/60 uppercase">
+      <span className="font-label-sm text-label-sm text-on-surface-variant uppercase">
         {label}:
       </span>
       <span className="max-w-[150px] truncate font-medium text-on-surface">{selected?.label}</span>
@@ -958,9 +958,9 @@ function FilterPill({
 const REPLY_STYLE: Record<ReplyTone, { dot: string; text: string }> = {
   attending: { dot: "bg-[#1F4D3D]", text: "font-medium text-primary" },
   maybe: { dot: "bg-[#C89B3C]", text: "font-medium text-[#78401d]" },
-  declined: { dot: "bg-[#B5714A]", text: "font-medium text-[#B5714A]" },
+  declined: { dot: "bg-[#B5714A]", text: "font-medium text-[#A0623C]" },
   pending: { dot: "bg-[#717974]", text: "text-on-surface-variant" },
-  none: { dot: "bg-outline-variant", text: "text-on-surface-variant/70" },
+  none: { dot: "bg-outline-variant", text: "text-on-surface-variant" },
 };
 
 function GuestRow({
@@ -1006,12 +1006,7 @@ function GuestRow({
         />
       </td>
       <td className="px-4 py-3.5 align-middle">
-        <button
-          type="button"
-          onClick={onView}
-          className="flex items-center gap-3 text-left"
-          aria-label={`View details for ${guest.name}`}
-        >
+        <button type="button" onClick={onView} className="flex items-center gap-3 text-left">
           <span
             aria-hidden="true"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/10 bg-[#FAF6F0] font-label-md text-label-md font-medium text-primary"
@@ -1021,7 +1016,7 @@ function GuestRow({
           <span>
             <span className="block leading-tight font-medium text-on-surface">{guest.name}</span>
             {guest.relationLabel ? (
-              <span className="font-body-sm text-[12px] text-on-surface-variant/60">
+              <span className="font-body-sm text-[12px] text-on-surface-variant">
                 {guest.relationLabel}
               </span>
             ) : null}
@@ -1034,7 +1029,7 @@ function GuestRow({
             {groupName}
           </span>
         ) : (
-          <span className="text-on-surface-variant/50">—</span>
+          <span className="text-on-surface-variant">—</span>
         )}
       </td>
       <td className="px-4 py-3.5 align-middle text-on-surface-variant">
@@ -1045,7 +1040,7 @@ function GuestRow({
           {guest.phone ? (
             <span>{formatPhone(guest.phone)}</span>
           ) : (
-            <span className="text-on-surface-variant/50">No phone</span>
+            <span className="text-on-surface-variant">No phone</span>
           )}
           {guest.email ? (
             <Icon
@@ -1070,7 +1065,7 @@ function GuestRow({
             ) : null}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2A2622]/[0.08] bg-[#FAF6F0] px-2.5 py-1 font-label-sm text-label-sm text-on-surface-variant/80">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2A2622]/[0.08] bg-[#FAF6F0] px-2.5 py-1 font-label-sm text-label-sm text-on-surface-variant">
             Not sent
           </span>
         )}

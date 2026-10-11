@@ -18,7 +18,12 @@ import {
   getEventReplies,
   getInvitationsOverview,
 } from "@/modules/guest-invitations/invitation-overview.service";
-import { getEventHeadcount, getGuestSummary, listGuests } from "@/modules/guests/guest.service";
+import {
+  getEventHeadcount,
+  getGuestNumbersByEvent,
+  getGuestSummary,
+  listGuests,
+} from "@/modules/guests/guest.service";
 import { getWeddingAuth } from "@/modules/members/guards";
 import type { InvitationDto } from "@/modules/members/invitation.dto";
 import { listInvitations } from "@/modules/members/invitation.service";
@@ -131,9 +136,10 @@ export async function getEventsPage(auth: AuthContext) {
   const weddingAuth = await getWeddingAuth(auth);
   if (!dashboard.workspace || !weddingAuth) return null;
 
-  const [events, { wedding }] = await Promise.all([
+  const [events, { wedding }, guestNumbers] = await Promise.all([
     listEvents(weddingAuth),
     getWeddingFor(weddingAuth),
+    getGuestNumbersByEvent(weddingAuth),
   ]);
   const now = new Date();
   return {
@@ -141,6 +147,7 @@ export async function getEventsPage(auth: AuthContext) {
     weddingId: weddingAuth.weddingId,
     weddingTimezone: wedding.timezone,
     events: toEventViews(events, now),
+    guestNumbers,
     summary: {
       count: events.length,
       next: nextEventLabel(

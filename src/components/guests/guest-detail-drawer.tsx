@@ -233,7 +233,7 @@ export function GuestDetailDrawer({
             <div className="custom-scrollbar flex-1 space-y-7 overflow-y-auto px-8 py-6">
               <section className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-4">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-primary-container/20 bg-primary-container font-headline-md text-[26px] tracking-tight text-on-primary-fixed shadow-sm">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-primary-container/20 bg-primary-container font-headline-md text-[26px] tracking-tight text-[#FAF6F0] shadow-sm">
                     {initialsOf(guest.name)}
                   </div>
                   <div className="min-w-0">

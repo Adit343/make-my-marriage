@@ -6,6 +6,7 @@ import { useEventActions } from "@/components/events/use-event-actions";
 import { Icon } from "@/components/ui/icon";
 import type { EventType } from "@/lib/constants/enums";
 import type { EventView } from "@/lib/events/view";
+import type { EventGuestNumbers } from "@/modules/guests/guest.service";
 
 // Stitch screen: "Events Timeline (Owner View)". A vertical timeline of every function of the
 // wedding. Guests and RSVPs arrive in Phase 3, so the RSVP column says so instead of inventing
@@ -57,12 +58,15 @@ export function EventsManager({
   weddingId,
   weddingTimezone,
   events,
+  guestNumbers,
   summary,
   canCreate,
 }: {
   weddingId: string;
   weddingTimezone: string;
   events: EventView[];
+  /** Guests invited and replies received, by event id. */
+  guestNumbers: Record<string, EventGuestNumbers>;
   summary: { count: number; next: { text: string; strong: string } };
   canCreate: boolean;
 }) {
@@ -143,7 +147,12 @@ export function EventsManager({
           />
           <ol className="space-y-6">
             {events.map((event) => (
-              <EventCard key={event.id} event={event} menu={actions.menuItems(event)} />
+              <EventCard
+                key={event.id}
+                event={event}
+                numbers={guestNumbers[event.id]}
+                menu={actions.menuItems(event)}
+              />
             ))}
           </ol>
         </div>
@@ -154,7 +163,15 @@ export function EventsManager({
   );
 }
 
-function EventCard({ event, menu }: { event: EventView; menu: EventMenuItem[] }) {
+function EventCard({
+  event,
+  menu,
+  numbers,
+}: {
+  event: EventView;
+  menu: EventMenuItem[];
+  numbers: EventGuestNumbers | undefined;
+}) {
   const style = TYPE_STYLE[event.type];
   const chipLabel = event.type === "ceremony" ? "Ceremony" : event.typeLabel;
 
@@ -239,9 +256,18 @@ function EventCard({ event, menu }: { event: EventView; menu: EventMenuItem[] })
           <div className="flex shrink-0 items-center gap-4 md:gap-6 md:pl-4">
             <div className="w-full md:w-44 md:text-right">
               <div className="mb-1.5 font-body-sm text-[12px] text-on-surface-variant">
-                No guests invited yet
+                {numbers && numbers.invited > 0
+                  ? `${numbers.replied} of ${numbers.invited} replied${numbers.attendingPeople > 0 ? ` · ${numbers.attendingPeople} coming` : ""}`
+                  : "No guests invited yet"}
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EAE1DA]" />
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EAE1DA]">
+                {numbers && numbers.invited > 0 ? (
+                  <div
+                    className="h-full rounded-full bg-[#1F4D3D]"
+                    style={{ width: `${Math.round((numbers.replied / numbers.invited) * 100)}%` }}
+                  />
+                ) : null}
+              </div>
             </div>
             <EventMenu eventName={event.name} items={menu} />
           </div>

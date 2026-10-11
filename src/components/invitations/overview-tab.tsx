@@ -120,7 +120,7 @@ export function OverviewTab({
               {failed} {failed === 1 ? "email" : "emails"} failed
             </div>
             <p
-              className={`mt-0.5 font-body-sm text-body-sm ${failed > 0 ? "text-secondary/80" : "text-on-surface-variant"}`}
+              className={`mt-0.5 font-body-sm text-body-sm ${failed > 0 ? "text-secondary" : "text-on-surface-variant"}`}
             >
               {failed > 0 ? "Needs your attention" : "All clear"}
             </p>
