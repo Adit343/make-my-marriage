@@ -9,8 +9,8 @@ import type { MemberRole } from "@/lib/constants/enums";
 import { BrandMark } from "@/components/ui/brand-mark";
 
 // Left navigation shelf, as in the Stitch Team and Settings screens: Overview … Members, with
-// Settings pinned at the bottom (showing the viewer's role when it is the active page). Website,
-// Gallery and Live Stream are not built yet; they say so instead of leading to a 404.
+// Settings pinned at the bottom (showing the viewer's role when it is the active page). Gallery is
+// not built yet; it says so instead of leading to a 404.
 
 export type NavSection =
   | "dashboard"
@@ -20,6 +20,8 @@ export type NavSection =
   | "tasks"
   | "expenses"
   | "vendors"
+  | "website"
+  | "live"
   | "members"
   | "settings";
 
@@ -75,9 +77,21 @@ const NAV: NavItem[] = [
     href: "/dashboard/invitations",
     section: "invitations",
   },
-  { label: "Website", icon: "laptop_chromebook", detail: "Publish a simple site for your guests." },
+  {
+    label: "Website",
+    icon: "laptop_chromebook",
+    detail: "Publish a simple site for your guests.",
+    href: "/dashboard/website",
+    section: "website",
+  },
   { label: "Gallery", icon: "photo_library", detail: "Collect everyone's photos in one place." },
-  { label: "Live Stream", icon: "videocam", detail: "Share a stream link with remote guests." },
+  {
+    label: "Live Stream",
+    icon: "videocam",
+    detail: "Share a stream link with remote guests.",
+    href: "/dashboard/live",
+    section: "live",
+  },
   {
     label: "Members",
     icon: "badge",
@@ -148,6 +162,11 @@ export function Sidebar({
               {isActive ? <ActiveBar /> : null}
               <Icon name={item.icon} className="text-[19px]" />
               <span className="font-body-sm text-body-sm">{item.label}</span>
+              {item.label === "Gallery" ? (
+                <span className="ml-auto rounded bg-surface-container px-1.5 py-0.5 font-label-sm text-[10px] font-semibold tracking-wide text-outline">
+                  Soon
+                </span>
+              ) : null}
               {item.label === "Events" && eventCount > 0 ? (
                 <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 font-label-sm text-[10px] font-semibold text-on-primary">
                   {eventCount}

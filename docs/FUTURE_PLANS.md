@@ -3,7 +3,7 @@
 > What is left to build, in order, with the decisions that must be made first.
 > Where the project is *now* is in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). **Read that file first.**
 >
-> Last updated: **2026-10-11** · Phases 1 to 4 complete and committed (latest `d0aa84a`) · **Phase 4 (Financials and vendors) is complete. Phase 5 (wedding website and live stream) is next.**
+> Last updated: **2026-10-11** · Phases 1 to 4 committed (latest `d0aa84a`; later docs and logo commits on `dev`) · **Phase 5 (wedding website and live stream) is built and verified but not yet committed. Phase 6 (Memories) is next.**
 
 **Contents**
 
@@ -28,13 +28,13 @@
 1. Open the project folder in Claude Code (the four design docs, `PROJECT_STATUS.md` and this file are
    imported automatically through `CLAUDE.md`).
 2. If working on a new machine, follow `PROJECT_STATUS.md` §3 (Node 24, `npm ci`, `.env.local`, branch `dev`, Stitch MCP).
-3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **893 passing**).
+3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **1,051 passing**).
 4. Start the next piece of work with a prompt like:
 
-   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. Phase 4 is complete (expenses, payments,
-   > vendors). We are starting **Phase 5** (wedding website and live stream). Do not create files, install anything or write
-   > code yet. Look at the Stitch screens for it, then propose a plan for step 5.1 and list the open decisions
-   > from section 7.3 you need answered. Wait for my approval.
+   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. Phase 5 is complete (website and live
+   > streams). We are starting **Phase 6** (Memories: gallery). Do not create files, install anything or write
+   > code yet. Look at the Stitch screens for it, then propose a plan for step 6.1 and list the open decisions
+   > from section 8.4 you need answered. Wait for my approval.
 
 5. **After each step**, the AI must update `PROJECT_STATUS.md` (what was built, decisions, new endpoints,
    test totals, commit) and tick things off here, so the next session starts correct.
@@ -89,7 +89,7 @@ These come from `CLAUDE.md`, the architecture and the working agreement. Repeat 
 | 2     | Planning                | events (with embedded schedule), tasks                   | **Done** (steps 2.1–2.7)                                |
 | 3     | Guests & Invitations    | guestGroups, guests, rsvps (emailLogs already exists)    | **Done** (steps 3.1 to 3.5). Real guest email needs a verified Resend domain in practice; WhatsApp, copy link and "invited in person" work today |
 | 4     | Financials & Vendors    | expenses, vendors, vendorPayments                        | **Done** (steps 4.1 to 4.4)                             |
-| 5     | Wedding Experience      | weddingWebsites, liveStreams                             | Not started                                             |
+| 5     | Wedding Experience      | weddingWebsites, liveStreams                             | **Done** (built and verified 2026-10-11; commit pending) |
 | 6     | Memories                | galleries, galleryAlbums, galleryAssets, galleryAccessTokens | Not started; needs AWS                              |
 | 7     | Product Readiness       | none                                                     | Not started                                             |
 
@@ -250,6 +250,8 @@ New env var: **`GOOGLE_PLACES_API_KEY`** (server-side only; also set in Vercel).
 
 ## 7. Phase 5: Wedding experience
 
+> **Built 2026-10-11 (steps 5.1 to 5.6, not yet committed).** What was built, the choices made and the real-browser results are in `PROJECT_STATUS.md` §13 and §14.2. In short: the website editor (Content and Design and settings tabs with a live preview), the public site at `/w/<slug>`, live streams (manager, add/edit slide-over, guest watch page at `/live/<token>` with scheduled, live, ended, cancelled and invalid states), CSP `frame-src` for YouTube and Vimeo. **Still open from Phase 5:** the website cover image waits for the gallery (Phase 6); `heroAssetId`; an end time for streams (decision 11, not added); a repeatable (CI) browser test (Phase 7); the public RSVP is not on the website (guests RSVP through their personal `/i/<token>` link).
+
 **Goal:** a polished, shareable digital experience for guests.
 **Exit condition:** "A wedding can have a shareable digital wedding experience where guests can view wedding information, events, venues, schedule, RSVP, and live-stream content without creating an account."
 
@@ -393,8 +395,8 @@ Ask these when the relevant phase starts (recommendations in brackets are the AI
 | 8  | 4     | ~~Expense fields (date, single amount) vs DB doc~~ **Decided: added an optional expense date; amounts stay estimated and agreed (2026-10-11)** | (done) |
 | 9  | 4     | ~~Vendor `eventIds[]` and documents~~ **Decided: neither built; documents wait for Phase 6 receipts (2026-10-11)** | (done) |
 | 10 | 4     | ~~What Google Places data may be stored~~ **Decided: the place id and what the member confirms or types; no coordinates from Google (2026-10-11)** | (done) |
-| 11 | 5     | Livestream end time                                                                                              | Add optional `endTime`                                    |
-| 12 | 5     | Slug history/redirects                                                                                           | Not in V1                                                 |
+| 11 | 5     | ~~Livestream end time~~ **Decided: not added (2026-10-11)**; status is set by hand, the page needs no end time    | (done)                                                    |
+| 12 | 5     | ~~Slug history/redirects~~ **Decided: none in V1 (2026-10-11)**; the editor warns that changing the address breaks old links | (done)                                          |
 | 13 | 6     | Per-wedding storage quota and file limits                                                                        | A few GB; check before issuing upload URLs               |
 | 14 | 6     | Favourites; keep `galleries` collection; QR library dependency                                                   | Keep collection; ask before adding a QR dependency        |
 | 15 | 7     | Monitoring/analytics tools (V1 says none external)                                                               | Owner decision                                            |

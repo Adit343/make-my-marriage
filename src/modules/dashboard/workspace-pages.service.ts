@@ -38,7 +38,12 @@ import { countActiveMembers } from "@/modules/members/member.repository";
 import { listTeam } from "@/modules/members/member.service";
 import { can } from "@/modules/members/permissions";
 import { listEveryTask, listEventTasks } from "@/modules/tasks/task.service";
+import { listStreams } from "@/modules/livestream/stream.service";
 import { getVendorDetail, listEveryVendor } from "@/modules/vendors/vendor.service";
+import {
+  getEditorData as getWebsiteEditorData,
+  getWebsitePreview,
+} from "@/modules/website/website.service";
 import { getWeddingFor } from "@/modules/weddings/wedding.service";
 
 // Data for the Team and Settings pages. Server Components call the same services the REST API
@@ -504,4 +509,62 @@ export async function getVendorPage(auth: AuthContext, vendorId: string) {
     if (error instanceof AppError && error.code === "NOT_FOUND") return "not_found" as const;
     throw error;
   }
+}
+
+/**
+ * Data for the Website editor (Stitch "Wedding Website Editor" and "Website Design and Settings").
+ * Owners and admins only (decision D3): a member gets "forbidden" and the page says so.
+ */
+export async function getWebsitePage(auth: AuthContext) {
+  const dashboard = await getDashboard(auth);
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!dashboard.workspace || !weddingAuth) return null;
+  const shell = { viewer: dashboard.viewer, workspace: dashboard.workspace };
+  if (!can(weddingAuth.membership.role, "website:manage")) {
+    return { dashboard: shell, forbidden: true as const };
+  }
+  const data = await getWebsiteEditorData(weddingAuth, getEnv().APP_URL);
+  if (!data) return null;
+  return {
+    dashboard: shell,
+    forbidden: false as const,
+    weddingId: weddingAuth.weddingId,
+    data,
+    nowIso: new Date().toISOString(),
+  };
+}
+
+/** The member's own preview of the site, exactly as guests will see it (works for a draft too). */
+export async function getWebsitePreviewPage(auth: AuthContext) {
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!weddingAuth) return null;
+  if (!can(weddingAuth.membership.role, "website:manage")) return "forbidden" as const;
+  const view = await getWebsitePreview(weddingAuth);
+  return view ? { view, nowIso: new Date().toISOString() } : ("none" as const);
+}
+
+/** Data for the Live streams manager (Stitch "Live Streams Manager" and "Add Stream"). Every role. */
+export async function getLiveStreamsPage(auth: AuthContext) {
+  const dashboard = await getDashboard(auth);
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!dashboard.workspace || !weddingAuth) return null;
+
+  const [streams, events, { wedding }] = await Promise.all([
+    listStreams(weddingAuth),
+    listEvents(weddingAuth),
+    getWeddingFor(weddingAuth),
+  ]);
+  return {
+    dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+    weddingId: weddingAuth.weddingId,
+    timezone: wedding.timezone,
+    streams,
+    events: events.map((event) => ({
+      id: event.id,
+      name: event.name,
+      startsAt: event.startsAt,
+      timezone: event.timezone,
+    })),
+    nowIso: new Date().toISOString(),
+  };
 }

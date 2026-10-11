@@ -832,6 +832,8 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 
 ---
 
+**Implementation notes (built 2026-10-11, Phase 5).** `weddingWebsites` is built as specified except: there is **no top-level `story` field** (the story is the `story` entry of `sections[]`, as the Stitch editor shows) and **no `heroAssetId`** yet (Phase 6). `sections[]` keeps each standard kind at most once (Zod), `publicEventIds` holds only events that are also `isPublic` (checked on save and again when the public page is built), and a deleted event is `$pull`ed from it in the delete transaction. The wedding-deletion workflow does not touch the site: the public page checks the wedding is live, so it goes dark at once (the address stays reserved for the 30-day grace period).
+
 ### 6.16 `liveStreams`
 
 **In plain words.** A stream link for guests who can't attend. Example: YouTube unlisted link for the Wedding event, scheduled 14 Feb 2027 18:00, visible to guests through their personal live link.

@@ -143,3 +143,27 @@ export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export const PAYMENT_METHODS = ["cash", "upi", "bank_transfer", "cheque", "card", "other"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+// Phase 5 — Wedding experience (DB Design Appendix A).
+export const WEBSITE_STATUSES = ["draft", "published"] as const;
+export type WebsiteStatus = (typeof WEBSITE_STATUSES)[number];
+
+export const WEBSITE_SECTION_TYPES = [
+  "story",
+  "schedule",
+  "travel",
+  "faq",
+  "contact",
+  "custom",
+] as const;
+export type WebsiteSectionType = (typeof WEBSITE_SECTION_TYPES)[number];
+
+/** The three looks on the Design and settings tab (Stitch "Website Design and Settings"). */
+export const WEBSITE_TEMPLATES = ["modern_minimal", "editorial", "soft_classic"] as const;
+export type WebsiteTemplate = (typeof WEBSITE_TEMPLATES)[number];
+
+export const STREAM_PROVIDERS = ["youtube", "vimeo", "other"] as const;
+export type StreamProvider = (typeof STREAM_PROVIDERS)[number];
+
+export const STREAM_STATUSES = ["scheduled", "live", "ended", "cancelled"] as const;
+export type StreamStatus = (typeof STREAM_STATUSES)[number];

@@ -117,12 +117,31 @@ const INVENTORY: Record<string, Access> = {
   "GET /api/v1/weddings/[weddingId]/email-logs": "wedding:invitations:logs",
   "POST /api/v1/weddings/[weddingId]/email-logs/[logId]/retry": "wedding:invitations:logs",
 
+  // Phase 5: the wedding website. Anyone on the team can read it; setting it up, editing and publishing
+  // are owner and admin (website:manage, decision D3). Reading never creates the site (POST does).
+  "GET /api/v1/weddings/[weddingId]/website": "wedding:wedding:view",
+  "POST /api/v1/weddings/[weddingId]/website": "wedding:website:manage",
+  "PATCH /api/v1/weddings/[weddingId]/website": "wedding:website:manage",
+  "POST /api/v1/weddings/[weddingId]/website/publish": "wedding:website:manage",
+  "POST /api/v1/weddings/[weddingId]/website/unpublish": "wedding:website:manage",
+  "GET /api/v1/weddings/[weddingId]/website/slug-check": "wedding:website:manage",
+  // Phase 5: live streams. Every role manages them (livestream:edit), so whoever is at the venue can go live.
+  "GET /api/v1/weddings/[weddingId]/livestreams": "wedding:wedding:view",
+  "POST /api/v1/weddings/[weddingId]/livestreams": "wedding:livestream:edit",
+  "PATCH /api/v1/weddings/[weddingId]/livestreams/[streamId]": "wedding:livestream:edit",
+  "DELETE /api/v1/weddings/[weddingId]/livestreams/[streamId]": "wedding:livestream:edit",
+  "POST /api/v1/weddings/[weddingId]/livestreams/[streamId]/link/rotate": "wedding:livestream:edit",
+
   // Token routes: the secret in the path is the credential (hash lookup, rate limited).
   "GET /api/v1/public/invitations/[token]": "public",
   // A guest's personal RSVP link (no account). The token is the credential; every unusable link is
   // the same 403. The service whitelists what a guest sees and what they may write.
   "GET /api/v1/public/rsvp/[token]": "public",
   "PATCH /api/v1/public/rsvp/[token]": "public",
+  // The public wedding site (no account, no token: a published site's address) and a stream's watch
+  // page (the link is the credential). Both are hand-built whitelists; every unusable one is one answer.
+  "GET /api/v1/public/websites/[slug]": "public",
+  "GET /api/v1/public/live/[token]": "public",
   "POST /api/v1/invitations/accept": "session",
 };
 
@@ -228,8 +247,13 @@ describe("API route inventory", () => {
         "/api/v1/weddings/[weddingId]/guests/[guestId]/link",
         "/api/v1/weddings/[weddingId]/guest-invitations/overview",
         "/api/v1/weddings/[weddingId]/email-logs",
+        "/api/v1/weddings/[weddingId]/website",
+        "/api/v1/weddings/[weddingId]/website/slug-check",
+        "/api/v1/weddings/[weddingId]/livestreams",
         "/api/v1/public/invitations/[token]",
         "/api/v1/public/rsvp/[token]",
+        "/api/v1/public/websites/[slug]",
+        "/api/v1/public/live/[token]",
       ].sort(),
     );
   });

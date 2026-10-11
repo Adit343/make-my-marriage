@@ -14,6 +14,7 @@ export function DrawerShell({
   title,
   subtitle,
   note,
+  widthClass = "w-[540px]",
   saveLabel,
   saving,
   onClose,
@@ -23,8 +24,10 @@ export function DrawerShell({
   id: string;
   title: string;
   subtitle?: string;
-  /** The small lock line at the bottom left ("Shared with your team"). */
-  note: string;
+  /** The small lock line at the bottom left ("Shared with your team"); leave out for a plain footer. */
+  note?: string;
+  /** The panel width class; the Expense and Vendor forms use the default. */
+  widthClass?: string;
   saveLabel: string;
   saving: boolean;
   onClose: () => void;
@@ -60,7 +63,7 @@ export function DrawerShell({
         role="dialog"
         aria-modal="true"
         aria-labelledby={`${id}-title`}
-        className="fixed inset-y-0 right-0 flex w-[540px] max-w-full flex-col border-l border-[#E5DDD2] bg-[#FFFDF9] shadow-2xl"
+        className={`fixed inset-y-0 right-0 flex ${widthClass} max-w-full flex-col border-l border-[#E5DDD2] bg-[#FFFDF9] shadow-2xl`}
       >
         <form noValidate onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <header className="flex-shrink-0 border-b border-[#2A2622]/[0.06] px-8 pt-8 pb-6">
@@ -94,11 +97,13 @@ export function DrawerShell({
           </div>
 
           <footer className="flex flex-shrink-0 items-center justify-between gap-3 border-t border-[#E8E1D7] bg-[#FAF6F0]/95 px-8 py-4 backdrop-blur-md">
-            <div className="flex min-w-0 items-center gap-2 font-body-sm text-body-sm text-on-surface-variant">
-              <Icon name="lock" className="shrink-0 text-[16px] text-surface-tint" />
-              <span className="truncate">{note}</span>
-            </div>
-            <div className="flex items-center gap-3">
+            {note ? (
+              <div className="flex min-w-0 items-center gap-2 font-body-sm text-body-sm text-on-surface-variant">
+                <Icon name="lock" className="shrink-0 text-[16px] text-surface-tint" />
+                <span className="truncate">{note}</span>
+              </div>
+            ) : null}
+            <div className="ml-auto flex items-center gap-3">
               <button
                 type="button"
                 onClick={onClose}

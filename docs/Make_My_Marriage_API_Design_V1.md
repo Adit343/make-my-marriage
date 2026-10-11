@@ -830,6 +830,13 @@ No auth. Implements the whitelist in Database Design §11.2 exactly — this is 
 
 **Never returned:** `weddingId`, `createdBy`, budget, members, guests, `notes`, any event's `description`/`notes` beyond what's whitelisted, or a venue address unless `display.showVenueAddresses` is true.
 
+**Implementation notes (built 2026-10-11, Phase 5).**
+
+- Routes: `GET`, `POST` and `PATCH /website`, `POST /website/publish` and `/unpublish`, `GET /website/slug-check?slug=` (**addition**: `available | yours | taken | reserved | invalid`) and `GET /public/websites/:slug`. A `GET /website` answers `null` when the wedding has no site yet and **never creates one** (§2.9); `POST /website` is the explicit set-up and answers `409` if one exists.
+- `PATCH` takes any subset of `slug, title, tagline, welcomeMessage, sections, publicEventIds, display, theme, seo` plus the required `version` (a stale one is `409 VERSION_CONFLICT`). `sections` replaces the whole list in order; a section that exists keeps its id when the client sends it back; each standard kind at most once; the schedule section has no text. Taken address `409 SLUG_TAKEN`; reserved `422 BUSINESS_RULE_VIOLATION`; badly shaped `400`; an event of another wedding `404`; an event not public on itself `422` naming it. There is no `story` field and no `heroAssetId` (Phase 6).
+- Owners and admins edit and publish (`website:manage`); every role may read. There is one stored site: saving while it is published changes it for guests at once.
+- **Public site.** `GET /public/websites/:slug` returns `{ slug, title, coupleNames, initials, tagline, welcomeMessage, dateLabel, city, countdownTarget, sections[], events[], theme, seo }` and nothing else: sections that are hidden or empty are left out, the schedule is the chosen public events (date, time in the event's zone, venue name, dress code, description and the public lines of its run-of-show), a venue address and map link only if `display.showVenueAddresses`. Rate limited per visitor. The page is `/w/<slug>`.
+
 ---
 
 ## 11. Live Streaming (member + public)
@@ -852,6 +859,13 @@ Module: `livestream`. Collection: `liveStreams`.
 `streamUrl` host is checked against the provider's known hosts for `youtube`/`vimeo`; any `https://` host is accepted for `other` (Database Design §6.16). `status` (`scheduled/live/ended/cancelled`) is set **manually** by a `PATCH` from a member — there is no webhook or polling, matching Architecture §35's "no WebSockets" and the database document's note that status changes are human-driven in V1.
 
 `GET /api/public/live/:token` returns `{ title, description, startTime, status, streamUrl, provider }` once the token validates (not revoked/expired, stream and wedding not deleted). Carries forward the honest limitation from Database Design §6.16: this protects the *page*, not the underlying video — a guest who copies the raw YouTube/Vimeo URL can still share it further.
+
+**Implementation notes (built 2026-10-11, Phase 5).**
+
+- Routes: `GET` and `POST /livestreams`, `PATCH` and `DELETE /livestreams/:streamId`, `POST /livestreams/:streamId/link/rotate`, `GET /public/live/:token`. Every role may use them (`livestream:edit`; list is `wedding:view`).
+- The stream's link must belong to the chosen platform (YouTube hosts for `youtube`, Vimeo hosts for `vimeo`, any https address for `other`; no credentials in the address): otherwise `400` with `details[0].path = "streamUrl"`. Changing the platform or the link re-checks the pair against the stored one. An `eventId` of another wedding is `404`. `status` is set by hand with `PATCH`.
+- Each member-facing stream carries `inviteUrl` (the same `/live/<token>` link every time, from the encrypted copy), `eventName` and the `timezone` its time is shown in (its event's, else the wedding's). Creating a stream creates its link; `rotate` replaces it and the old token is dead at once; deleting the stream also kills it. Deleting an event unlinks its streams (`streamsUnlinked`).
+- **Public watch page.** `GET /public/live/:token` returns `{ coupleNames, title, description, startTime, dateLabel, timeLabel, zoneLabel, status, provider, providerLabel, watchUrl, embedUrl }`. `watchUrl` and `embedUrl` are `null` unless the status is `live`. Every unusable link is the same `403 INVALID_TOKEN`. Rate limited per visitor (150 per 15 minutes; the page asks about once a minute while open). The page is `/live/<token>`. The token protects our page, not the video.
 
 ---
 

@@ -9,8 +9,9 @@
 // third-party scripts, framing, <base> hijacking, plugin content and off-site form posts. In
 // development 'unsafe-eval' and websockets are allowed for hot reload only.
 //
-// Phase 6 (gallery) must add the CloudFront media origin to img-src / media-src; Phase 5 the
-// live-stream providers to frame-src.
+// Live streams (Phase 5): the guest watch page embeds the YouTube or Vimeo player, so frame-src
+// allows exactly those player origins and nothing else (YouTube through its no-cookie domain).
+// Phase 6 (gallery) must add the CloudFront media origin to img-src / media-src.
 
 export interface HeaderEntry {
   key: string;
@@ -25,6 +26,11 @@ export function contentSecurityPolicy(options: { development: boolean }): string
     "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
     "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
     "img-src": ["'self'", "data:", "blob:"],
+    "frame-src": [
+      "https://www.youtube-nocookie.com",
+      "https://player.vimeo.com",
+      "https://vimeo.com",
+    ],
     "connect-src": ["'self'", ...(development ? ["ws:", "wss:"] : [])],
     "frame-ancestors": ["'none'"],
     "base-uri": ["'self'"],

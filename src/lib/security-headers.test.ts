@@ -20,10 +20,24 @@ describe("contentSecurityPolicy", () => {
     expect(directive(production, "default-src")).toEqual(["'self'"]);
   });
 
-  it("allows only Google Fonts as a third party", () => {
+  it("allows framing only the YouTube and Vimeo players, for the live watch page", () => {
+    expect(directive(production, "frame-src").sort()).toEqual([
+      "https://player.vimeo.com",
+      "https://vimeo.com",
+      "https://www.youtube-nocookie.com",
+    ]);
+    expect(directive(production, "frame-src")).not.toContain("*");
+  });
+
+  it("allows only Google Fonts as a stylesheet and font third party", () => {
     expect(directive(production, "style-src")).toContain("https://fonts.googleapis.com");
     expect(directive(production, "font-src")).toContain("https://fonts.gstatic.com");
-    const origins = production.match(/https?:\/\/[^\s;]+/g) ?? [];
+    // The only other third-party origins are the video players in frame-src (above).
+    const withoutFrames = production
+      .split("; ")
+      .filter((part) => !part.startsWith("frame-src "))
+      .join("; ");
+    const origins = withoutFrames.match(/https?:\/\/[^\s;]+/g) ?? [];
     expect(origins.sort()).toEqual(["https://fonts.googleapis.com", "https://fonts.gstatic.com"]);
     expect(production).not.toContain("*");
   });

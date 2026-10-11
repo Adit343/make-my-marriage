@@ -29,6 +29,12 @@ export const RATE_LIMITS = {
   rsvpSubmit: { limit: 30, windowSeconds: 15 * 60 },
   // Vendor search through Google Places (each search costs money), per wedding.
   placesSearch: { limit: 40, windowSeconds: 60 * 60 },
+  // The public wedding website and the guest watch page, per IP. Generous: a family shares a network,
+  // and the watch page re-checks its status about once a minute while it is open.
+  siteLookup: { limit: 120, windowSeconds: 15 * 60 },
+  liveLookup: { limit: 150, windowSeconds: 15 * 60 },
+  // Checking whether a website address is free, per wedding.
+  slugCheck: { limit: 120, windowSeconds: 60 * 60 },
 } satisfies Record<string, RateLimit>;
 
 /**

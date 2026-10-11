@@ -54,6 +54,13 @@ export const PERMISSIONS = {
   "payments:record": ADMIN_UP,
   /** Everything about vendors: the list, contact details, adding, editing, deleting, place search (decision D3). */
   "vendors:manage": ADMIN_UP,
+  /** Edit, publish and unpublish the wedding website (API Design §10, decision D3: admin and up). */
+  "website:manage": ADMIN_UP,
+  /**
+   * Add, edit, delete and re-link live streams and set their status (API Design §11: every role,
+   * so whoever is at the venue can press Live).
+   */
+  "livestream:edit": EVERYONE,
 } as const satisfies Record<string, readonly MemberRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

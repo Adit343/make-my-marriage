@@ -5,7 +5,9 @@ import type { WeddingAuth } from "@/modules/members/guards";
 import { can } from "@/modules/members/permissions";
 import { softDeleteRsvpsForEvent } from "@/modules/guests/rsvp.repository";
 import { unlinkExpensesFromEvent } from "@/modules/expenses/expense.repository";
+import { unlinkStreamsFromEvent } from "@/modules/livestream/stream.repository";
 import { unlinkTasksFromEvent } from "@/modules/tasks/task.repository";
+import { removeEventFromWebsite } from "@/modules/website/website.repository";
 import { findWedding } from "@/modules/weddings/wedding.repository";
 import { toEventDto, type EventDto } from "@/modules/events/event.dto";
 import {
@@ -110,7 +112,8 @@ export async function updateEvent(
  * Soft delete (DB Design §6.7 rule 1). The event's tasks are not deleted: they become
  * wedding-level tasks and its RSVP rows (the guests invited to it) are soft-deleted, all in the
  * same transaction, and the response says how many were affected. Its expenses are not deleted
- * either (the money was still spent): they become wedding-level, like its tasks.
+ * either (the money was still spent): they become wedding-level, like its tasks, and so are its
+ * live streams. The wedding website simply stops listing it.
  */
 export async function deleteEvent(auth: WeddingAuth, eventId: string) {
   const existing = await findEvent(auth.weddingId, eventId);
@@ -118,14 +121,17 @@ export async function deleteEvent(auth: WeddingAuth, eventId: string) {
   if (!canManage(auth, existing)) throw new AppError("INSUFFICIENT_ROLE");
 
   const at = new Date();
-  const { tasksUnlinked, rsvpsRemoved, expensesUnlinked } = await withTransaction(
+  const { tasksUnlinked, rsvpsRemoved, expensesUnlinked, streamsUnlinked } = await withTransaction(
     async (session) => {
       if (!(await softDeleteEvent(auth.weddingId, eventId, { by: auth.userId, at }, session))) {
         throw new AppError("NOT_FOUND");
       }
+      // The site stops listing the event; the website itself stays (it is not the event's child).
+      await removeEventFromWebsite(auth.weddingId, eventId, session);
       return {
         tasksUnlinked: await unlinkTasksFromEvent(auth.weddingId, eventId, session),
         expensesUnlinked: await unlinkExpensesFromEvent(auth.weddingId, eventId, session),
+        streamsUnlinked: await unlinkStreamsFromEvent(auth.weddingId, eventId, session),
         rsvpsRemoved: await softDeleteRsvpsForEvent(
           auth.weddingId,
           eventId,
@@ -141,5 +147,6 @@ export async function deleteEvent(auth: WeddingAuth, eventId: string) {
     tasksUnlinked,
     rsvpsRemoved,
     expensesUnlinked,
+    streamsUnlinked,
   };
 }

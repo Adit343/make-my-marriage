@@ -51,6 +51,8 @@ const EXPECTED_INDEXES: Record<string, string[]> = {
     "createdAt_1 ttl=15552000",
   ],
   rateLimitCounters: ["keyHash_1_windowStart_1 unique", "expiresAt_1 ttl=0"],
+  weddingWebsites: ["weddingId_1 unique partial", "slug_1 unique partial"],
+  liveStreams: ["weddingId_1_startTime_1", "link.tokenHash_1 unique partial"],
 };
 
 setupTestDatabase();

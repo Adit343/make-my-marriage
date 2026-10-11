@@ -5,10 +5,12 @@ import { Event } from "@/models/event.model";
 import { Expense } from "@/models/expense.model";
 import { Guest } from "@/models/guest.model";
 import { GuestGroup } from "@/models/guestGroup.model";
+import { LiveStream } from "@/models/liveStream.model";
 import { Rsvp } from "@/models/rsvp.model";
 import { Task } from "@/models/task.model";
 import { Vendor } from "@/models/vendor.model";
 import { VendorPayment } from "@/models/vendorPayment.model";
+import { WeddingWebsite } from "@/models/weddingWebsite.model";
 import { setupTestDatabase } from "../../setup/database";
 
 // DB Design §8.1 rule 5: check indexes with explain() on realistic data. These are the queries the
@@ -546,5 +548,98 @@ describe("finance queries use an index and stay inside one wedding", () => {
 
   it.each(cases)("%s", async (_label, build) => {
     expectIndexed(await plan(build()));
+  });
+});
+
+describe("website and live stream queries use an index and stay inside one wedding", () => {
+  const SITES = 300;
+  const notDeleted = { deletedAt: { $type: "null" as const } };
+  let ownSlug: string;
+  let streamId: Types.ObjectId;
+
+  beforeAll(async () => {
+    await WeddingWebsite.init();
+    await LiveStream.init();
+    // Many weddings, one site each: an address lookup must not walk past the others.
+    const weddings = Array.from({ length: SITES }, () => new Types.ObjectId());
+    weddings[0] = weddingA;
+    await WeddingWebsite.insertMany(
+      weddings.map((weddingId, i) => ({
+        weddingId,
+        slug: `couple-${i}`,
+        title: `Couple ${i}`,
+        status: i % 2 === 0 ? "published" : "draft",
+        createdBy: user,
+      })),
+    );
+    ownSlug = "couple-0";
+    const streams = [weddingA, weddingB].flatMap((weddingId) =>
+      Array.from({ length: PER_WEDDING }, (_, i) => ({
+        weddingId,
+        provider: "youtube" as const,
+        streamUrl: "https://youtu.be/dQw4w9WgXcQ",
+        title: `Stream ${i}`,
+        startTime: new Date(Date.UTC(2027, 1, 1, 0, i)),
+        status: "scheduled" as const,
+        link: {
+          tokenHash: `${weddingId}-${String(i).padStart(4, "0")}`,
+          tokenEnc: "enc",
+          createdAt: new Date(),
+          expiresAt: null,
+          revokedAt: null,
+        },
+        createdBy: user,
+      })),
+    );
+    const inserted = await LiveStream.insertMany(streams);
+    streamId = inserted[5]!._id;
+  });
+
+  const cases: [string, () => { explain(verbosity: string): Promise<unknown> }, number][] = [
+    [
+      "a wedding's website",
+      () => WeddingWebsite.findOne({ weddingId: weddingA, ...notDeleted }),
+      1,
+    ],
+    [
+      "the public site by its address",
+      () => WeddingWebsite.findOne({ slug: ownSlug, ...notDeleted }),
+      1,
+    ],
+    [
+      "is this address used by another wedding",
+      () =>
+        WeddingWebsite.findOne({ slug: "couple-7", weddingId: { $ne: weddingA }, ...notDeleted }),
+      1,
+    ],
+    [
+      "the streams of one wedding, soonest first",
+      () =>
+        LiveStream.find({ weddingId: weddingA, ...notDeleted })
+          .sort({ startTime: 1, _id: 1 })
+          .limit(200),
+      PER_WEDDING,
+    ],
+    [
+      "one stream within its wedding",
+      () => LiveStream.findOne({ _id: streamId, weddingId: weddingA, ...notDeleted }),
+      1,
+    ],
+    [
+      "the watch page's lookup by token",
+      () =>
+        LiveStream.findOne({
+          "link.tokenHash": `${weddingA}-0003`,
+          ...notDeleted,
+        }),
+      1,
+    ],
+  ];
+
+  it.each(cases)("%s", async (_label, build, maxDocs) => {
+    const result = await plan(build());
+    expect(result.stages, `plan: ${result.stages.join(" > ")}`).toContain("IXSCAN");
+    expect(result.stages).not.toContain("COLLSCAN");
+    expect(result.docsExamined).toBeLessThanOrEqual(maxDocs);
   });
 });
