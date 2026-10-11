@@ -9,8 +9,10 @@ import { countEvents, findNextEvent } from "@/modules/events/event.repository";
 import { countGuests, listGuestsPage } from "@/modules/guests/guest.repository";
 import { replyCountsByGuest } from "@/modules/guests/rsvp.repository";
 import { findActiveMembershipByUser, listMembers } from "@/modules/members/member.repository";
+import { can } from "@/modules/members/permissions";
 import { countOpenTasks, listUpcomingOpenTasks } from "@/modules/tasks/task.repository";
 import { findUserSummaries } from "@/modules/users/user.repository";
+import { countBookedVendors, countVendors } from "@/modules/vendors/vendor.repository";
 import { findWedding } from "@/modules/weddings/wedding.repository";
 
 // Everything the member dashboard (Stitch "Member Wedding Dashboard") shows, from real data only.
@@ -65,7 +67,14 @@ export interface Dashboard {
     /** null when no date is set; 0 on the day; negative once it has passed. */
     daysUntilWedding: number | null;
     team: TeamMember[];
-    counts: { events: number; guests: number; pendingTasks: number; vendors: number };
+    counts: {
+      events: number;
+      guests: number;
+      pendingTasks: number;
+      /** Vendors in the directory and the booked ones; null for a member, who cannot see vendors. */
+      vendors: number | null;
+      bookedVendors: number | null;
+    };
     /** The soonest event that hasn't finished, or null when there are none. */
     nextEvent: NextEvent | null;
     /** The next few tasks that aren't done: soonest due first. */
@@ -145,15 +154,26 @@ export async function getDashboard(auth: AuthContext): Promise<Dashboard> {
     })
     .sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]);
 
-  const [eventCount, guestCount, nextEventRow, openTaskCount, upcomingTaskRows, replyRows] =
-    await Promise.all([
-      countEvents(wedding._id),
-      countGuests(wedding._id),
-      findNextEvent(wedding._id, new Date()),
-      countOpenTasks(wedding._id),
-      listUpcomingOpenTasks(wedding._id, 4),
-      replyCountsByGuest(wedding._id),
-    ]);
+  const canSeeVendors = can(membership.role, "vendors:manage");
+  const [
+    eventCount,
+    guestCount,
+    nextEventRow,
+    openTaskCount,
+    upcomingTaskRows,
+    replyRows,
+    vendorCount,
+    bookedVendorCount,
+  ] = await Promise.all([
+    countEvents(wedding._id),
+    countGuests(wedding._id),
+    findNextEvent(wedding._id, new Date()),
+    countOpenTasks(wedding._id),
+    listUpcomingOpenTasks(wedding._id, 4),
+    replyCountsByGuest(wedding._id),
+    canSeeVendors ? countVendors(wedding._id) : Promise.resolve(null),
+    canSeeVendors ? countBookedVendors(wedding._id) : Promise.resolve(null),
+  ]);
   const { overview, waiting } = summarizeReplies(replyRows);
   const waitingById = new Map(waiting.map((row) => [row.guestId, row.waitingOn]));
   // The first few guests still owing an answer, A to Z.
@@ -214,7 +234,13 @@ export async function getDashboard(auth: AuthContext): Promise<Dashboard> {
         ? daysUntil(wedding.weddingDate, wedding.timezone)
         : null,
       team,
-      counts: { events: eventCount, guests: guestCount, pendingTasks: openTaskCount, vendors: 0 },
+      counts: {
+        events: eventCount,
+        guests: guestCount,
+        pendingTasks: openTaskCount,
+        vendors: vendorCount,
+        bookedVendors: bookedVendorCount,
+      },
       nextEvent,
       upcomingTasks,
       rsvp: {

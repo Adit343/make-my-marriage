@@ -17,6 +17,10 @@ describe("role matrix", () => {
     "guests:edit": [true, true, true],
     "invitations:send": [true, true, true],
     "invitations:logs": [true, true, false],
+    "expenses:edit": [true, true, true],
+    "expenses:manage-any": [true, true, false],
+    "payments:record": [true, true, false],
+    "vendors:manage": [true, true, false],
   };
 
   it.each(Object.entries(expected) as [Permission, boolean[]][])("%s", (permission, allowed) => {

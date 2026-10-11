@@ -65,6 +65,27 @@ const INVENTORY: Record<string, Access> = {
   "PATCH /api/v1/weddings/[weddingId]/tasks/[taskId]": "wedding:tasks:edit",
   "DELETE /api/v1/weddings/[weddingId]/tasks/[taskId]": "wedding:tasks:edit",
 
+  // Every member sees every expense and can record one; the service lets a member edit or delete
+  // only the expenses they recorded (owner decision 2026-10-10).
+  "GET /api/v1/weddings/[weddingId]/expenses": "wedding:wedding:view",
+  "POST /api/v1/weddings/[weddingId]/expenses": "wedding:expenses:edit",
+  "GET /api/v1/weddings/[weddingId]/expenses/summary": "wedding:wedding:view",
+  "GET /api/v1/weddings/[weddingId]/expenses/[expenseId]": "wedding:wedding:view",
+  "PATCH /api/v1/weddings/[weddingId]/expenses/[expenseId]": "wedding:expenses:edit",
+  "DELETE /api/v1/weddings/[weddingId]/expenses/[expenseId]": "wedding:expenses:edit",
+  // Members read an expense's payments; only owners and admins record them.
+  "GET /api/v1/weddings/[weddingId]/expenses/[expenseId]/payments": "wedding:wedding:view",
+  "POST /api/v1/weddings/[weddingId]/expenses/[expenseId]/payments": "wedding:payments:record",
+  "PATCH /api/v1/weddings/[weddingId]/payments/[paymentId]": "wedding:payments:record",
+  "DELETE /api/v1/weddings/[weddingId]/payments/[paymentId]": "wedding:payments:record",
+  // Vendors hold contact details and terms: owners and admins only (decision D3).
+  "GET /api/v1/weddings/[weddingId]/vendors": "wedding:vendors:manage",
+  "POST /api/v1/weddings/[weddingId]/vendors": "wedding:vendors:manage",
+  "GET /api/v1/weddings/[weddingId]/vendors/search-places": "wedding:vendors:manage",
+  "GET /api/v1/weddings/[weddingId]/vendors/[vendorId]": "wedding:vendors:manage",
+  "PATCH /api/v1/weddings/[weddingId]/vendors/[vendorId]": "wedding:vendors:manage",
+  "DELETE /api/v1/weddings/[weddingId]/vendors/[vendorId]": "wedding:vendors:manage",
+
   "GET /api/v1/weddings/[weddingId]/guest-groups": "wedding:wedding:view",
   "POST /api/v1/weddings/[weddingId]/guest-groups": "wedding:guests:edit",
   "PATCH /api/v1/weddings/[weddingId]/guest-groups/[groupId]": "wedding:guests:edit",
@@ -190,6 +211,13 @@ describe("API route inventory", () => {
         "/api/v1/weddings/[weddingId]/events",
         "/api/v1/weddings/[weddingId]/events/[eventId]",
         "/api/v1/weddings/[weddingId]/tasks",
+        "/api/v1/weddings/[weddingId]/expenses",
+        "/api/v1/weddings/[weddingId]/expenses/summary",
+        "/api/v1/weddings/[weddingId]/expenses/[expenseId]",
+        "/api/v1/weddings/[weddingId]/expenses/[expenseId]/payments",
+        "/api/v1/weddings/[weddingId]/vendors",
+        "/api/v1/weddings/[weddingId]/vendors/search-places",
+        "/api/v1/weddings/[weddingId]/vendors/[vendorId]",
         "/api/v1/weddings/[weddingId]/guest-groups",
         "/api/v1/weddings/[weddingId]/guests",
         "/api/v1/weddings/[weddingId]/guests/summary",

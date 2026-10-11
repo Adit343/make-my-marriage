@@ -43,6 +43,17 @@ export const PERMISSIONS = {
   "invitations:send": EVERYONE,
   /** The delivery log of guest emails and retrying one from it (API Design §13, Stitch: owners and admins only). */
   "invitations:logs": ADMIN_UP,
+  /**
+   * Record expenses and edit or delete the ones you recorded (the service checks who recorded it).
+   * Every role: family members keep the ledger together (owner decision 2026-10-10, overriding D3).
+   */
+  "expenses:edit": EVERYONE,
+  /** Edit or delete expenses other people recorded. */
+  "expenses:manage-any": ADMIN_UP,
+  /** Record, change and delete payments against an expense (members read them). */
+  "payments:record": ADMIN_UP,
+  /** Everything about vendors: the list, contact details, adding, editing, deleting, place search (decision D3). */
+  "vendors:manage": ADMIN_UP,
 } as const satisfies Record<string, readonly MemberRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

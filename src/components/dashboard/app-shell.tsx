@@ -26,6 +26,7 @@ export function AppShell({
         eventCount={workspace.counts.events}
         guestCount={workspace.counts.guests}
         pendingTasks={workspace.counts.pendingTasks}
+        vendorCount={workspace.counts.vendors}
         active={active}
         role={viewer.role}
       />

@@ -4,6 +4,7 @@ import { AppError } from "@/lib/errors";
 import type { WeddingAuth } from "@/modules/members/guards";
 import { can } from "@/modules/members/permissions";
 import { softDeleteRsvpsForEvent } from "@/modules/guests/rsvp.repository";
+import { unlinkExpensesFromEvent } from "@/modules/expenses/expense.repository";
 import { unlinkTasksFromEvent } from "@/modules/tasks/task.repository";
 import { findWedding } from "@/modules/weddings/wedding.repository";
 import { toEventDto, type EventDto } from "@/modules/events/event.dto";
@@ -108,7 +109,8 @@ export async function updateEvent(
 /**
  * Soft delete (DB Design §6.7 rule 1). The event's tasks are not deleted: they become
  * wedding-level tasks and its RSVP rows (the guests invited to it) are soft-deleted, all in the
- * same transaction, and the response says how many were affected. Expenses (Phase 4) will join.
+ * same transaction, and the response says how many were affected. Its expenses are not deleted
+ * either (the money was still spent): they become wedding-level, like its tasks.
  */
 export async function deleteEvent(auth: WeddingAuth, eventId: string) {
   const existing = await findEvent(auth.weddingId, eventId);
@@ -116,19 +118,28 @@ export async function deleteEvent(auth: WeddingAuth, eventId: string) {
   if (!canManage(auth, existing)) throw new AppError("INSUFFICIENT_ROLE");
 
   const at = new Date();
-  const { tasksUnlinked, rsvpsRemoved } = await withTransaction(async (session) => {
-    if (!(await softDeleteEvent(auth.weddingId, eventId, { by: auth.userId, at }, session))) {
-      throw new AppError("NOT_FOUND");
-    }
-    return {
-      tasksUnlinked: await unlinkTasksFromEvent(auth.weddingId, eventId, session),
-      rsvpsRemoved: await softDeleteRsvpsForEvent(
-        auth.weddingId,
-        eventId,
-        { by: auth.userId, at },
-        session,
-      ),
-    };
-  });
-  return { id: eventId, deletedAt: at.toISOString(), tasksUnlinked, rsvpsRemoved };
+  const { tasksUnlinked, rsvpsRemoved, expensesUnlinked } = await withTransaction(
+    async (session) => {
+      if (!(await softDeleteEvent(auth.weddingId, eventId, { by: auth.userId, at }, session))) {
+        throw new AppError("NOT_FOUND");
+      }
+      return {
+        tasksUnlinked: await unlinkTasksFromEvent(auth.weddingId, eventId, session),
+        expensesUnlinked: await unlinkExpensesFromEvent(auth.weddingId, eventId, session),
+        rsvpsRemoved: await softDeleteRsvpsForEvent(
+          auth.weddingId,
+          eventId,
+          { by: auth.userId, at },
+          session,
+        ),
+      };
+    },
+  );
+  return {
+    id: eventId,
+    deletedAt: at.toISOString(),
+    tasksUnlinked,
+    rsvpsRemoved,
+    expensesUnlinked,
+  };
 }

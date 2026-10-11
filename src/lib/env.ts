@@ -21,6 +21,9 @@ const envSchema = z
     ),
     GOOGLE_CLIENT_ID: optionalString,
     GOOGLE_CLIENT_SECRET: optionalString,
+    // Server-side only: vendor search through Google Places (Architecture §28). Optional: without
+    // it vendors are added by typing the details.
+    GOOGLE_PLACES_API_KEY: optionalString,
     RESEND_API_KEY: optionalString,
     EMAIL_FROM: optionalString,
   })

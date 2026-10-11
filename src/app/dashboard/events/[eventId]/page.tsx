@@ -5,6 +5,7 @@ import { AppShell } from "@/components/dashboard/app-shell";
 import { DashboardFooter } from "@/components/dashboard/sections";
 import { EventDetailActions } from "@/components/events/event-detail-actions";
 import { ScheduleCard } from "@/components/events/schedule-card";
+import { EventExpensesList } from "@/components/finance/event-expenses-list";
 import { EventTasksCard } from "@/components/tasks/event-tasks-card";
 import { Icon, type IconName } from "@/components/ui/icon";
 import type { EventDetailView } from "@/lib/events/view";
@@ -13,8 +14,8 @@ import { getEventPage } from "@/modules/dashboard/workspace-pages.service";
 
 export const metadata: Metadata = { title: "Event — Make My Marriage" };
 
-// Stitch screen: "Event Detail (Haldi)". Guests, tasks and expenses arrive in later steps, so
-// their cards show designed empty states instead of invented numbers.
+// Stitch screen: "Event Detail (Haldi)". Guests, tasks and expenses are real; a card with nothing
+// to show yet keeps its designed empty state instead of invented numbers.
 
 const CARD =
   "rounded-xl border border-[#2A2622]/[0.04] bg-[#FFFDF9] shadow-[0_2px_12px_-2px_rgba(42,38,34,0.04),0_1px_3px_0_rgba(42,38,34,0.02)]";
@@ -365,11 +366,19 @@ export default async function EventPage({ params }: { params: Promise<{ eventId:
                 </h2>
               </div>
             </div>
-            <EmptyCardState
-              icon="account_balance_wallet"
-              title="No expenses linked to this event yet"
-              message="Expenses you record against this event, and what's been paid, show up here."
-            />
+            {page.expenses.length === 0 ? (
+              <EmptyCardState
+                icon="account_balance_wallet"
+                title="No expenses linked to this event yet"
+                message="Expenses you record against this event, and what's been paid, show up here."
+              />
+            ) : (
+              <EventExpensesList
+                eventId={event.id}
+                expenses={page.expenses}
+                currency={page.currency}
+              />
+            )}
           </div>
         </div>
       </div>

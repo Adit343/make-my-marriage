@@ -27,6 +27,8 @@ export const RATE_LIMITS = {
   // The public RSVP page (a guest with a personal link), per IP. Generous: a family may share one network.
   rsvpLookup: { limit: 60, windowSeconds: 15 * 60 },
   rsvpSubmit: { limit: 30, windowSeconds: 15 * 60 },
+  // Vendor search through Google Places (each search costs money), per wedding.
+  placesSearch: { limit: 40, windowSeconds: 60 * 60 },
 } satisfies Record<string, RateLimit>;
 
 /**

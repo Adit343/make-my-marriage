@@ -8,12 +8,19 @@ import { useToast } from "@/components/ui/toast";
 import type { MemberRole } from "@/lib/constants/enums";
 
 // Left navigation shelf, as in the Stitch Team and Settings screens: Overview … Members, with
-// Settings pinned at the bottom (showing the viewer's role when it is the active page). Only
-// Overview, Events, Guests, Invitations, Tasks, Members and Settings are built so far; the other sections say so instead of leading
-// to a 404.
+// Settings pinned at the bottom (showing the viewer's role when it is the active page). Website,
+// Gallery and Live Stream are not built yet; they say so instead of leading to a 404.
 
 export type NavSection =
-  "dashboard" | "events" | "guests" | "invitations" | "tasks" | "members" | "settings";
+  | "dashboard"
+  | "events"
+  | "guests"
+  | "invitations"
+  | "tasks"
+  | "expenses"
+  | "vendors"
+  | "members"
+  | "settings";
 
 interface NavItem {
   label: string;
@@ -50,11 +57,15 @@ const NAV: NavItem[] = [
     label: "Expenses",
     icon: "account_balance_wallet",
     detail: "Track what you spend, by category and event.",
+    href: "/dashboard/expenses",
+    section: "expenses",
   },
   {
     label: "Vendors",
     icon: "storefront",
     detail: "Track the vendors you're considering or booked.",
+    href: "/dashboard/vendors",
+    section: "vendors",
   },
   {
     label: "Invitations",
@@ -88,12 +99,15 @@ export function Sidebar({
   eventCount,
   guestCount,
   pendingTasks,
+  vendorCount,
   active,
   role,
 }: {
   eventCount: number;
   guestCount: number;
   pendingTasks: number;
+  /** Vendors in the directory; null for a member, who cannot see vendors. */
+  vendorCount: number | null;
   active: NavSection;
   role: MemberRole | null;
 }) {
@@ -146,6 +160,17 @@ export function Sidebar({
                   }`}
                 >
                   {guestCount}
+                </span>
+              ) : null}
+              {item.label === "Vendors" && vendorCount ? (
+                <span
+                  className={`ml-auto rounded-full px-1.5 py-0.5 font-label-sm text-[10px] font-semibold ${
+                    isActive
+                      ? "bg-primary text-on-primary"
+                      : "bg-surface-container-high text-on-surface-variant"
+                  }`}
+                >
+                  {vendorCount}
                 </span>
               ) : null}
               {item.label === "Tasks" && pendingTasks > 0 ? (

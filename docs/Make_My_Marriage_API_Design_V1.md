@@ -772,6 +772,17 @@ Google API credentials stay server-side (Architecture §28 — never in the resp
 A payment whose running total would exceed the expense's `agreedAmountMinor` still succeeds (`200`), but the response includes a `warning` field (`"exceedsAgreedAmount": true`) rather than rejecting it — matches Database Design §6.12's "real weddings have unplanned extras" rule.
 
 ---
+**Implementation notes (built 2026-10-11, Phase 4).**
+
+- **Roles (owner decisions).** The "all routes need admin+" line at the top of this section is narrowed: **expenses** are open to every role (everyone sees all and records; a member edits or deletes only the expenses they recorded, admin and owner any; `403 INSUFFICIENT_ROLE` otherwise), **recording payments** is owner and admin (everyone can read them), and **vendors** (list, details, create, edit, delete, place search) are owner and admin. The overall budget in the summary is returned to owners and admins only.
+- **`GET /expenses`**: cursor-paginated newest first; filters `category`, `eventId`, `vendorId`, `from`, `to` (the expense date, inclusive; `from` after `to` is `400`). Items carry `eventName`, `vendorName`, `costMinor` (agreed, else estimate), `paidAmountMinor`, `remainingAmountMinor`, `canManage`, `createdByName`. Amounts are paise; **`expenseDate`** is new.
+- **`GET /expenses/:id`** answers `{expense, payments[], exceedsAgreedAmount, scheduledAmountMinor, vendor}`; the vendor is name and status for a member, plus phone for owner and admin.
+- **`GET /expenses/summary`** answers `{currency, budgetTotalMinor|null, committedPercent|null, expenseCount, totalCostMinor, totalPaidMinor, stillToPayMinor, byCategory[], byEvent[], dueSoon{count, totalMinor, windowDays, items[]}, overdue{count, totalMinor}}`. "Due soon" is pending payments due up to 30 days ahead, overdue ones included and first.
+- **Payments**: `POST` and `PATCH` answer `{payment, exceedsAgreedAmount, scheduledAmountMinor}` (the warning field this section describes). A paid payment's `paidAt` defaults to now; a paid date on a payment that is not paid is `400` on create and `422` on update. `DELETE /expenses/:id` answers `{id, deletedAt, paymentsRemoved}`.
+- **`GET /vendors`**: cursor-paginated **A to Z** (cursor is the last name and id), filters `search`, `category`, `status`. Each vendor has `money` `{expenseCount, costMinor, paidMinor}`. `GET /vendors/:id` adds `expenses[]` and `milestones[]`. `DELETE` answers `{id, deletedAt, expensesUnlinked}`. Bank, UPI and card fields are rejected as unknown keys.
+- **`GET /vendors/search-places?query=`**: `data` is `[{placeId, name, address}]`; `meta` is `{configured, unavailable}`. Without `GOOGLE_PLACES_API_KEY`, or if Google fails, the answer is `200` with an empty list and the matching flag. 40 searches an hour per wedding (`429` beyond). The key is only ever sent to Google, in a header.
+- Deleting an event answers `expensesUnlinked` as well (§7.1).
+
 ## 10. Wedding Website (member + public)
 
 Module: `website`. Collection: `weddingWebsites`.

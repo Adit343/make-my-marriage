@@ -4,7 +4,7 @@
 > how the code is organised, every decision made with the product owner, and how to work on this
 > project. The plan for what comes next is in [`FUTURE_PLANS.md`](FUTURE_PLANS.md).
 >
-> Last updated: **2026-10-11** · Branch: **`dev`** · Last commit when written: `5c54fad` (steps 3.2 to 3.4). **Step 3.5 (the Phase 3 review: accessibility fixes, Events timeline numbers, more safety tests) is built and verified but not yet committed.**
+> Last updated: **2026-10-11** · Branch: **`dev`** · Last commit when written: `f2b2558` (step 3.5). **Phase 4 (expenses and vendors, steps 4.1 to 4.4) is built and verified but not yet committed.**
 
 **Contents**
 
@@ -40,10 +40,10 @@ they use secure links. (Full product definition: `docs/Make_My_Marriage_PRD.md`.
 
 | Item                | State                                                                                                |
 | ------------------- | ---------------------------------------------------------------------------------------------------- |
-| Release phase       | **Phases 1 and 2 are complete.** **Phase 3 (Guests and invitations) is complete: guest management (3.1), invitations and personal links (3.2), the guest RSVP page (3.3), the RSVP tracker with reminders (3.4) and the review (3.5).** |
-| Next phase          | **Phase 4: expenses and vendors** (it first needs the Google Places terms check and a few owner decisions, `FUTURE_PLANS.md` §6). Before it, the owner should commit step 3.5 and set `TOKEN_ENCRYPTION_KEY` wherever the app is deployed. |
-| Git                 | Single working branch **`dev`** (never commit to `main`). Local and `origin/dev` are in sync.        |
-| Tests               | **716 tests in 66 files, all passing** (703 after step 3.4, 618 after step 3.1, 458 at end of Phase 2, 276 at end of Phase 1). Typecheck, lint, Prettier and production build all clean. A 45-check real-browser run of the invitation flows also passed (§13). |
+| Release phase       | **Phases 1 and 2 are complete.** **Phase 3 (Guests and invitations) is complete: guest management (3.1), invitations and personal links (3.2), the guest RSVP page (3.3), the RSVP tracker with reminders (3.4) and the review (3.5).** **Phase 4 (Financials and vendors) is built: expenses and payments, the budget overview, vendors with Google Places search, and the Event page's linked expenses (steps 4.1 to 4.4).** |
+| Next phase          | **Phase 5: wedding website and live stream.** Before it, the owner should commit Phase 4, add `GOOGLE_PLACES_API_KEY` (optional) and set `TOKEN_ENCRYPTION_KEY` wherever the app is deployed. |
+| Git                 | Single working branch **`dev`** (never commit to `main`). Phases 1 to 3 are committed (`f2b2558`); **Phase 4 is uncommitted** in the working tree. |
+| Tests               | **893 tests in 75 files, all passing** (716 after Phase 3, 458 at end of Phase 2, 276 at end of Phase 1). Typecheck, lint, Prettier and production build all clean; `npm audit --omit=dev`: 0 vulnerabilities. Real-browser runs of the Phase 4 screens also passed (§13). |
 | Dependencies        | `npm audit --omit=dev`: 0 known vulnerabilities (checked 2026-10-06).                                |
 | Deployed?           | **No.** Runs locally only. Planned host: Vercel (Hobby), later AWS ECS/Fargate.                       |
 | Real email          | **Not working for arbitrary recipients yet** (no verified Resend domain). See §12.                   |
@@ -68,7 +68,10 @@ they use secure links. (Full product definition: `docs/Make_My_Marriage_PRD.md`.
 - Guests answer with no account: their personal link `/i/<token>` shows their own events; they say Yes / Maybe / No per event, how many are coming (up to the plus-ones allowed), a dietary preference and a message, and can change their answers any time.
 - Owners and admins can read the **delivery log** of every guest email (status, provider error code) and retry a failed one.
 
-**What does not exist yet:** expenses, vendors, website, live stream, gallery. The sidebar shows those as "coming soon". Not built from the Invitations designs because nothing real backs them: the "Channel settings" button, WhatsApp quotas (there is no WhatsApp API), a "Target completion" date, and "By <person>" on each send.
+- Track the money: record **expenses** (everyone on the team can, and everyone sees them all), see the **budget overview** (planned spend against the budget, paid, still to pay, spending by category and by event, payments due in the next 30 days and overdue ones), browse the **ledger** with filters, and open an expense to see its **payments**. Owners and admins record payments (paid or still due), mark them paid, and get a warning if payments go past the agreed amount. The app never moves money.
+- Keep a vendor list (owners and admins): add vendors by **searching Google Places** or by typing the details, set their status (shortlisted, contacted, booked, rejected), see what is agreed and paid with each, their payment milestones, and open them on Google Maps.
+
+**What does not exist yet:** website, live stream, gallery. The sidebar shows those as "coming soon". Not built from the Invitations designs because nothing real backs them: the "Channel settings" button, WhatsApp quotas (there is no WhatsApp API), a "Target completion" date, and "By <person>" on each send.
 
 ---
 
@@ -153,6 +156,7 @@ These are standing agreements with the product owner. Treat them as rules.
    | `SESSION_SECRET`                           | yes      | **At least 32 characters.** Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. It also keys the Google OAuth cookie. |
    | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | no       | Enables Google sign-in. Authorised redirect URI: `<APP_URL>/api/v1/auth/google/callback`.                                              |
    | `TOKEN_ENCRYPTION_KEY`                     | **production only** | At least 32 characters (generate it like `SESSION_SECRET`). Encrypts each guest's personal link so the team can copy the SAME link again. In development, if empty, a key derived from `SESSION_SECRET` is used. **Changing it later breaks "Copy link" for stored links** (the app then makes a fresh link for that guest); guests' own links already sent are unaffected until that happens. Add it on Vercel before deploying. |
+   | `GOOGLE_PLACES_API_KEY`                    | no       | Server-side only. Turns on "Search for a business" when adding a vendor (Google Places API (New), Text Search; enable it on the key and restrict the key to it). Without it vendors are added by typing the details. Never sent to the browser. |
    | `RESEND_API_KEY`, `EMAIL_FROM`             | no       | Empty key → emails print to the dev console. See §12 for the Resend sender rules.                                                      |
 
    **The env file is read once at server start** (the validated config is cached). Restart `npm run dev` after editing it.
@@ -284,7 +288,7 @@ alphabetically sorted list**), `src/components/ui/toast.tsx` (react-toastify-sty
 
 ## 7. Data model
 
-Thirteen collections exist (eight from Phase 1, `events` and `tasks` from Phase 2, `guestGroups`, `guests` and `rsvps` from Phase 3). Full spec: `docs/Make_My_Marriage_Database_Design_V1.md`.
+Sixteen collections exist (eight from Phase 1, `events` and `tasks` from Phase 2, `guestGroups`, `guests` and `rsvps` from Phase 3, `expenses`, `vendors` and `vendorPayments` from Phase 4). Full spec: `docs/Make_My_Marriage_Database_Design_V1.md`.
 
 | Collection            | Purpose                                              | Delete type                    | Key rules and indexes                                                                                                                                                               |
 | --------------------- | ---------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -303,8 +307,11 @@ Thirteen collections exist (eight from Phase 1, `events` and `tasks` from Phase 
 | `guestGroups` | Buckets for guests ("Sharma Family") | Soft | `name`/`nameNormalized`, `side` (partnerOne/partnerTwo/both), `notes`, `sortOrder`; unique partial `{weddingId, nameNormalized}` (live groups only, so a deleted group's name can be reused); deleting a group moves its guests (ungrouped or into another group), never deletes them |
 | `guests` | People being invited (no accounts) | Soft | `groupId`, `name`/`nameNormalized`, `email` (lowercased), `phone` (E.164), `address`, `side`, `relationLabel`, `ageCategory`, `plusOnesAllowed` 0-10, `dietaryPreference`, private `notes`, `invitation` {status, lastSentAt, lastChannel, sendCount}; optimistic concurrency; indexes `{weddingId,nameNormalized,_id}`, `{weddingId,groupId}`, `{weddingId,phone}` sparse. **`link`** (step 3.2, DB doc §5.3): the guest's personal RSVP link `{tokenHash (select:false), tokenEnc (AES-256-GCM, select:false), createdAt, expiresAt, revokedAt}`, one per guest, never expires by default; unique index `{link.tokenHash}` partial on `$exists` (a `$type` filter made the planner scan every guest: found with `explain()`) |
 | `rsvps` | One row per guest per event: the row existing = invited, `status` = reply | Soft | `guestId`, `eventId`, `status` (pending/attending/declined/maybe), `attendingCount` (everyone coming, guest included; 0 unless attending or maybe; at most 1 + plus-ones), `respondedAt`, `respondedVia` (member now; guest_link later), `respondedByUserId`, `note`; unique partial `{guestId, eventId}`, `{weddingId,eventId,status}` |
+| `expenses` | A cost line in the budget | Soft | `title`, `category` (13), **`expenseDate`** (`"YYYY-MM-DD"`, optional; added, see §14.2), `eventId`, `vendorId`, `estimatedAmountMinor`, `agreedAmountMinor` (paise), private `notes`, `createdBy`; optimistic concurrency. **What has been paid is never stored**: it is summed from the payments. Cost = agreed, else estimate, else 0. Indexes `{weddingId,category}`, `{weddingId,eventId}`, `{weddingId,vendorId}`, `{weddingId,_id:-1}` |
+| `vendors` | A vendor being considered or hired (not a marketplace) | Soft | `name`/`nameNormalized`, `category` (13), `status` (shortlisted/contacted/booked/rejected), `contact` {personName, phone (E.164), email, website (**https only**)}, `location` (address line, `placeId`; **no coordinates from Google**, §14.2), `source` (manual/google_places), private `notes`; **no bank, UPI or card fields, ever**; optimistic concurrency. Indexes `{weddingId,category}`, `{weddingId,nameNormalized}` (the list is A to Z on this one) |
+| `vendorPayments` | Money paid or still due against an expense | Soft | `expenseId`, `amountMinor` (> 0), `status` (pending/paid/cancelled), `dueDate`, `paidAt` (required when paid, cleared otherwise), `method`, `reference`, `notes`; no `vendorId` (reached through the expense). Indexes `{weddingId,expenseId}`, `{weddingId,status,dueDate}` |
 
-Not yet created (later phases): expenses, vendors, vendorPayments, weddingWebsites, liveStreams, galleries, galleryAlbums, galleryAssets, galleryAccessTokens.
+Not yet created (later phases): weddingWebsites, liveStreams, galleries, galleryAlbums, galleryAssets, galleryAccessTokens.
 
 **Wedding deletion workflow (DB Design §10.3), as built:** in one transaction, set the wedding's `deletedAt/deletedBy`, `status: archived`, `purgeAfter = +30 days`, and soft-delete **every membership** (reason `wedding_deleted`), which frees each person's one-wedding slot. Child rows are **not** individually soft-deleted: every request is gated on the wedding being live, so they become unreachable at once. Restore (former owner, within 30 days) clears the deletion, sets status back to `planning`, and re-activates the owner **and** the other members removed by the deletion (skipping anyone who has since joined a different wedding). The permanent-purge script does **not exist yet** (Phase 7).
 
@@ -314,7 +321,7 @@ Not yet created (later phases): expenses, vendors, vendorPayments, weddingWebsit
 
 ## 8. API endpoints
 
-All under `/api/v1`. 67 route handlers across 46 files (11 added in steps 3.2 to 3.4). **A route-inventory test
+All under `/api/v1`. 83 route handlers across 54 files (11 added in steps 3.2 to 3.4, 16 in Phase 4). **A route-inventory test
 (`src/lib/security/route-inventory.test.ts`) lists every one with its guard; adding or weakening a
 route fails the build until that table is updated on purpose.**
 
@@ -389,6 +396,22 @@ Access legend: **public** = no session; **session** = any signed-in user; **opti
 | GET    | `/public/invitations/:token`                                  | public (60/15min/IP)         | Landing preview; any bad link → `{valid: false}`                                             |
 | GET    | `/public/rsvp/:token`                                         | public (60/15min/IP)         | The guest's own page data: couple names, their name, plus-ones allowed, their events with venue, dress code and their answers. **Hand-built whitelist.** Any unusable link (unknown, rotated, guest or wedding deleted) is the same `403 INVALID_TOKEN` |
 | PATCH  | `/public/rsvp/:token`                                         | public (30/15min/IP)         | `{responses: [{eventId, status: attending\|maybe\|declined, attendingCount?, note?}], dietaryPreference?}`, strict: nothing else is writable. Count above 1 + plus-ones is `422`; an event the guest isn't invited to is `404`; all answers save together or none do. Does not bump the guest's edit version |
+| GET    | `/weddings/:id/expenses`                                      | wedding:view                 | Every expense with its paid and remaining amount, cursor-paginated newest first; filters `category`, `eventId`, `vendorId`, `from`, `to` (expense date). Each row has `canManage` for the viewer |
+| POST   | `/weddings/:id/expenses`                                      | expenses:edit (all roles)    | Record an expense; `eventId` and `vendorId` must belong to this wedding (else 404); amounts in paise |
+| GET    | `/weddings/:id/expenses/summary`                              | wedding:view                 | **Addition:** the budget overview in one call: totals, spend by category and by event, payments due in 30 days, overdue. `budgetTotalMinor` is returned to owners and admins only |
+| GET    | `/weddings/:id/expenses/:expenseId`                           | wedding:view                 | The expense, its payments, the over-payment warning and the vendor (name only unless the viewer is owner or admin, who also get the phone) |
+| PATCH  | `/weddings/:id/expenses/:expenseId`                           | expenses:edit (+ rule)       | Any subset + `version`; a member changes only expenses they recorded, admin/owner any (`INSUFFICIENT_ROLE` otherwise); `null` clears optional fields |
+| DELETE | `/weddings/:id/expenses/:expenseId`                           | expenses:edit (+ rule)       | Soft delete + its payments in one transaction; response `paymentsRemoved` |
+| GET    | `/weddings/:id/expenses/:expenseId/payments`                  | wedding:view                 | The expense's payments (every member can read them) |
+| POST   | `/weddings/:id/expenses/:expenseId/payments`                  | payments:record (admin+)     | Record a payment; answers `{payment, exceedsAgreedAmount, scheduledAmountMinor}`. Going over the agreed amount is a warning, not an error. A paid payment defaults `paidAt` to now |
+| PATCH  | `/weddings/:id/payments/:paymentId`                           | payments:record (admin+)     | Any subset + `version`; becoming paid records `paidAt`, leaving paid clears it; a paid date on an unpaid payment is `422` |
+| DELETE | `/weddings/:id/payments/:paymentId`                           | payments:record (admin+)     | Soft delete |
+| GET    | `/weddings/:id/vendors`                                       | vendors:manage (admin+)      | A to Z, cursor-paginated (cursor = last name + id); filters `search` (name prefix), `category`, `status`; each vendor carries `money` {expenseCount, costMinor, paidMinor} |
+| POST   | `/weddings/:id/vendors`                                       | vendors:manage               | Strict body: bank, UPI or card keys are `400`; website must be https; phone E.164 |
+| GET    | `/weddings/:id/vendors/search-places?query=`                  | vendors:manage (40/h/wedding) | Google Places proxy: `data` = `[{placeId, name, address}]`, `meta` = `{configured, unavailable}`. No key or a Google outage is a normal answer (200, empty). Nothing is saved |
+| GET    | `/weddings/:id/vendors/:vendorId`                             | vendors:manage               | The vendor, its linked expenses (with what is paid) and its payment milestones |
+| PATCH  | `/weddings/:id/vendors/:vendorId`                             | vendors:manage               | Any subset + `version`; `contact` and `location` replace as a whole, `null` clears |
+| DELETE | `/weddings/:id/vendors/:vendorId`                             | vendors:manage               | Soft delete; its expenses stay and lose the vendor in the same transaction; response `expensesUnlinked` |
 | POST   | `/invitations/accept`                                         | session (10/h/user)          | Claim invitation + create membership atomically; `409 ALREADY_IN_WEDDING` leaves it pending  |
 
 Error codes in use: `VALIDATION_ERROR` 400, `AUTHENTICATION_REQUIRED` 401, `NOT_A_MEMBER`/`INSUFFICIENT_ROLE`/`INVALID_TOKEN` 403,
@@ -434,8 +457,11 @@ Table lives in `src/modules/members/permissions.ts` (one reviewable map; add row
 | **Edit/delete events** *(decided 2026-10-10)* | any | any | **own only** |
 | **Create and edit tasks** (any task; assignees must be able to move tasks others wrote) | ✔ | ✔ | ✔ |
 | **Delete tasks** *(decided 2026-10-10)* | any | any | **own only** |
-| **View all expenses and record expenses** *(future, decided 2026-10-10: see §14.2)* | ✔ | ✔ | **✔** |
-| Vendors, vendor payments, website editing, gallery tokens *(future; unchanged from D3)* | ✔ | ✔ | — |
+| **View all expenses; record expenses; edit or delete your own** (`expenses:edit`, built Phase 4; admin and owner may edit or delete any: `expenses:manage-any`) *(decided 2026-10-10)* | ✔ | ✔ | **✔** |
+| **Record, change and delete payments** (`payments:record`, built Phase 4); everyone can read them | ✔ | ✔ | — |
+| **Vendors: list, details, add, edit, delete, place search** (`vendors:manage`, built Phase 4, decision D3 kept) | ✔ | ✔ | — |
+| **See and set the wedding's overall budget** (reuses `wedding:update`) | ✔ | ✔ | — |
+| Website editing, gallery tokens *(future; unchanged from D3)* | ✔ | ✔ | — |
 
 Rules beyond the table (decided while building; see §14.3): an **admin may change or remove another admin**
 but never the owner and never their own role; the **owner cannot leave or be removed** (transfer first);
@@ -464,6 +490,10 @@ endpoint by passing their own member id.
 | `/dashboard/events`           | "Events Timeline (Owner View)" and "Add / Edit Event (Slide-over)"            | Vertical timeline, summary strip, card menu (Edit, Manage guests, Duplicate, Delete), slide-over form. Real data; RSVP column says "No guests invited yet" until Phase 3 |
 | `/dashboard/events/[eventId]` | "Event Detail (Haldi)"                                                        | Date/time with duration, venue + address + map card (Google Maps link), dress code, description. Guest responses, tasks and linked expenses cards show designed empty states |
 | `/dashboard/invitations`      | "Invitations Hub" (Overview and Delivery log tabs), "RSVP Tracker" (RSVP responses tab), "Send Invitations Dialog" and the tracker's "Record response" slide-over | Tabs `?tab=overview\|responses\|log`, `?event=<id>` for the tracker, `?batch=<id>` for one batch in the log. Overview: four numbers, coverage bar by channel, Needs attention (failed emails with Retry / Retry all, guests with no contact details), Recent sends. Responses: event pills, headcount bar, Not-replied list with bulk Mark as invited / Send reminder, Latest responses, Guest messages, Export CSV. Log: owners and admins only. Real data |
+| `/dashboard/expenses`         | "Expenses & Budget Overview", "All Expenses & Ledger", "Add / Edit Expense (Slide-over)" | Tabs `?tab=all` (Overview is the default); `?event=`, `?vendor=`, `?category=` open the ledger already filtered. Overview: budget hero with a paid / to-pay bar, four numbers, tracked / due / overdue cards, spending by category, upcoming payments, spending by event; owners and admins get "Set budget". Ledger: filter pills (category, event, vendor, date range), table with progress bars and a row menu (View, Edit, Add payment, Delete, as the viewer is allowed), cumulative balance, "Load more". Real data |
+| `/dashboard/expenses/[expenseId]` | "Expense Detail & Payment Recording" | Breadcrumb, chips, money figures with a progress bar, linked vendor, payments table with a row menu (Edit, Mark as paid, Delete) and the "Add payment" slide-over, over-payment warning, private notes. Members see payments read-only |
+| `/dashboard/vendors`          | "Vendors List" and the "Add vendor" slide-over | Four stat cards, search, category and status pills, vendor cards with a menu (View, Edit, Change status, Delete). A member gets a "Vendors are for owners and admins" page. Real data |
+| `/dashboard/vendors/[vendorId]` | "Vendor Detail" | Contact (call, email, website, Open in Maps), financial summary, "Add expense for this vendor", linked expenses, payment milestones, private notes |
 | `/i/[token]`                  | "Guest-Facing RSVP Page" (states A form, B confirmed, C invalid link)         | Mobile-first, no account: one card per event with Yes / Maybe / No, a count stepper up to the plus-ones allowed, dietary preference, a message to the couple, a sticky send button; the confirmation recap with "Change my response"; the "This link isn't working" page. `noindex`, no referrer. Dates are formatted on the server in each event's timezone |
 | `/join/[token]`               | **No Stitch design** (built in auth-screen style)                              | Four states: invalid link / signed-out / already in a wedding / ready to accept                      |
 | `not-found`, `error`          | **No Stitch design** (same card style)                                         | Error page shows no internals                                                                         |
@@ -483,7 +513,7 @@ Map `shadow-sm→shadow-xs`, `shadow→shadow-sm`, `backdrop-blur-sm→backdrop-
 
 ### 11.4 Things in the designs that are not (fully) real yet
 
-- Sidebar entries Expenses, Vendors, Invitations, Website, Gallery, Live Stream, and Concierge Support/notifications bell: "coming soon" toasts or empty states.
+- Sidebar entries Website, Gallery, Live Stream, and Concierge Support/notifications bell: "coming soon" toasts or empty states.
 - Settings: Google "Connect/Disconnect" shows an explanatory toast (no link/unlink endpoint). The "Strong" password badge and session **locations** were left out (not knowable / IPs are not stored). City/State fields are not in the Settings design, so they are not editable there (venue label and city set at onboarding are preserved on save). Timezone/currency selects offer the design's five options each.
 - The footer links ("Terms", "Security & Compliance", "Contact Support") are placeholders.
 - Onboarding footnote text ("256-bit encrypted", "real time") is design copy kept as designed.
@@ -582,6 +612,15 @@ Everything below is on branch `dev`. Dates 2026-10-04 to 2026-10-06.
 - **Known limitation noted, not changed:** two *simultaneous* identical sends with the *same* `batchId` could both email a guest, because the idempotency check is read-then-send. A retry (the real use) and a double click (the dialog disables its button) are safe; closing it fully would need a claim row before sending.
 - Tests 703 → 716.
 
+**Phase 4: expenses and vendors (2026-10-11, built and verified; not yet committed).** The owner asked to start Phase 4 and to match the six Stitch screens "Expenses & Budget Overview", "All Expenses & Ledger", "Add / Edit Expense (Slide-over)", "Expense Detail & Payment Recording", "Vendors List" and "Vendor Detail & Add Vendor Slide-over" (called "Expenses screen 1 to 4" and "Vendors screen 1 and 2").
+
+- **4.1 Backend.** Enums (`EXPENSE_CATEGORIES`, `VENDOR_CATEGORIES`, `VENDOR_STATUSES`, `VENDOR_SOURCES`, `PAYMENT_STATUSES`, `PAYMENT_METHODS`), limits in `src/lib/constants/finance.ts`, models `expense`, `vendor`, `vendorPayment`, modules `src/modules/expenses/` (expenses, summary, payments) and `src/modules/vendors/`, `src/infrastructure/places/google-places.ts` (the server-side Places call), 16 routes (§8), permissions `expenses:edit`, `expenses:manage-any`, `payments:record`, `vendors:manage`, rate limit `placesSearch`, env var `GOOGLE_PLACES_API_KEY`. Deleting an event now also unlinks its expenses (`expensesUnlinked`); deleting a vendor unlinks its expenses; deleting an expense removes its payments.
+- **4.2 Money rules.** `src/lib/finance/money.ts`: cost = agreed, else estimate; remaining never negative; parse "1,65,000" and "499.50" to whole paise without floats; Indian grouping on display.
+- **4.3 Screens.** `src/components/finance/*` (expenses manager with Overview and ledger, expense and payment slide-overs, expense detail, vendors manager, vendor slide-over with Places search, vendor detail, budget dialog, event page "Linked expenses" list), `src/lib/finance/{money,labels,ledger}.ts`, pages `/dashboard/expenses`, `/dashboard/expenses/[expenseId]`, `/dashboard/vendors`, `/dashboard/vendors/[vendorId]`. The sidebar's Expenses and Vendors are real (Vendors shows a count for owners and admins), the dashboard's "Contracted Vendors" counts booked vendors, and the Event page's "Linked expenses" card shows real expenses. 3 icons added.
+- **4.4 Review.** `explain()` on every new query (it caught vendors paged newest-first reading another wedding's rows; fixed by paging A to Z on the existing index instead of adding one), wider isolation and leak tests, axe-core on 14 screens and states, keyboard and focus checks, real-browser runs.
+- **Tests: 716 to 893.** `tests/integration/finance/` (expenses, payments, summary, vendors, safety), `tests/integration/models/finance.test.ts`, `tests/integration/dashboard/finance-pages.test.ts`, unit tests for money and ledger helpers, `explain()` cases in `query-plans.test.ts`, registry, role matrix and route inventory updated.
+- **Real-browser check** (production build on port 3130 against a throwaway in-memory database, with Google Places replaced by a throwaway stub in the server process; your port 3000 and Atlas were not touched): owner flow 74 of 74 (budget, vendor from a place search and typed, validation errors, expense, payments paid, pending, overdue, cancelled and over the agreed amount, edit, mark as paid, delete, ledger filters, vendor status and delete, phone widths with no horizontal scroll, console clean), member flow 29 of 29 (no budget, own versus others' rows, no payment powers, restricted vendors page, the server refusing the same actions through the API), a further 25 (keyboard and focus, Load more, deep-link filters, editing and marking payments, clearing and resetting the budget, over-budget percentage) and axe-core with **0 violations on 14 screens and states** (it found one real problem first, a button directly inside a `<dl>`, fixed).
+
 **After 1.9 (2026-10-06).** Debugging with the owner: invitation email failed because the Resend test sender only delivers to the account owner. Added `emailError` to invitation responses and surfaced Resend's actual reason in the Team page toast (committed by the owner as `983d15c "fixed issue"`). Explained that `*.vercel.app` can't be a Resend domain and that Copy invite link is the interim path. Explained the "You already belong to a wedding" screen (owner testing their own invite link in the same browser; test with a different browser profile or incognito).
 
 ---
@@ -636,6 +675,20 @@ Everything below is on branch `dev`. Dates 2026-10-04 to 2026-10-06.
   10. **A guest's message to the couple** is one box saved on every event they answered.
   11. **`/i/<token>` is rate limited per IP** (60 views / 30 answers per 15 minutes) and every unusable link is the same page and the same `403`.
 
+- **Choices made while building Phase 4, flagged; change if disliked:**
+  1. **Started on the owner's instruction** ("start work on phase 4") without a separate plan-and-approve round, and the open decisions below were settled with the AI's recommendations (FUTURE_PLANS §6.4).
+  2. **Expense date added** (`expenseDate`, optional `"YYYY-MM-DD"`): the Stitch form has a Date, the DB doc did not (open decision 8). An expense with no date is simply left out when a date range filter is on.
+  3. **Vendors stay owners and admins only** (D3). A member sees vendor **names** in the expense form and on expenses, never contact details, terms or notes. The Vendors link stays in the sidebar; a member who opens it is told why. The vendor count in the sidebar and the dashboard's vendor card are for owners and admins only.
+  4. **The overall budget** is for owners and admins (the Stitch note says "Owners only"; the "Edit Wedding" screen says owners and admins; the existing wedding-edit permission is admin and up). A "Set budget" dialog on the Overview uses the wedding `PATCH`; the fuller "Edit Wedding" screen is still deferred.
+  5. **Payments**: owners and admins record, change and delete them; **every member can read them** (the Stitch member preview shows the table read-only). The Add payment form starts as **Paid, UPI, amount = what remains**; a method that was only the default is not saved on a pending payment. Cancelled payments count toward nothing; the "payments are above the agreed amount" warning counts paid plus pending against the agreed amount (or the estimate).
+  6. **Money meanings**: Remaining = max(0, cost minus paid), so an overpaid expense never makes another look cheaper. The Overview's "Paid" is every paid payment; "Still to pay" adds up each expense's remaining. A vendor's "Agreed" is the sum of the costs of its expenses (agreed, else estimate).
+  7. **Google Places**: server-mediated **Text Search (New)** asking only for id, name and address (the cheapest field set). Results are never stored. Saved with a vendor: the **place id** and the **address line the member confirms or types**. **No coordinates are saved from Google** (their terms restrict how long Places data may be kept; open decision 10). "Open in Maps" links by place id or address. With no key the search box says so and typing works; a Google failure is a calm message, not an error. 40 searches an hour per wedding.
+  8. **Vendors list is A to Z** (cursor on name), not newest first: `explain()` showed newest-first read other weddings' rows, and the existing name index serves A to Z.
+  9. **Left out of the designs on purpose**: the "Member View / Role Comparison" and "Member Perspective" blocks (simulation panels, not product), the expense form's "Split Assignment" block and "+ Add new vendor" option (vendors are added from Vendors), the vendor form's category list as typed in the sample (the real 13 categories are used), and per-expense "Documents". Expense category names follow the Overview and the form ("Photography & video"), not the ledger sample's ("Media & Memories").
+  10. **The ledger** reads all expenses (up to 2,000) in one server call and filters in the browser, like Tasks; "Load more" shows 10 at a time. The REST list is still cursor-paginated.
+  11. **`GET .../search-places`** answers `data` = results and `meta` = `{configured, unavailable}` (API doc §9.2 says "data: array", this keeps that and adds the two flags).
+  12. **`.env.example`** had lost its `TOKEN_ENCRYPTION_KEY=` line (only its comment remained); restored.
+
 ### 14.3 Choices the AI made without asking (flagged to the owner; change if disliked)
 
 1. An **admin can change or remove other admins** (never the owner, never their own role).
@@ -653,6 +706,8 @@ Everything below is on branch `dev`. Dates 2026-10-04 to 2026-10-06.
 ---
 
 ## 15. Deviations and additions beyond the design docs
+
+- Phase 4 additions: `expenses.expenseDate`; `GET /expenses/summary` (named in the API doc's index but not specified beyond a sketch) and its exact shape; vendor list paged A to Z; `search-places` returns `meta.configured` and `meta.unavailable`; `expensesUnlinked`, `paymentsRemoved` and `expensesUnlinked` (vendor) in delete responses; vendor `money` and payment milestones; permissions `expenses:edit`, `expenses:manage-any`, `payments:record`, `vendors:manage` (the API doc's "all of §9 is admin+" is narrowed for expenses, as decided 2026-10-10); rate limit `placesSearch`; env var `GOOGLE_PLACES_API_KEY`. DB doc §6.12 to §6.14 and API doc §9 gained implementation notes.
 
 The architecture wins over every other document when they conflict. These are **additions** that need the owner's awareness (the API doc itself asks to flag additions):
 
@@ -678,7 +733,7 @@ The architecture wins over every other document when they conflict. These are **
 ## 16. Testing and verification
 
 - **Commands:** `npm test` (all), `npm run test:unit`, `npm run test:integration`, `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run build`. CI runs all of them on every push to `main`/`dev` and on pull requests.
-- **Totals:** 716 tests in 66 files (276 at the end of Phase 1). Unit tests live next to code (`src/**/*.test.ts`); integration tests in `tests/integration/{auth,dashboard,database,events,guests,invitations,journeys,models,security,tasks,weddings}`. `tests/setup/database.ts` stubs `TOKEN_ENCRYPTION_KEY` (needed whenever a test switches `NODE_ENV` to production).
+- **Totals:** 893 tests in 75 files (716 after Phase 3, 276 at the end of Phase 1). Unit tests live next to code (`src/**/*.test.ts`); integration tests in `tests/integration/{auth,dashboard,database,events,finance,guests,invitations,journeys,models,security,tasks,weddings}`. `tests/setup/database.ts` stubs `TOKEN_ENCRYPTION_KEY` (needed whenever a test switches `NODE_ENV` to production).
 - **How integration tests work:** call route handlers directly with real `Request` objects (`tests/setup/http.ts`), against an in-memory MongoDB **replica set** (transactions and partial indexes need a real one). Helpers: `signUpUser`, `captureEmails`, `setupWedding`, `addMember`, `freshIp` (avoids per-IP signup limits).
 - **Security tests worth knowing:** route inventory; hardening (cache headers, cookie flags, secrets scan, cross-wedding invitation denial, reset enumeration); role matrix; concurrency (simultaneous edits, accepts, transfers); the Phase 1 journey (couple → wedding → family/planner → dashboards) and the forgotten-password journey.
 - **Real-browser verification** (done by the AI during development, scripts were throwaway and not committed): headless Edge driven over the DevTools protocol against a production build on port 3130 and an in-memory database. Covered: auth flows, dashboard, onboarding, join flow (new and existing accounts), Team and Settings (all actions), CSP violations on every page, fonts/icons loading, framing blocked, mobile overflow. Rule: **after UI work, verify in a real browser against a throwaway DB, never the owner's.**
@@ -693,11 +748,12 @@ The architecture wins over every other document when they conflict. These are **
 - **Verify a sending domain in Resend** (or accept Copy invite link) before real users get emails.
 - **Try real Google sign-in** with real credentials (only fakes were tested).
 - Optionally **design Stitch screens** for `/join/[token]`, the not-found page and the error page.
+- **Add `GOOGLE_PLACES_API_KEY`** to `.env.local` (and Vercel) to turn on vendor search: create a key in Google Cloud, enable "Places API (New)", restrict the key to that API, and keep billing alerts on (each search is billed). Until then vendors are added by typing, which already works. The search was only tested against a stand-in for Google, never the real service.
 
 **Product / design items still open (from the docs)**
 
 - Schedule/timeline model (PRD §27) is not in the DB doc: **decided 2026-10-10** to embed a bounded `schedule[]` in each event (§14.2); the DB doc still needs a note when it is built.
-- Expense "date/amount" fields vs PRD §13 mismatch (expense visibility/recording by members is now **decided**, see §14.2); vendor events/documents; gallery favourites; livestream end time; in-app notifications (PRD §28); per-wedding storage quota; household-level vs per-guest RSVP links; storing Google-Places-sourced fields (check Google's terms before Phase 4); cached counters (recommended: not yet).
+- Expense fields (date added in Phase 4; amounts are estimated and agreed, see §14.2); vendor events and documents (not built; documents come with Phase 6 receipts); gallery favourites; livestream end time; in-app notifications (PRD §28); per-wedding storage quota; household-level vs per-guest RSVP links; storing Google-Places-sourced fields (check Google's terms before Phase 4); cached counters (recommended: not yet).
 - **Before deploying: set `TOKEN_ENCRYPTION_KEY`** (required in production). Keep it stable: changing it makes stored links unreadable, and "Copy link" then issues a fresh link for those guests.
 - Real email to guests still needs a **verified Resend domain** (§12). Until then use WhatsApp, "Copy invite link" or "Mark as invited". The code path itself is tested end to end with captured and failing providers.
 - The Events timeline cards (guests pill, RSVP column) still show "No guests invited yet"; wiring them to the real replies is a small follow-up. (The dashboard widgets and the event page card are wired.)
@@ -769,4 +825,5 @@ The architecture wins over every other document when they conflict. These are **
 | `236c87e` | 2026-10-10 | Phase 2 step 2.7: review and hardening (indexes, accessibility, docs)                    |
 | `620c7fc` | 2026-10-11 | Phase 3 step 3.1: guest management (models, API, screens, tests, docs)                   |
 | `5c54fad` | 2026-10-11 | Phase 3 steps 3.2 to 3.4: invitations, personal links, guest RSVP page, RSVP tracker     |
-| *(next)*  | 2026-10-11 | Phase 3 step 3.5: review (accessibility, Events timeline numbers, safety tests, docs)    |
+| `f2b2558` | 2026-10-11 | Phase 3 step 3.5: review (accessibility, Events timeline numbers, safety tests, docs)    |
+| *(next)*  | 2026-10-11 | Phase 4: expenses, payments, vendors with Google Places search, budget overview, event linked expenses |

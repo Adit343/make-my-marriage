@@ -4,6 +4,7 @@
 
 import "@/models/emailLog.model";
 import "@/models/event.model";
+import "@/models/expense.model";
 import "@/models/guest.model";
 import "@/models/guestGroup.model";
 import "@/models/passwordResetToken.model";
@@ -12,6 +13,8 @@ import "@/models/rsvp.model";
 import "@/models/session.model";
 import "@/models/task.model";
 import "@/models/user.model";
+import "@/models/vendor.model";
+import "@/models/vendorPayment.model";
 import "@/models/wedding.model";
 import "@/models/weddingInvitation.model";
 import "@/models/weddingMember.model";

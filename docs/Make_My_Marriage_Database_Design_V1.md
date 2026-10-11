@@ -783,6 +783,15 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 **Limitation:** a payment that has no matching expense (say, a spontaneous advance) must first get an expense line. That is deliberate: it keeps the budget honest.
 
 ---
+**Implementation notes (built 2026-10-11, Phase 4).** `expenses`, `vendors` and `vendorPayments` are built as specified, with these points settled while building:
+
+- `expenses.expenseDate` was added (`"YYYY-MM-DD"`, optional, default `null`): the Stitch form records when an expense was booked or incurred (open decision 8, owner-side recommendation accepted). No new index: date range filters ride on `{weddingId, _id: -1}` and are small per wedding.
+- What has been paid is summed from `vendorPayments` with status `paid` by one aggregation per page (`aggregateScoped`); "scheduled" (paid plus pending) is a second small aggregation used only for the over-payment warning. A cancelled payment counts toward neither. `remaining = max(0, cost - paid)`.
+- `vendorPayments.paidAt` is required when status is `paid` (a model check) and cleared when a payment stops being paid. `receipt` is not built (Phase 6).
+- The vendor list is paged **A to Z** on `{weddingId, nameNormalized}` with cursor `(nameNormalized, _id)`. Newest-first paging used the global `_id` index and read other weddings' vendors (found with `explain()`), so no extra index was added.
+- Vendors keep `placeId` and the address the member confirmed; **coordinates from Google Places are not stored** (open decision 8 in §15: Google restricts keeping Places content). `contact.website` must be `https`.
+- Deleting an event sets `eventId: null` on its expenses, deleting a vendor sets `vendorId: null` on its expenses, and deleting an expense soft-deletes its payments, each in the same transaction.
+
 ### 6.15 `weddingWebsites`
 
 **In plain words.** The content of the public wedding site. Example: `makemymarriage.example/aarav-diya` shows a welcome message, the story, and the Haldi and Reception timings, but never the guest list or expenses.

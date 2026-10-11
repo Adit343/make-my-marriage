@@ -96,3 +96,50 @@ export type RsvpStatus = (typeof RSVP_STATUSES)[number];
 
 export const RESPONDED_VIA = ["guest_link", "member"] as const;
 export type RespondedVia = (typeof RESPONDED_VIA)[number];
+
+// Phase 4 — Financials & Vendors (DB Design Appendix A).
+export const EXPENSE_CATEGORIES = [
+  "venue",
+  "catering",
+  "decor",
+  "photography_video",
+  "attire",
+  "jewellery",
+  "makeup_beauty",
+  "music_entertainment",
+  "invitations_stationery",
+  "rituals_ceremony",
+  "travel_stay",
+  "gifts_favours",
+  "other",
+] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+
+export const VENDOR_CATEGORIES = [
+  "venue",
+  "caterer",
+  "decorator",
+  "photographer",
+  "videographer",
+  "makeup_artist",
+  "mehendi_artist",
+  "music_entertainment",
+  "officiant",
+  "florist",
+  "jeweller",
+  "tailor_designer",
+  "other",
+] as const;
+export type VendorCategory = (typeof VENDOR_CATEGORIES)[number];
+
+export const VENDOR_STATUSES = ["shortlisted", "contacted", "booked", "rejected"] as const;
+export type VendorStatus = (typeof VENDOR_STATUSES)[number];
+
+export const VENDOR_SOURCES = ["manual", "google_places"] as const;
+export type VendorSource = (typeof VENDOR_SOURCES)[number];
+
+export const PAYMENT_STATUSES = ["pending", "paid", "cancelled"] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+export const PAYMENT_METHODS = ["cash", "upi", "bank_transfer", "cheque", "card", "other"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];

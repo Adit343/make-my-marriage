@@ -2,10 +2,13 @@ import { Types } from "mongoose";
 import { beforeAll, describe, expect, it } from "vitest";
 import { EmailLog } from "@/models/emailLog.model";
 import { Event } from "@/models/event.model";
+import { Expense } from "@/models/expense.model";
 import { Guest } from "@/models/guest.model";
 import { GuestGroup } from "@/models/guestGroup.model";
 import { Rsvp } from "@/models/rsvp.model";
 import { Task } from "@/models/task.model";
+import { Vendor } from "@/models/vendor.model";
+import { VendorPayment } from "@/models/vendorPayment.model";
 import { setupTestDatabase } from "../../setup/database";
 
 // DB Design §8.1 rule 5: check indexes with explain() on realistic data. These are the queries the
@@ -397,5 +400,151 @@ describe("invitation queries use an index and stay inside one wedding", () => {
     expect(result.stages).not.toContain("COLLSCAN");
     // Never reads the other wedding's documents.
     expect(result.docsExamined).toBeLessThanOrEqual(maxDocs);
+  });
+});
+
+// Expenses, vendors and payments (Phase 4): 300 of each per wedding.
+describe("finance queries use an index and stay inside one wedding", () => {
+  const vendorA = new Types.ObjectId();
+  const expenseA = new Types.ObjectId();
+
+  beforeAll(async () => {
+    await Expense.init();
+    await Vendor.init();
+    await VendorPayment.init();
+    const categories = ["venue", "catering", "decor", "attire"] as const;
+    await Expense.collection.insertMany(
+      [weddingA, weddingB].flatMap((weddingId) =>
+        Array.from({ length: PER_WEDDING }, (_, i) => ({
+          weddingId,
+          title: `Expense ${i}`,
+          category: categories[i % 4],
+          expenseDate: `2027-0${1 + (i % 3)}-${String(1 + (i % 27)).padStart(2, "0")}`,
+          eventId: i % 4 === 0 ? eventA : null,
+          vendorId: i % 5 === 0 ? vendorA : null,
+          agreedAmountMinor: 1000 * i,
+          createdBy: user,
+          deletedAt: null,
+        })),
+      ),
+    );
+    await Vendor.collection.insertMany(
+      [weddingA, weddingB].flatMap((weddingId) =>
+        Array.from({ length: PER_WEDDING }, (_, i) => ({
+          weddingId,
+          name: `Vendor ${String(i).padStart(3, "0")}`,
+          nameNormalized: `vendor ${String(i).padStart(3, "0")}`,
+          category: i % 2 ? "venue" : "caterer",
+          status: "shortlisted",
+          createdBy: user,
+          deletedAt: null,
+        })),
+      ),
+    );
+    await VendorPayment.collection.insertMany(
+      [weddingA, weddingB].flatMap((weddingId) =>
+        Array.from({ length: PER_WEDDING }, (_, i) => ({
+          weddingId,
+          expenseId: i % 3 === 0 ? expenseA : new Types.ObjectId(),
+          amountMinor: 100 + i,
+          status: i % 2 ? "paid" : "pending",
+          dueDate: i % 2 ? null : `2027-02-${String(1 + (i % 27)).padStart(2, "0")}`,
+          createdBy: user,
+          deletedAt: null,
+        })),
+      ),
+    );
+  });
+
+  const cases: [string, () => { explain(verbosity: string): Promise<unknown> }][] = [
+    [
+      "expenses newest first (the API page)",
+      () => Expense.find({ weddingId: weddingA }).sort({ _id: -1 }).limit(21),
+    ],
+    [
+      "every expense (the Expenses screen)",
+      () => Expense.find({ weddingId: weddingA }).sort({ _id: -1 }).limit(2000),
+    ],
+    [
+      "expenses by category",
+      () => Expense.find({ weddingId: weddingA, category: "venue" }).sort({ _id: -1 }).limit(21),
+    ],
+    [
+      "expenses of one event",
+      () => Expense.find({ weddingId: weddingA, eventId: eventA }).sort({ _id: -1 }).limit(21),
+    ],
+    [
+      "expenses of one vendor",
+      () => Expense.find({ weddingId: weddingA, vendorId: vendorA }).sort({ _id: -1 }).limit(21),
+    ],
+    [
+      "expenses in a date range",
+      () =>
+        Expense.find({
+          weddingId: weddingA,
+          expenseDate: { $gte: "2027-01-01", $lte: "2027-02-01" },
+        })
+          .sort({ _id: -1 })
+          .limit(21),
+    ],
+    [
+      "vendors A to Z, first page",
+      () => Vendor.find({ weddingId: weddingA }).sort({ nameNormalized: 1, _id: 1 }).limit(21),
+    ],
+    [
+      "vendors A to Z, a later page",
+      () =>
+        Vendor.find({
+          weddingId: weddingA,
+          $and: [
+            {
+              $or: [
+                { nameNormalized: { $gt: "vendor 100" } },
+                { nameNormalized: "vendor 100", _id: { $gt: new Types.ObjectId() } },
+              ],
+            },
+          ],
+        })
+          .sort({ nameNormalized: 1, _id: 1 })
+          .limit(21),
+    ],
+    [
+      "vendors A to Z (the Vendors screen)",
+      () => Vendor.find({ weddingId: weddingA }).sort({ nameNormalized: 1, _id: 1 }).limit(1000),
+    ],
+    [
+      "vendors by category",
+      () => Vendor.find({ weddingId: weddingA, category: "venue" }).sort({ _id: -1 }).limit(21),
+    ],
+    [
+      "vendors by name prefix",
+      () =>
+        Vendor.find({ weddingId: weddingA, nameNormalized: { $regex: "^vendor 00" } })
+          .sort({ _id: -1 })
+          .limit(21),
+    ],
+    [
+      "payments of one expense",
+      () => VendorPayment.find({ weddingId: weddingA, expenseId: expenseA }).sort({ _id: 1 }),
+    ],
+    [
+      "paid payments (the paid totals)",
+      () => VendorPayment.find({ weddingId: weddingA, status: "paid" }),
+    ],
+    [
+      "pending payments due by a day (the overview)",
+      () =>
+        VendorPayment.find({
+          weddingId: weddingA,
+          status: "pending",
+          dueDate: { $type: "string", $lte: "2027-02-15" },
+        })
+          .sort({ dueDate: 1, _id: 1 })
+          .limit(500),
+    ],
+  ];
+
+  it.each(cases)("%s", async (_label, build) => {
+    expectIndexed(await plan(build()));
   });
 });

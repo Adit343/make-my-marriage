@@ -3,7 +3,7 @@
 > What is left to build, in order, with the decisions that must be made first.
 > Where the project is *now* is in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). **Read that file first.**
 >
-> Last updated: **2026-10-11** · Phases 1 and 2 complete · **Phase 3 (Guests and invitations) is complete: steps 3.1 to 3.5 built (3.5, the review, not yet committed). Phase 4 (expenses and vendors) is next.**
+> Last updated: **2026-10-11** · Phases 1 to 3 complete and committed · **Phase 4 (Financials and vendors) is complete: built and verified, not yet committed. Phase 5 (wedding website and live stream) is next.**
 
 **Contents**
 
@@ -28,13 +28,13 @@
 1. Open the project folder in Claude Code (the four design docs, `PROJECT_STATUS.md` and this file are
    imported automatically through `CLAUDE.md`).
 2. If working on a new machine, follow `PROJECT_STATUS.md` §3 (Node 24, `npm ci`, `.env.local`, branch `dev`, Stitch MCP).
-3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **716 passing**).
+3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **893 passing**).
 4. Start the next piece of work with a prompt like:
 
-   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. Phase 3 is complete (steps 3.1 to
-   > 3.5). We are starting **Phase 4** (expenses and vendors). Do not create files, install anything or write
-   > code yet. Look at the Stitch screens for it, then propose a plan for step 4.1 and list the open decisions
-   > from section 6.4 you need answered. Wait for my approval.
+   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. Phase 4 is complete (expenses, payments,
+   > vendors). We are starting **Phase 5** (wedding website and live stream). Do not create files, install anything or write
+   > code yet. Look at the Stitch screens for it, then propose a plan for step 5.1 and list the open decisions
+   > from section 7.3 you need answered. Wait for my approval.
 
 5. **After each step**, the AI must update `PROJECT_STATUS.md` (what was built, decisions, new endpoints,
    test totals, commit) and tick things off here, so the next session starts correct.
@@ -88,7 +88,7 @@ These come from `CLAUDE.md`, the architecture and the working agreement. Repeat 
 | 1     | Foundation              | users, sessions, passwordResetTokens, weddings, weddingMembers, weddingInvitations, emailLogs, rateLimitCounters | **Done** (steps 1.1–1.9)                |
 | 2     | Planning                | events (with embedded schedule), tasks                   | **Done** (steps 2.1–2.7)                                |
 | 3     | Guests & Invitations    | guestGroups, guests, rsvps (emailLogs already exists)    | **Done** (steps 3.1 to 3.5). Real guest email needs a verified Resend domain in practice; WhatsApp, copy link and "invited in person" work today |
-| 4     | Financials & Vendors    | expenses, vendors, vendorPayments                        | Not started; PRD/role conflict to resolve (§6)          |
+| 4     | Financials & Vendors    | expenses, vendors, vendorPayments                        | **Done** (steps 4.1 to 4.4)                             |
 | 5     | Wedding Experience      | weddingWebsites, liveStreams                             | Not started                                             |
 | 6     | Memories                | galleries, galleryAlbums, galleryAssets, galleryAccessTokens | Not started; needs AWS                              |
 | 7     | Product Readiness       | none                                                     | Not started                                             |
@@ -215,6 +215,9 @@ Rate limits on public token operations (Architecture §39). Permissions: guest/g
 ---
 
 ## 6. Phase 4: Financials and vendors
+
+> **Built 2026-10-11 (steps 4.1 to 4.4, not yet committed).** Details, decisions and the real-browser results are in `PROJECT_STATUS.md` §13 and §14.2. In short: expenses (everyone records and sees all; members edit only their own), payments (owners and admins record, members read), the budget overview and ledger, vendors (owners and admins) with optional Google Places search, vendor payment milestones, and the Event page's linked expenses. **Still open from Phase 4:** add `GOOGLE_PLACES_API_KEY` and try the real search once; vendor `eventIds[]`; receipts and documents (Phase 6); the fuller "Edit Wedding" screen; and a repeatable (CI) browser and accessibility run (Phase 7). The decisions below were taken with the AI's recommendations (marked in §11).
+
 
 **Goal:** practical spending and vendor management. **No payment processing, no marketplace, no complex accounting.**
 **Exit condition:** "Wedding members can track spending, maintain their vendor list, discover nearby vendors/businesses, and record vendor payment status."
@@ -387,9 +390,9 @@ Ask these when the relevant phase starts (recommendations in brackets are the AI
 | 5  | 3     | ~~Digital invitation template scope~~ **Decided: one built-in look (2026-10-11)**                                 | (done)                                                    |
 | 6  | 3     | Guest CSV import?                                                                                                | Ask; not in V1 docs                                       |
 | 7  | 4     | ~~Who may record/view expenses~~ **Decided:** all family members view and record; members edit/delete only their own, admin+ any | (done) |
-| 8  | 4     | Expense fields (date, single amount) vs DB doc                                                                   | Add an expense date                                       |
-| 9  | 4     | Vendor `eventIds[]` and documents                                                                                | Add `eventIds[]`; defer documents                         |
-| 10 | 4     | What Google Places data may be stored                                                                            | Store `placeId` + what the user confirms                  |
+| 8  | 4     | ~~Expense fields (date, single amount) vs DB doc~~ **Decided: added an optional expense date; amounts stay estimated and agreed (2026-10-11)** | (done) |
+| 9  | 4     | ~~Vendor `eventIds[]` and documents~~ **Decided: neither built; documents wait for Phase 6 receipts (2026-10-11)** | (done) |
+| 10 | 4     | ~~What Google Places data may be stored~~ **Decided: the place id and what the member confirms or types; no coordinates from Google (2026-10-11)** | (done) |
 | 11 | 5     | Livestream end time                                                                                              | Add optional `endTime`                                    |
 | 12 | 5     | Slug history/redirects                                                                                           | Not in V1                                                 |
 | 13 | 6     | Per-wedding storage quota and file limits                                                                        | A few GB; check before issuing upload URLs               |

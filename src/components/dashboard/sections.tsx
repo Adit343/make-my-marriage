@@ -180,8 +180,15 @@ export function StatCards({
     {
       label: "Contracted Vendors",
       icon: "handshake",
-      value: counts.vendors,
-      detail: "No vendors booked yet",
+      value: counts.bookedVendors ?? 0,
+      detail:
+        counts.bookedVendors === null
+          ? "Managed by owners and admins"
+          : counts.bookedVendors > 0
+            ? `${counts.vendors ?? 0} in your directory`
+            : (counts.vendors ?? 0) > 0
+              ? "None booked yet"
+              : "No vendors added yet",
       accent: "primary",
     },
   ];

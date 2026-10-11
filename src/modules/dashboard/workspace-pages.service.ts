@@ -2,6 +2,7 @@ import "server-only";
 import { GUEST_LIST_PAGE_SIZE } from "@/lib/constants/guests";
 import { formatDayMonth, todayIn } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
+import { getEnv } from "@/lib/env";
 import { calendarDayIn, nextEventLabel, venueLine } from "@/lib/events/format";
 import { toEventDetailView, toEventViews } from "@/lib/events/view";
 import type { GuestEventInfo } from "@/lib/guests/types";
@@ -11,6 +12,12 @@ import { describeUserAgent, lastActiveLabel, type DeviceKind } from "@/lib/user-
 import { getCurrentUser, listSessions } from "@/modules/auth/auth.service";
 import type { AuthContext } from "@/modules/auth/session.service";
 import { getDashboard } from "@/modules/dashboard/dashboard.service";
+import {
+  getExpenseDetail,
+  getExpenseSummary,
+  listEveryExpense,
+  listVendorChoices,
+} from "@/modules/expenses/expense.service";
 import type { EventDto } from "@/modules/events/event.dto";
 import { getEvent, listEvents } from "@/modules/events/event.service";
 import { listGroups } from "@/modules/guest-groups/guest-group.service";
@@ -31,6 +38,7 @@ import { countActiveMembers } from "@/modules/members/member.repository";
 import { listTeam } from "@/modules/members/member.service";
 import { can } from "@/modules/members/permissions";
 import { listEveryTask, listEventTasks } from "@/modules/tasks/task.service";
+import { getVendorDetail, listEveryVendor } from "@/modules/vendors/vendor.service";
 import { getWeddingFor } from "@/modules/weddings/wedding.service";
 
 // Data for the Team and Settings pages. Server Components call the same services the REST API
@@ -170,14 +178,16 @@ export async function getEventPage(auth: AuthContext, eventId: string) {
   if (!dashboard.workspace || !weddingAuth) return null;
 
   try {
-    const [event, { wedding }, allEvents, team, eventTasks, replies] = await Promise.all([
-      getEvent(weddingAuth, eventId),
-      getWeddingFor(weddingAuth),
-      listEvents(weddingAuth),
-      listTeam(weddingAuth, ALL),
-      listEventTasks(weddingAuth, eventId),
-      getEventHeadcount(weddingAuth, eventId),
-    ]);
+    const [event, { wedding }, allEvents, team, eventTasks, replies, allExpenses] =
+      await Promise.all([
+        getEvent(weddingAuth, eventId),
+        getWeddingFor(weddingAuth),
+        listEvents(weddingAuth),
+        listTeam(weddingAuth, ALL),
+        listEventTasks(weddingAuth, eventId),
+        getEventHeadcount(weddingAuth, eventId),
+        listEveryExpense(weddingAuth),
+      ]);
     const context = taskContext(allEvents, team.items, wedding.timezone);
     return {
       dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
@@ -186,6 +196,9 @@ export async function getEventPage(auth: AuthContext, eventId: string) {
       event: toEventDetailView(event),
       replies,
       tasks: toTaskViews(eventTasks, context),
+      // The expenses recorded against this event (every member sees every expense).
+      expenses: allExpenses.filter((expense) => expense.eventId === eventId),
+      currency: wedding.currency,
       taskForm: { events: context.events, members: context.members, today: context.today },
     };
   } catch (error) {
@@ -354,4 +367,141 @@ export async function getInvitationsPage(
     canViewLog: can(weddingAuth.membership.role, "invitations:logs"),
     viewer: { name: dashboard.viewer.name, role: weddingAuth.membership.role },
   };
+}
+
+/** The events an expense can be linked to: id and name, in timeline order. */
+function eventChoices(events: EventDto[]) {
+  return events.map((event) => ({ id: event.id, name: event.name }));
+}
+
+/**
+ * Data for the Expenses screens (Stitch "Expenses & Budget Overview" and "All Expenses & Ledger"):
+ * the budget overview, every expense with what has been paid, and the choices the form needs.
+ * Everyone in the wedding sees all of it except the overall budget (owners and admins only).
+ */
+export async function getExpensesPage(auth: AuthContext) {
+  const dashboard = await getDashboard(auth);
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!dashboard.workspace || !weddingAuth) return null;
+
+  const [summary, expenses, events, vendors, { wedding }] = await Promise.all([
+    getExpenseSummary(weddingAuth),
+    listEveryExpense(weddingAuth),
+    listEvents(weddingAuth),
+    listVendorChoices(weddingAuth),
+    getWeddingFor(weddingAuth),
+  ]);
+  return {
+    dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+    weddingId: weddingAuth.weddingId,
+    currency: wedding.currency,
+    timezone: wedding.timezone,
+    today: todayIn(wedding.timezone),
+    weddingVersion: wedding.version,
+    summary,
+    expenses,
+    events: eventChoices(events),
+    vendors,
+    canRecordPayments: can(weddingAuth.membership.role, "payments:record"),
+    canSeeVendors: can(weddingAuth.membership.role, "vendors:manage"),
+    // The overall budget is for the people who may change the wedding's details.
+    canSetBudget: can(weddingAuth.membership.role, "wedding:update"),
+  };
+}
+
+/** Data for one expense (Stitch "Expense Detail & Payment Recording"); "not_found" when it is not in this wedding. */
+export async function getExpensePage(auth: AuthContext, expenseId: string) {
+  const dashboard = await getDashboard(auth);
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!dashboard.workspace || !weddingAuth) return null;
+
+  try {
+    const [detail, events, vendors, { wedding }] = await Promise.all([
+      getExpenseDetail(weddingAuth, expenseId),
+      listEvents(weddingAuth),
+      listVendorChoices(weddingAuth),
+      getWeddingFor(weddingAuth),
+    ]);
+    return {
+      dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+      weddingId: weddingAuth.weddingId,
+      currency: wedding.currency,
+      timezone: wedding.timezone,
+      today: todayIn(wedding.timezone),
+      detail,
+      events: eventChoices(events),
+      vendors,
+      canRecordPayments: can(weddingAuth.membership.role, "payments:record"),
+      canSeeVendors: can(weddingAuth.membership.role, "vendors:manage"),
+    };
+  } catch (error) {
+    if (error instanceof AppError && error.code === "NOT_FOUND") return "not_found" as const;
+    throw error;
+  }
+}
+
+/**
+ * Data for the Vendors screen (Stitch "Vendors List"). A member gets "forbidden": vendors hold
+ * contact details and terms, so they are for owners and admins (decision D3).
+ */
+export async function getVendorsPage(auth: AuthContext) {
+  const dashboard = await getDashboard(auth);
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!dashboard.workspace || !weddingAuth) return null;
+  if (!can(weddingAuth.membership.role, "vendors:manage")) {
+    return {
+      dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+      forbidden: true as const,
+    };
+  }
+
+  const [vendors, { wedding }] = await Promise.all([
+    listEveryVendor(weddingAuth),
+    getWeddingFor(weddingAuth),
+  ]);
+  return {
+    dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+    forbidden: false as const,
+    weddingId: weddingAuth.weddingId,
+    currency: wedding.currency,
+    vendors,
+    placesConfigured: Boolean(getEnv().GOOGLE_PLACES_API_KEY),
+  };
+}
+
+/** Data for one vendor (Stitch "Vendor Detail"); "not_found" when it is not in this wedding. */
+export async function getVendorPage(auth: AuthContext, vendorId: string) {
+  const dashboard = await getDashboard(auth);
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!dashboard.workspace || !weddingAuth) return null;
+  if (!can(weddingAuth.membership.role, "vendors:manage")) {
+    return {
+      dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+      forbidden: true as const,
+    };
+  }
+
+  try {
+    const [detail, { wedding }, events, vendorChoices] = await Promise.all([
+      getVendorDetail(weddingAuth, vendorId),
+      getWeddingFor(weddingAuth),
+      listEvents(weddingAuth),
+      listVendorChoices(weddingAuth),
+    ]);
+    return {
+      dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+      forbidden: false as const,
+      weddingId: weddingAuth.weddingId,
+      currency: wedding.currency,
+      timezone: wedding.timezone,
+      today: todayIn(wedding.timezone),
+      detail,
+      events: eventChoices(events),
+      vendorChoices,
+      placesConfigured: Boolean(getEnv().GOOGLE_PLACES_API_KEY),
+    };
+  } catch (error) {
+    if (error instanceof AppError && error.code === "NOT_FOUND") return "not_found" as const;
+    throw error;
+  }
 }
