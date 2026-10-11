@@ -36,6 +36,13 @@ export const PERMISSIONS = {
    * Every role (DB Design §15 item 3: members edit the guest list).
    */
   "guests:edit": EVERYONE,
+  /**
+   * Send invitations and RSVP reminders (email, WhatsApp, in person) and copy or rotate a guest's
+   * personal link. Every role: a parent and the planner share the sending (decided 2026-10-11).
+   */
+  "invitations:send": EVERYONE,
+  /** The delivery log of guest emails and retrying one from it (API Design §13, Stitch: owners and admins only). */
+  "invitations:logs": ADMIN_UP,
 } as const satisfies Record<string, readonly MemberRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

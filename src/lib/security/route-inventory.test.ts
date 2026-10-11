@@ -83,9 +83,25 @@ const INVENTORY: Record<string, Access> = {
   "PATCH /api/v1/weddings/[weddingId]/guests/[guestId]/rsvps/[eventId]": "wedding:guests:edit",
   "DELETE /api/v1/weddings/[weddingId]/guests/[guestId]/rsvps/[eventId]": "wedding:guests:edit",
   "GET /api/v1/weddings/[weddingId]/rsvps": "wedding:wedding:view",
+  "GET /api/v1/weddings/[weddingId]/rsvps/replies": "wedding:wedding:view",
+
+  // Phase 3, step 3.2: invitations, personal links and the delivery log. Every role may send (permission
+  // invitations:send); the delivery log and retrying from it are admin+ (invitations:logs); the overview and a guest's existing link are wedding:view.
+  "POST /api/v1/weddings/[weddingId]/guests/invite-batch": "wedding:invitations:send",
+  "POST /api/v1/weddings/[weddingId]/guests/[guestId]/invite": "wedding:invitations:send",
+  "GET /api/v1/weddings/[weddingId]/guests/[guestId]/link": "wedding:wedding:view",
+  "POST /api/v1/weddings/[weddingId]/guests/[guestId]/link": "wedding:invitations:send",
+  "POST /api/v1/weddings/[weddingId]/guests/[guestId]/link/rotate": "wedding:invitations:send",
+  "GET /api/v1/weddings/[weddingId]/guest-invitations/overview": "wedding:wedding:view",
+  "GET /api/v1/weddings/[weddingId]/email-logs": "wedding:invitations:logs",
+  "POST /api/v1/weddings/[weddingId]/email-logs/[logId]/retry": "wedding:invitations:logs",
 
   // Token routes: the secret in the path is the credential (hash lookup, rate limited).
   "GET /api/v1/public/invitations/[token]": "public",
+  // A guest's personal RSVP link (no account). The token is the credential; every unusable link is
+  // the same 403. The service whitelists what a guest sees and what they may write.
+  "GET /api/v1/public/rsvp/[token]": "public",
+  "PATCH /api/v1/public/rsvp/[token]": "public",
   "POST /api/v1/invitations/accept": "session",
 };
 
@@ -180,7 +196,12 @@ describe("API route inventory", () => {
         "/api/v1/weddings/[weddingId]/guests/[guestId]",
         "/api/v1/weddings/[weddingId]/guests/[guestId]/rsvps",
         "/api/v1/weddings/[weddingId]/rsvps",
+        "/api/v1/weddings/[weddingId]/rsvps/replies",
+        "/api/v1/weddings/[weddingId]/guests/[guestId]/link",
+        "/api/v1/weddings/[weddingId]/guest-invitations/overview",
+        "/api/v1/weddings/[weddingId]/email-logs",
         "/api/v1/public/invitations/[token]",
+        "/api/v1/public/rsvp/[token]",
       ].sort(),
     );
   });

@@ -679,6 +679,17 @@ Field whitelist enforced server-side exactly as Database Design §11.2 states: o
 - `DELETE /guest-groups/:groupId` takes `{reassignTo: null | groupId}` and answers `{id, deletedAt, guestsMoved}`; `DELETE /guests/:guestId` answers `{id, deletedAt, rsvpsRemoved}`.
 - A duplicate group name (ignoring case and spacing) is `409 CONFLICT`; a stale `version` is `409 VERSION_CONFLICT`; ids from another wedding are `404`.
 
+**Implementation notes (built 2026-10-11, Phase 3 steps 3.2 to 3.4: invitations, links, the guest page).**
+
+- Built: `/invite`, `/invite-batch`, `/link`, `/link/rotate` (§8.6 to §8.8) and the public RSVP routes (§8.10). Permission `invitations:send` is open to every role.
+- **Send summary.** `invite` and `invite-batch` answer `{batchId, channel, kind, total, sent, failed, skipped, prepared, marked, failedGuestIds, results[]}`. Each result is `{guestId, name, outcome: sent | failed | skipped | prepared | marked, reason?, error?{code, message?}, email?, inviteUrl?, whatsappUrl?}`. A guest who can't be reached on the chosen channel is **skipped with a reason** ("No email address on file"), not an error. `kind` is `invitation` (default) or `reminder` (only guests already invited who still owe an answer).
+- **WhatsApp.** The single `invite` call is the member's tap: it records the guest as invited and returns the `wa.me` link. The batch call only **prepares** links (`prepared`) and marks nobody; the app cannot know a WhatsApp message was sent. **Manual** only records "told in person". Email is limited to 50 guests per request and goes out in groups of 10; one rate-limit count (60 per hour per wedding) per group.
+- **Retries.** Repeating a batch with the same `batchId` never emails a delivered guest again and updates a failed log row in place. A batch with one guest outside the wedding is `404` and sends nothing.
+- **Links.** `GET /link` returns `{inviteUrl, createdAt}` or `null` and never creates a link (a GET must not write, §2.9). **Addition:** `POST /link` creates it if missing and always returns the same link afterwards. `POST /link/rotate` kills the old link at once.
+- **Public RSVP (`/public/rsvp/:token`).** Every unusable link (unknown, rotated, guest or wedding deleted) is the same `403 INVALID_TOKEN`. `GET` returns a hand-built whitelist: the couple's names, the guest's name, plus-ones allowed, dietary preference, and per event its name, type, time, timezone, venue, map link, dress code, and the guest's own answer. Never other guests, private notes, the team or the budget. `PATCH` is strict (`{responses[], dietaryPreference?}`); `status` is `attending | maybe | declined` (a guest cannot set `pending`); a count above 1 + plus-ones is `422 BUSINESS_RULE_VIOLATION`; an event the guest isn't invited to is `404`; the answers save together or not at all. Rate limits: 60 views and 30 answers per 15 minutes per IP.
+- **Additions:** `GET /rsvps/replies?eventId=` (the tracker's list), `GET /guest-invitations/overview` (the Invitations numbers).
+- **§13 delivery log:** `GET /email-logs` is cursor-paginated newest first and only lists guest emails (`guest_invitation`, `rsvp_reminder`); items carry `guestName`, `attempts` and a sanitised `error` (**code only in production**). Both log routes need `invitations:logs` (admin+), as written here and in the Stitch screen. `POST .../retry` re-sends one failed email in place and refuses one already delivered (`422`).
+
 ---
 
 ## 9. Expenses, Vendors and Vendor Payments

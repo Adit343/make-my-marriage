@@ -236,3 +236,133 @@ export async function countGuestsByInviteStatus(
   for (const row of rows) counts[row._id] = row.count;
   return counts;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Personal RSVP links and invitation tracking (DB Design §5.3, §6.10)
+// ---------------------------------------------------------------------------------------------
+
+export interface StoredLink {
+  tokenHash: string;
+  tokenEnc: string;
+  createdAt: Date;
+  expiresAt: Date | null;
+  revokedAt: Date | null;
+}
+
+/** The guest with their link's encrypted token (never selected by default). */
+export async function findGuestWithLink(weddingId: Id, guestId: Id) {
+  await connectDb();
+  return Guest.findOne({ _id: guestId, weddingId }).select("+link.tokenEnc").lean();
+}
+
+export async function findGuestsWithLinks(weddingId: Id, guestIds: Id[]) {
+  await connectDb();
+  return Guest.find({ weddingId, _id: { $in: guestIds } })
+    .select("+link.tokenEnc")
+    .lean();
+}
+
+/**
+ * Stores a new link. `onlyIfUnusable` makes it safe against two simultaneous requests: the write
+ * only lands if the guest has no link, or only a revoked or expired one; the loser re-reads the
+ * winner's link instead of replacing it (so a link already sent is never silently invalidated).
+ * Returns null when the guard stopped the write.
+ */
+export async function setGuestLink(
+  weddingId: Id,
+  guestId: Id,
+  link: StoredLink,
+  options: { onlyIfUnusable: boolean },
+) {
+  await connectDb();
+  const filter: Record<string, unknown> = { _id: guestId, weddingId };
+  if (options.onlyIfUnusable) {
+    filter.$or = [
+      { link: { $exists: false } },
+      { link: null },
+      { "link.revokedAt": { $ne: null } },
+      { "link.expiresAt": { $lte: new Date() } },
+    ];
+  }
+  return Guest.findOneAndUpdate(filter, { $set: { link } }, { returnDocument: "after" })
+    .select("+link.tokenEnc")
+    .lean()
+    .exec();
+}
+
+/**
+ * The ONE guest lookup that is by token instead of by wedding: a guest opening /i/<token> has no
+ * session and no wedding in the address (DB Design §8.3). The service then checks the link and the
+ * wedding are still usable. Soft-deleted guests are never found (the plugin filters them).
+ */
+export async function findGuestByTokenHash(tokenHash: string) {
+  await connectDb();
+  return Guest.findOne({ "link.tokenHash": tokenHash }).lean();
+}
+
+/** Records that these guests were invited (or reminded) through a channel. Returns how many changed. */
+export async function markGuestsInvited(
+  weddingId: Id,
+  guestIds: Id[],
+  channel: "email" | "whatsapp" | "manual",
+  at: Date,
+): Promise<number> {
+  if (guestIds.length === 0) return 0;
+  await connectDb();
+  const result = await Guest.updateMany(
+    { weddingId, _id: { $in: guestIds } },
+    {
+      $set: {
+        "invitation.status": "invited",
+        "invitation.lastSentAt": at,
+        "invitation.lastChannel": channel,
+      },
+      $inc: { "invitation.sendCount": 1 },
+    },
+  );
+  return result.modifiedCount;
+}
+
+/** The guest's own dietary answer from their RSVP page. Does not bump the edit version. */
+export async function setGuestDietary(
+  weddingId: Id,
+  guestId: Id,
+  dietaryPreference: DietaryPreference,
+  session?: ClientSession,
+) {
+  await connectDb();
+  await Guest.updateOne({ _id: guestId, weddingId }, { $set: { dietaryPreference } }, { session });
+}
+
+/** Guests with no email and no phone: nobody can reach them (the Invitations "incomplete registry"). */
+export async function countGuestsWithoutContact(weddingId: Id): Promise<number> {
+  await connectDb();
+  const empty = (field: string) => ({ $or: [{ [field]: null }, { [field]: { $exists: false } }] });
+  return Guest.countDocuments({ weddingId, $and: [empty("email"), empty("phone")] });
+}
+
+/** Invited guests by the channel they were last invited through (the progress bar's legend). */
+export async function countInvitedByChannel(
+  weddingId: Id,
+): Promise<Record<"email" | "whatsapp" | "manual", number>> {
+  const rows = await aggregateScoped<{
+    _id: "email" | "whatsapp" | "manual" | null;
+    count: number;
+  }>(Guest, weddingId, [
+    { $match: { "invitation.status": "invited" } },
+    { $group: { _id: "$invitation.lastChannel", count: { $sum: 1 } } },
+  ]);
+  const counts = { email: 0, whatsapp: 0, manual: 0 };
+  for (const row of rows) if (row._id) counts[row._id] = row.count;
+  return counts;
+}
+
+/** The first few guests with no way to be reached, A to Z (the overview's "Group B"). */
+export async function listGuestsWithoutContact(weddingId: Id, limit: number) {
+  await connectDb();
+  const empty = (field: string) => ({ $or: [{ [field]: null }, { [field]: { $exists: false } }] });
+  return Guest.find({ weddingId, $and: [empty("email"), empty("phone")] })
+    .sort({ nameNormalized: 1, _id: 1 })
+    .limit(limit)
+    .lean();
+}

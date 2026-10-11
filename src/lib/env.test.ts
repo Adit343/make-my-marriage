@@ -37,3 +37,30 @@ describe("getEnv()", () => {
     expect(() => getEnv()).not.toThrow(/too-short-secret-value/);
   });
 });
+
+describe("TOKEN_ENCRYPTION_KEY", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    resetEnvCacheForTests();
+  });
+
+  it("is optional outside production", () => {
+    for (const [key, value] of Object.entries(VALID)) vi.stubEnv(key, value);
+    vi.stubEnv("NODE_ENV", "development");
+    resetEnvCacheForTests();
+    expect(getEnv().TOKEN_ENCRYPTION_KEY).toBeUndefined();
+  });
+
+  it("is required in production and must be long enough", () => {
+    for (const [key, value] of Object.entries(VALID)) vi.stubEnv(key, value);
+    vi.stubEnv("NODE_ENV", "production");
+    resetEnvCacheForTests();
+    expect(() => getEnv()).toThrow(/TOKEN_ENCRYPTION_KEY/);
+    vi.stubEnv("TOKEN_ENCRYPTION_KEY", "short");
+    resetEnvCacheForTests();
+    expect(() => getEnv()).toThrow(/at least 32/);
+    vi.stubEnv("TOKEN_ENCRYPTION_KEY", "k".repeat(40));
+    resetEnvCacheForTests();
+    expect(getEnv().TOKEN_ENCRYPTION_KEY).toHaveLength(40);
+  });
+});

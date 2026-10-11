@@ -14,9 +14,9 @@ export const metadata: Metadata = { title: "Guests — Make My Marriage" };
 export default async function GuestsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ event?: string; rsvp?: string }>;
+  searchParams: Promise<{ event?: string; rsvp?: string; guest?: string }>;
 }) {
-  const { event, rsvp } = await searchParams;
+  const { event, rsvp, guest } = await searchParams;
   const initialRsvp = RSVP_STATUSES.find((status) => status === rsvp);
   const auth = await getServerSession();
   if (!auth) redirect("/login");
@@ -35,6 +35,8 @@ export default async function GuestsPage({
         initialSummary={page.summary}
         initialEvent={page.eventId}
         initialRsvp={initialRsvp satisfies RsvpStatus | undefined}
+        initialGuestId={/^[a-f0-9]{24}$/i.test(guest ?? "") ? guest : undefined}
+        canViewLog={page.canViewLog}
       />
       <DashboardFooter />
     </AppShell>

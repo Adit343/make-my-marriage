@@ -22,6 +22,11 @@ export const RATE_LIMITS = {
   memberInvite: { limit: 30, windowSeconds: 60 * 60 },
   invitationLookup: { limit: 60, windowSeconds: 15 * 60 },
   invitationAccept: { limit: 10, windowSeconds: 60 * 60 },
+  // Guest invitations: one count per group of up to 10 recipients (a send of 50 counts 5), per wedding.
+  guestSend: { limit: 60, windowSeconds: 60 * 60 },
+  // The public RSVP page (a guest with a personal link), per IP. Generous: a family may share one network.
+  rsvpLookup: { limit: 60, windowSeconds: 15 * 60 },
+  rsvpSubmit: { limit: 30, windowSeconds: 15 * 60 },
 } satisfies Record<string, RateLimit>;
 
 /**

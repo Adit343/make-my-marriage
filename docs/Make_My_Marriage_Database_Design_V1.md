@@ -678,7 +678,15 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 
 **Implementation notes (built 2026-10-11, Phase 3 step 3.1).** `guestGroups`, `guests` and `rsvps` are built as specified, with these points settled while building:
 
-- `guests.link` (the `SecureLink`) is **not built yet**; it and its unique partial index on `link.tokenHash` arrive with the invitations step. Adding an optional field is an additive change.
+- `guests.link` (the `SecureLink`) was added in step 3.2 (below).
+
+**Implementation notes (built 2026-10-11, Phase 3 steps 3.2 to 3.4).**
+
+- `guests.link` is built as §5.3 specifies, one per guest (decision 2026-10-11: per guest, not per household): `tokenHash` and `tokenEnc` are both `select: false`, `expiresAt` stays `null` (no expiry) and rotating overwrites the whole link. `tokenEnc` is AES-256-GCM under a key derived (HKDF) from the new env var `TOKEN_ENCRYPTION_KEY`; development and tests fall back to a key derived from `SESSION_SECRET`, production requires the variable. The unique index on `link.tokenHash` is partial on **`{ $exists: true }`**, not `$type: "string"`: `explain()` showed MongoDB cannot use a `$type` partial filter for an equality lookup and scanned every guest.
+- The link is written with a guarded update (only if the guest has no usable link), so two simultaneous "Copy link" requests end with the same link instead of replacing each other.
+- `emailLogs` now carries `guestId` and the unique `idempotencyKey` `<type>:<guestId>:<batchId>`: a send whose key already succeeded is skipped, and a retry of a failed one updates that row (`attempts` + 1) rather than adding another (the key is unique over all statuses).
+- `rsvps.respondedVia: "guest_link"` is now written (the guest's own answers); `respondedByUserId` is then `null`. A guest's answers update `rsvps` and `guests.dietaryPreference` without bumping the guest's edit `version`, so an answer never causes an edit conflict for the team.
+- No new collection and no new index beyond `link.tokenHash`. The tracker reads `{weddingId, eventId, status}`; the delivery log reads `{weddingId, createdAt}`; "needs attention" and "recent sends" are aggregations over `emailLogs` (verified with `explain()`: indexed, one wedding only).
 - Deleting an event soft-deletes its `rsvps` rows in the same transaction as its tasks' `eventId: null` (§6.7 rule 1); deleting a guest, or several, soft-deletes their rows the same way (§6.10 rule 3).
 - `rsvps.attendingCount` is checked against `1 + guest.plusOnesAllowed` in the service (422), and the service also refuses lowering `plusOnesAllowed` below a count already recorded.
 - `rsvps.respondedByUserId` is stored but never returned by the API.

@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { beforeAll, describe, expect, it } from "vitest";
+import { EmailLog } from "@/models/emailLog.model";
 import { Event } from "@/models/event.model";
 import { Guest } from "@/models/guest.model";
 import { GuestGroup } from "@/models/guestGroup.model";
@@ -309,5 +310,92 @@ describe("rsvp queries use an index and stay inside one wedding", () => {
     expect(result.stages).not.toContain("COLLSCAN");
     // A wedding has 300 guests x 3 events = 900 replies; never reads the other wedding's.
     expect(result.docsExamined).toBeLessThanOrEqual(PER_WEDDING * eventsA.length);
+  });
+});
+
+describe("invitation queries use an index and stay inside one wedding", () => {
+  type Explainable = { explain(verbosity: string): Promise<unknown> };
+  let linkedGuest: Types.ObjectId;
+
+  beforeAll(async () => {
+    await EmailLog.init();
+    const [first] = await Guest.find({ weddingId: weddingA }).limit(1).lean();
+    linkedGuest = first!._id;
+    await Guest.collection.updateOne(
+      { _id: linkedGuest },
+      { $set: { "link.tokenHash": "a".repeat(64), "link.revokedAt": null } },
+    );
+    await EmailLog.collection.insertMany(
+      [weddingA, weddingB].flatMap((weddingId) =>
+        Array.from({ length: PER_WEDDING }, (_, i) => ({
+          weddingId,
+          type: i % 5 === 0 ? "rsvp_reminder" : "guest_invitation",
+          guestId: new Types.ObjectId(),
+          recipientEmail: `g${i}@example.com`,
+          status: i % 7 === 0 ? "failed" : "sent",
+          provider: "test",
+          batchId: `batch-${i % 10}`,
+          idempotencyKey: `k-${weddingId}-${i}`,
+          attempts: 1,
+          createdAt: new Date(Date.UTC(2027, 0, 1, 0, i)),
+          updatedAt: new Date(),
+        })),
+      ),
+    );
+  });
+
+  const cases: [string, () => Explainable, number][] = [
+    [
+      "opening a guest's personal link (by token)",
+      () => Guest.findOne({ "link.tokenHash": "a".repeat(64) }),
+      1,
+    ],
+    [
+      "the tracker's list for one event",
+      () => Rsvp.find({ weddingId: weddingA, eventId: eventsA[0] }),
+      PER_WEDDING,
+    ],
+    [
+      "the delivery log, newest first",
+      () =>
+        EmailLog.find({ weddingId: weddingA, type: { $in: ["guest_invitation", "rsvp_reminder"] } })
+          .sort({ createdAt: -1, _id: -1 })
+          .limit(21),
+      PER_WEDDING,
+    ],
+    [
+      "the delivery log, failures only",
+      () =>
+        EmailLog.find({
+          weddingId: weddingA,
+          type: { $in: ["guest_invitation", "rsvp_reminder"] },
+          status: "failed",
+        })
+          .sort({ createdAt: -1, _id: -1 })
+          .limit(21),
+      PER_WEDDING,
+    ],
+    [
+      "guests nobody can reach",
+      () =>
+        Guest.find({
+          weddingId: weddingA,
+          $and: [
+            { $or: [{ email: null }, { email: { $exists: false } }] },
+            { $or: [{ phone: null }, { phone: { $exists: false } }] },
+          ],
+        })
+          .sort({ nameNormalized: 1, _id: 1 })
+          .limit(3),
+      PER_WEDDING,
+    ],
+  ];
+
+  it.each(cases)("%s", async (_label, build, maxDocs) => {
+    const result = await plan(build());
+    expect(result.stages, `plan: ${result.stages.join(" > ")}`).toContain("IXSCAN");
+    expect(result.stages).not.toContain("COLLSCAN");
+    // Never reads the other wedding's documents.
+    expect(result.docsExamined).toBeLessThanOrEqual(maxDocs);
   });
 });

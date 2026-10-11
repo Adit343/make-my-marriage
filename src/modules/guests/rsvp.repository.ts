@@ -15,9 +15,14 @@ export interface RsvpChanges {
   attendingCount: number;
   note?: string | null;
   respondedAt: Date | null;
-  respondedVia: "member" | null;
+  respondedVia: "member" | "guest_link" | null;
   respondedByUserId: Id | null;
 }
+
+/** One guest's replies from their own RSVP page (no member id is involved). */
+export type GuestReplyChanges = Omit<RsvpChanges, "respondedByUserId"> & {
+  respondedByUserId: null;
+};
 
 /** Assigns a guest to events: one pending row each. The caller has checked the events exist. */
 export async function insertRsvps(
@@ -52,6 +57,12 @@ export async function listRsvpsForGuests(weddingId: Id, guestIds: Id[]) {
   return Rsvp.find({ weddingId, guestId: { $in: guestIds } }).lean();
 }
 
+/** Every live RSVP row of one event: the tracker's list (the {weddingId, eventId, status} index). */
+export async function listRsvpsForEvent(weddingId: Id, eventId: Id) {
+  await connectDb();
+  return Rsvp.find({ weddingId, eventId }).sort({ _id: 1 }).lean();
+}
+
 /** Guests that have at least one RSVP row matching: the list's event and RSVP filters. */
 export async function findGuestIdsByRsvp(
   weddingId: Id,
@@ -66,12 +77,18 @@ export async function findGuestIdsByRsvp(
   return ids.map((id) => id.toString());
 }
 
-export async function updateRsvp(weddingId: Id, guestId: Id, eventId: Id, changes: RsvpChanges) {
+export async function updateRsvp(
+  weddingId: Id,
+  guestId: Id,
+  eventId: Id,
+  changes: RsvpChanges | GuestReplyChanges,
+  session?: ClientSession,
+) {
   await connectDb();
   return Rsvp.findOneAndUpdate(
     { weddingId, guestId, eventId },
     { $set: changes },
-    { returnDocument: "after" },
+    { returnDocument: "after", session },
   )
     .lean()
     .exec();

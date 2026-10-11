@@ -14,6 +14,10 @@ import { getDashboard } from "@/modules/dashboard/dashboard.service";
 import type { EventDto } from "@/modules/events/event.dto";
 import { getEvent, listEvents } from "@/modules/events/event.service";
 import { listGroups } from "@/modules/guest-groups/guest-group.service";
+import {
+  getEventReplies,
+  getInvitationsOverview,
+} from "@/modules/guest-invitations/invitation-overview.service";
 import { getEventHeadcount, getGuestSummary, listGuests } from "@/modules/guests/guest.service";
 import { getWeddingAuth } from "@/modules/members/guards";
 import type { InvitationDto } from "@/modules/members/invitation.dto";
@@ -286,5 +290,61 @@ export async function getGuestsPage(auth: AuthContext, options: { eventId?: stri
     page: { items: page.items, nextCursor: page.meta.nextCursor, hasMore: page.meta.hasMore },
     summary,
     eventId,
+    canViewLog: can(weddingAuth.membership.role, "invitations:logs"),
+  };
+}
+
+/**
+ * Data for the Invitations screens (Stitch "Invitations Hub" and "RSVP Tracker"): the overview
+ * numbers, the events as tracker pills, and, when the RSVP tab is open, the chosen event's replies.
+ * Later changes are read by the browser through the REST API.
+ */
+export async function getInvitationsPage(
+  auth: AuthContext,
+  options: { eventId?: string; wantReplies: boolean },
+) {
+  const dashboard = await getDashboard(auth);
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!dashboard.workspace || !weddingAuth) return null;
+
+  const [events, { wedding }, overview] = await Promise.all([
+    listEvents(weddingAuth),
+    getWeddingFor(weddingAuth),
+    getInvitationsOverview(weddingAuth),
+  ]);
+  const eventInfo: GuestEventInfo[] = events.map((event) => ({
+    id: event.id,
+    name: event.name,
+    type: event.type,
+    startsAt: event.startsAt,
+    timezone: event.timezone,
+    detail: [venueLine(event.location), event.dressCode].filter(Boolean).join(" • ") || null,
+    dateLabel: formatDayMonth(calendarDayIn(new Date(event.startsAt), event.timezone)),
+  }));
+
+  // An event in the address that is not (or is no longer) this wedding's is ignored; the tracker
+  // starts on the first event that hasn't finished, else the last one.
+  const nowMs = Date.now();
+  const upcoming = events.find(
+    (event) => new Date(event.endsAt ?? event.startsAt).getTime() >= nowMs,
+  );
+  const eventId =
+    events.find((event) => event.id === options.eventId)?.id ??
+    upcoming?.id ??
+    events[events.length - 1]?.id ??
+    null;
+  const replies =
+    options.wantReplies && eventId ? await getEventReplies(weddingAuth, eventId) : null;
+
+  return {
+    dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+    weddingId: weddingAuth.weddingId,
+    timezone: wedding.timezone,
+    events: eventInfo,
+    overview,
+    eventId,
+    replies,
+    canViewLog: can(weddingAuth.membership.role, "invitations:logs"),
+    viewer: { name: dashboard.viewer.name, role: weddingAuth.membership.role },
   };
 }

@@ -7,16 +7,32 @@ const optionalString = z.preprocess(
   z.string().min(1).optional(),
 );
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  APP_URL: z.url(),
-  MONGODB_URI: z.string().min(1),
-  SESSION_SECRET: z.string().min(32, "SESSION_SECRET must be at least 32 characters"),
-  GOOGLE_CLIENT_ID: optionalString,
-  GOOGLE_CLIENT_SECRET: optionalString,
-  RESEND_API_KEY: optionalString,
-  EMAIL_FROM: optionalString,
-});
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    APP_URL: z.url(),
+    MONGODB_URI: z.string().min(1),
+    SESSION_SECRET: z.string().min(32, "SESSION_SECRET must be at least 32 characters"),
+    // Encrypts the re-showable guest RSVP links (DB Design §5.3). Required in production; in
+    // development and tests a key derived from SESSION_SECRET is used when it is not set.
+    TOKEN_ENCRYPTION_KEY: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().min(32, "TOKEN_ENCRYPTION_KEY must be at least 32 characters").optional(),
+    ),
+    GOOGLE_CLIENT_ID: optionalString,
+    GOOGLE_CLIENT_SECRET: optionalString,
+    RESEND_API_KEY: optionalString,
+    EMAIL_FROM: optionalString,
+  })
+  .superRefine((env, ctx) => {
+    if (env.NODE_ENV === "production" && !env.TOKEN_ENCRYPTION_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["TOKEN_ENCRYPTION_KEY"],
+        message: "TOKEN_ENCRYPTION_KEY is required in production",
+      });
+    }
+  });
 
 export type Env = z.infer<typeof envSchema>;
 

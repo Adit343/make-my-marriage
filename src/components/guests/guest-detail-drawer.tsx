@@ -8,11 +8,17 @@ import {
   recordReply,
   removeFromEvent,
 } from "@/components/guests/guests-api";
+import {
+  ensureGuestLink,
+  getGuestLink,
+  rotateGuestLink,
+} from "@/components/invitations/invitations-api";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
 import { useDialogFocus } from "@/components/ui/use-dialog-focus";
 import { errorMessage } from "@/lib/client/api-client";
-import { RSVP_STATUSES, type RsvpStatus } from "@/lib/constants/enums";
+import { RSVP_STATUSES, type InviteChannel, type RsvpStatus } from "@/lib/constants/enums";
 import { formatPhone } from "@/lib/guests/phone";
 import type { GuestEventInfo, GuestGroupInfo } from "@/lib/guests/types";
 import {
@@ -62,6 +68,7 @@ export function GuestDetailDrawer({
   onChanged,
   onEdit,
   onDelete,
+  onSend,
 }: {
   weddingId: string;
   guestId: string;
@@ -75,6 +82,8 @@ export function GuestDetailDrawer({
   onChanged: () => void;
   onEdit: (guest: GuestDetailDto) => void;
   onDelete: (guest: GuestDetailDto) => void;
+  /** Opens the Send dialog for this guest, on the chosen channel. */
+  onSend: (guest: GuestDetailDto, channel: InviteChannel) => void;
 }) {
   const toast = useToast();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -84,6 +93,10 @@ export function GuestDetailDrawer({
   const [reload, setReload] = useState(0);
   const [recording, setRecording] = useState<string | null>(null);
   const [assigning, setAssigning] = useState(false);
+  // The guest's personal link, once they have one (it is created by "Copy link" or by sending).
+  const [link, setLink] = useState<string | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [replacing, setReplacing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,12 +141,41 @@ export function GuestDetailDrawer({
     }
   }
 
-  const comingSoon = (title: string) =>
-    toast({
-      type: "info",
-      title,
-      message: "Sending invitations and personal RSVP links arrive with the next step.",
-    });
+  // Reading the link never creates it: a guest who was never invited has none yet.
+  useEffect(() => {
+    let cancelled = false;
+    getGuestLink(weddingId, guestId)
+      .then((found) => {
+        if (!cancelled) setLink(found?.inviteUrl ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [weddingId, guestId, reload]);
+
+  async function copyLink(replace = false) {
+    setLinkBusy(true);
+    try {
+      const { inviteUrl } = replace
+        ? await rotateGuestLink(weddingId, guestId)
+        : await ensureGuestLink(weddingId, guestId);
+      setLink(inviteUrl);
+      await navigator.clipboard.writeText(inviteUrl);
+      toast({
+        type: "success",
+        title: replace ? "New link copied" : "Link copied",
+        message: replace
+          ? "The old link no longer works."
+          : "Share it with the guest yourself, for example on WhatsApp.",
+      });
+    } catch (error) {
+      toast({ type: "error", title: "Couldn't copy the link", message: errorMessage(error) });
+    } finally {
+      setLinkBusy(false);
+      setReplacing(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -228,12 +270,12 @@ export function GuestDetailDrawer({
                       {
                         icon: "send",
                         label: "Send invitation",
-                        onSelect: () => comingSoon("Sending invitations is coming soon"),
+                        onSelect: () => onSend(guest, "email"),
                       },
                       {
                         icon: "link",
                         label: "Copy invite link",
-                        onSelect: () => comingSoon("Invite links are coming soon"),
+                        onSelect: () => void copyLink(),
                       },
                       {
                         icon: "delete",
@@ -392,22 +434,32 @@ export function GuestDetailDrawer({
                   </span>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 truncate rounded-lg border border-[rgba(42,38,34,0.08)] bg-[#F4EFEA] px-3.5 py-2 font-mono text-body-sm text-on-surface-variant">
-                      Created when you send the invitation
+                      {link ?? "Created when you copy it or send the invitation"}
                     </div>
                     <button
                       type="button"
-                      onClick={() => comingSoon("Invite links are coming soon")}
+                      disabled={linkBusy}
+                      onClick={() => void copyLink()}
                       className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[rgba(42,38,34,0.15)] bg-[#FFFDF9] px-4 py-2 font-label-md text-label-md text-on-surface transition-all hover:bg-[#F4EFEA] active:scale-[0.98]"
                     >
                       <Icon name="content_copy" className="text-[16px] text-outline" />
                       <span>Copy link</span>
                     </button>
                   </div>
+                  {link ? (
+                    <button
+                      type="button"
+                      onClick={() => setReplacing(true)}
+                      className="font-body-sm text-[12px] text-on-surface-variant underline decoration-[rgba(42,38,34,0.2)] underline-offset-2 hover:text-primary"
+                    >
+                      Replace this link (the old one stops working)
+                    </button>
+                  ) : null}
                 </div>
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => comingSoon("Sending invitations is coming soon")}
+                    onClick={() => onSend(guest, "email")}
                     className="flex items-center justify-center gap-2 rounded-lg bg-[#1F4D3D] px-4 py-2.5 font-label-md text-label-md font-medium text-[#FAF6F0] shadow-xs transition-all hover:bg-[#163A2E] active:scale-[0.99]"
                   >
                     <Icon name="send" className="text-[18px]" />
@@ -415,7 +467,7 @@ export function GuestDetailDrawer({
                   </button>
                   <button
                     type="button"
-                    onClick={() => comingSoon("WhatsApp sharing is coming soon")}
+                    onClick={() => onSend(guest, "whatsapp")}
                     className={OUTLINE_BUTTON}
                   >
                     <Icon name="chat" className="text-[18px] text-emerald-700" />
@@ -459,6 +511,20 @@ export function GuestDetailDrawer({
           </>
         )}
       </div>
+      {replacing ? (
+        <ConfirmDialog
+          title="Replace this guest's link?"
+          confirmLabel="Replace link"
+          busy={linkBusy}
+          onConfirm={() => void copyLink(true)}
+          onCancel={() => setReplacing(false)}
+        >
+          <p>
+            A new link is created and copied. The old one stops working at once, so anything you
+            already sent them will show &ldquo;This link isn&rsquo;t working&rdquo;.
+          </p>
+        </ConfirmDialog>
+      ) : null}
     </div>
   );
 }

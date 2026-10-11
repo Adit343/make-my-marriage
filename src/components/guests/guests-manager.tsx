@@ -17,6 +17,8 @@ import {
   type GuestListQuery,
   type GuestPage,
 } from "@/components/guests/guests-api";
+import { ensureGuestLink } from "@/components/invitations/invitations-api";
+import { SendDialog, type SendGuest } from "@/components/invitations/send-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
@@ -24,6 +26,7 @@ import { errorMessage } from "@/lib/client/api-client";
 import {
   DIETARY_PREFERENCES,
   GUEST_SIDES,
+  type InviteChannel,
   RSVP_STATUSES,
   type DietaryPreference,
   type GuestInviteStatus,
@@ -97,6 +100,8 @@ export function GuestsManager({
   initialSummary,
   initialEvent,
   initialRsvp,
+  initialGuestId,
+  canViewLog,
 }: {
   weddingId: string;
   timezone: string;
@@ -109,6 +114,10 @@ export function GuestsManager({
   initialEvent?: string;
   /** From `?rsvp=`: start filtered to one reply state. */
   initialRsvp?: RsvpStatus;
+  /** From `?guest=`: open this guest's details (the Invitations screen's "Add phone or email"). */
+  initialGuestId?: string;
+  /** Owners and admins can open the delivery log from the Send dialog. */
+  canViewLog: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -121,8 +130,14 @@ export function GuestsManager({
     initialEvent && events.some((event) => event.id === initialEvent) ? initialEvent : ALL,
   );
   const [reload, setReload] = useState(0);
-  const [drawer, setDrawer] = useState<DrawerState>(null);
-  const [selected, setSelected] = useState<Map<string, string>>(new Map());
+  const [drawer, setDrawer] = useState<DrawerState>(
+    initialGuestId ? { kind: "detail", guestId: initialGuestId } : null,
+  );
+  const [selected, setSelected] = useState<Map<string, GuestListItemDto>>(new Map());
+  const [sending, setSending] = useState<{
+    guests: SendGuest[];
+    channel: InviteChannel;
+  } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<DeleteRequest | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [groupsOpen, setGroupsOpen] = useState(false);
@@ -253,7 +268,7 @@ export function GuestsManager({
     setSelected((current) => {
       const next = new Map(current);
       if (next.has(guest.id)) next.delete(guest.id);
-      else next.set(guest.id, guest.name);
+      else next.set(guest.id, guest);
       return next;
     });
   }
@@ -262,7 +277,7 @@ export function GuestsManager({
     setSelected((current) => {
       const next = new Map(current);
       if (allSelected) for (const guest of items) next.delete(guest.id);
-      else for (const guest of items) next.set(guest.id, guest.name);
+      else for (const guest of items) next.set(guest.id, guest);
       return next;
     });
   }
@@ -344,14 +359,39 @@ export function GuestsManager({
     }
   }
 
-  const comingSoon = (title: string) =>
-    toast({
-      type: "info",
-      title,
-      message: "Sending invitations and personal RSVP links arrive with the next step.",
+  /** Opens the Send dialog for these guests. */
+  function openSend(guests: GuestListItemDto[], channel: InviteChannel = "email") {
+    setSending({
+      channel,
+      guests: guests.map((guest) => ({
+        id: guest.id,
+        name: guest.name,
+        label:
+          guest.relationLabel ??
+          (guest.groupId ? (groupById.get(guest.groupId)?.name ?? null) : null),
+        email: guest.email,
+        phone: guest.phone,
+        eventCount: guest.rsvps.length,
+        invited: guest.invitation.status === "invited",
+      })),
     });
+  }
 
-  const selectedNames = [...selected.values()];
+  async function copyInviteLink(guest: { id: string; name: string }) {
+    try {
+      const { inviteUrl } = await ensureGuestLink(weddingId, guest.id);
+      await navigator.clipboard.writeText(inviteUrl);
+      toast({
+        type: "success",
+        title: "Link copied",
+        message: `${guest.name}'s personal link. Share it with them yourself.`,
+      });
+    } catch (error) {
+      toast({ type: "error", title: "Couldn't copy the link", message: errorMessage(error) });
+    }
+  }
+
+  const selectedNames = [...selected.values()].map((guest) => guest.name);
   const noGuestsAtAll = !filtering && summary.totalGuests === 0 && items.length === 0 && !loading;
   const updatedLabel = clock
     ? `Updated ${relativeAgo(loaded.at ?? clock.start, clock.now)}`
@@ -565,7 +605,7 @@ export function GuestsManager({
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => comingSoon("Sending invitations is coming soon")}
+              onClick={() => openSend([...selected.values()])}
               className="inline-flex items-center gap-2 rounded-lg bg-[#1F4D3D] px-3.5 py-1.5 font-label-md text-label-md text-[#FAF6F0] shadow-sm transition-all duration-150 hover:bg-[#163A2E]"
             >
               <Icon name="send" className="text-[16px]" />
@@ -668,7 +708,8 @@ export function GuestsManager({
                     onDelete={() =>
                       setPendingDelete({ ids: [guest.id], names: [guest.name], closeDrawer: false })
                     }
-                    onComingSoon={comingSoon}
+                    onSend={() => openSend([guest])}
+                    onCopyLink={() => void copyInviteLink(guest)}
                   />
                 ))}
                 {items.length === 0 && !loading ? (
@@ -762,6 +803,35 @@ export function GuestsManager({
           onDelete={(guest) =>
             setPendingDelete({ ids: [guest.id], names: [guest.name], closeDrawer: true })
           }
+          onSend={(guest, channel) =>
+            setSending({
+              channel,
+              guests: [
+                {
+                  id: guest.id,
+                  name: guest.name,
+                  label:
+                    guest.relationLabel ??
+                    (guest.groupId ? (groupById.get(guest.groupId)?.name ?? null) : null),
+                  email: guest.email,
+                  phone: guest.phone,
+                  eventCount: guest.responses.length,
+                  invited: guest.invitation.status === "invited",
+                },
+              ],
+            })
+          }
+        />
+      ) : null}
+      {sending ? (
+        <SendDialog
+          weddingId={weddingId}
+          kind="invitation"
+          guests={sending.guests}
+          initialChannel={sending.channel}
+          canViewLog={canViewLog}
+          onClose={() => setSending(null)}
+          onSent={refresh}
         />
       ) : null}
       {groupsOpen ? (
@@ -904,7 +974,8 @@ function GuestRow({
   onView,
   onEdit,
   onDelete,
-  onComingSoon,
+  onSend,
+  onCopyLink,
 }: {
   guest: GuestListItemDto;
   groupName: string | null;
@@ -916,7 +987,8 @@ function GuestRow({
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onComingSoon: (title: string) => void;
+  onSend: () => void;
+  onCopyLink: () => void;
 }) {
   const reply = replyDisplay(guest.rsvps, rsvpEvent);
   const style = REPLY_STYLE[reply.tone];
@@ -1024,12 +1096,12 @@ function GuestRow({
             {
               icon: "send",
               label: "Send invitation",
-              onSelect: () => onComingSoon("Sending invitations is coming soon"),
+              onSelect: onSend,
             },
             {
               icon: "link",
               label: "Copy invite link",
-              onSelect: () => onComingSoon("Invite links are coming soon"),
+              onSelect: onCopyLink,
             },
             { icon: "delete", label: "Delete guest", danger: true, onSelect: onDelete },
           ]}

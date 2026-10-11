@@ -18,6 +18,8 @@ export function setupTestDatabase() {
     vi.stubEnv("MONGODB_URI", baseUri.replace("/?", `/${dbName}?`));
     vi.stubEnv("APP_URL", "http://localhost:3000");
     vi.stubEnv("SESSION_SECRET", "test-session-secret-".padEnd(43, "x"));
+    // Required once a test switches NODE_ENV to production (it encrypts guest RSVP links).
+    vi.stubEnv("TOKEN_ENCRYPTION_KEY", "test-link-encryption-key-".padEnd(43, "y"));
     resetEnvCacheForTests();
 
     await connectDb();

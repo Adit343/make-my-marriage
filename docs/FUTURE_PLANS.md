@@ -3,7 +3,7 @@
 > What is left to build, in order, with the decisions that must be made first.
 > Where the project is *now* is in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). **Read that file first.**
 >
-> Last updated: **2026-10-10** · Phases 1 and 2 complete · **Phase 3 (Guests and invitations) is in progress: step 3.1 (guest management) is built; step 3.2 (sending invitations and links) is next.**
+> Last updated: **2026-10-11** · Phases 1 and 2 complete · **Phase 3 (Guests and invitations): steps 3.1 to 3.4 are built (guest management, invitations and personal links, the guest RSVP page, the RSVP tracker and reminders; 3.2 to 3.4 not yet committed). Step 3.5 (review) is next.**
 
 **Contents**
 
@@ -28,13 +28,13 @@
 1. Open the project folder in Claude Code (the four design docs, `PROJECT_STATUS.md` and this file are
    imported automatically through `CLAUDE.md`).
 2. If working on a new machine, follow `PROJECT_STATUS.md` §3 (Node 24, `npm ci`, `.env.local`, branch `dev`, Stitch MCP).
-3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **618 passing**).
+3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **703 passing**).
 4. Start the next piece of work with a prompt like:
 
-   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. We are continuing **Phase 3** (step 3.1,
-   > guest management, is built). Do not create files, install anything or write code yet. Look at the Stitch
-   > "Send Invitations Dialog" screen, then propose a plan for step 3.2 with the open decisions you need answered.
-   > Wait for my approval.
+   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. We are continuing **Phase 3** (steps 3.1 to
+   > 3.4 are built: guests, invitations, the guest RSVP page, the RSVP tracker). Do not create files, install
+   > anything or write code yet. Propose the plan for step 3.5 (Phase 3 review and hardening) and list any
+   > decisions you need from me. Wait for my approval.
 
 5. **After each step**, the AI must update `PROJECT_STATUS.md` (what was built, decisions, new endpoints,
    test totals, commit) and tick things off here, so the next session starts correct.
@@ -87,7 +87,7 @@ These come from `CLAUDE.md`, the architecture and the working agreement. Repeat 
 | ----- | ----------------------- | -------------------------------------------------------- | ------------------------------------------------------- |
 | 1     | Foundation              | users, sessions, passwordResetTokens, weddings, weddingMembers, weddingInvitations, emailLogs, rateLimitCounters | **Done** (steps 1.1–1.9)                |
 | 2     | Planning                | events (with embedded schedule), tasks                   | **Done** (steps 2.1–2.7)                                |
-| 3     | Guests & Invitations    | guestGroups, guests, rsvps (emailLogs already exists)    | **In progress:** 3.1 guest management built; needs a verified email domain in practice for step 3.2 |
+| 3     | Guests & Invitations    | guestGroups, guests, rsvps (emailLogs already exists)    | **Built except the 3.5 review.** Real guest email needs a verified Resend domain in practice; WhatsApp, copy link and "invited in person" work today |
 | 4     | Financials & Vendors    | expenses, vendors, vendorPayments                        | Not started; PRD/role conflict to resolve (§6)          |
 | 5     | Wedding Experience      | weddingWebsites, liveStreams                             | Not started                                             |
 | 6     | Memories                | galleries, galleryAlbums, galleryAssets, galleryAccessTokens | Not started; needs AWS                              |
@@ -198,16 +198,17 @@ Rate limits on public token operations (Architecture §39). Permissions: guest/g
 ### 5.6 Suggested steps
 
 - **3.1** ✅ guest management (built 2026-10-11, not yet committed): `guestGroups`, `guests`, `rsvps` models; groups, guests, bulk, summary, event assignment and manual replies API (16 routes, `guests:edit`); Guests screen, add/edit and detail slide-overs, Manage groups dialog; event delete cascades to RSVPs; dashboard and sidebar counts. Built from Stitch "Guests List", "Add / Edit Guest", "Guest Detail". Details in `PROJECT_STATUS.md` §13.
-- **3.2** invitations and links: owner approves `tokenEnc`/`TOKEN_ENCRYPTION_KEY` first; `SecureLink` on guests (+ unique partial index on `link.tokenHash`), `GET .../link`, `POST .../link/rotate`, `POST .../guests/:id/invite` (email, whatsapp prefilled link, manual), `POST .../guests/invite-batch` with `emailLogs` batch and idempotency, email templates; UI from Stitch "Send Invitations Dialog" (the screens' "coming soon" buttons become real).
-- **3.3** public guest page `/i/[token]` and `GET/PATCH /public/rsvp/:token` (whitelist, rate limits), guest-facing invitation/RSVP UI (needs a Stitch screen).
-- **3.4** RSVP dashboard and reminders (email and WhatsApp), dashboard RSVP widgets, wire the Events screens' guest numbers.
+- **3.2** ✅ invitations and links (built 2026-10-11, not yet committed): `tokenEnc` approved; `SecureLink` on guests (+ unique partial index on `link.tokenHash`), link get/create/rotate, `invite` and `invite-batch` (email, WhatsApp prefilled link, manual) with `emailLogs` batch and idempotency, guest invitation and reminder email templates, the delivery log and its retry; UI from Stitch "Send Invitations Dialog" and the guests screen's buttons made real.
+- **3.3** ✅ public guest page `/i/[token]` and `GET/PATCH /public/rsvp/:token` (whitelist, rate limits), built from the owner's "Guest-Facing RSVP Page" screen.
+- **3.4** ✅ Invitations hub (Overview, RSVP responses, Delivery log), RSVP tracker with reminders (email and WhatsApp), record a reply by hand, CSV export, from the owner's "Invitations Hub" and "RSVP Tracker" screens.
+- **Still open from 3.4:** wire the Events timeline cards' guest numbers to the real replies (small follow-up); a "viewed" indicator and scheduled reminders are out of V1.
 - **3.5** Phase 3 review: isolation and leak tests, `explain()`, accessibility pass, docs.
 
 ### 5.5 Open decisions
 
-1. Approve **`tokenEnc` + `TOKEN_ENCRYPTION_KEY`** (recommended yes; otherwise "Copy link" must rotate and invalidate links already sent).
-2. RSVP link **per guest or per household** (recommended: per guest first; add a group link if families ask).
-3. **Digital invitation templates/content** (PRD §18: templates, photos, personalised content): the DB doc has no template collection. Decide scope: fixed template(s) in code vs stored content; likely Phase 3 = one template, richer content with the website in Phase 5.
+1. ~~Approve `tokenEnc` + `TOKEN_ENCRYPTION_KEY`~~ **Decided 2026-10-11: approved** (built; the variable is required in production).
+2. ~~RSVP link per guest or per household~~ **Decided 2026-10-11: per guest.** Add a household link later only if families ask.
+3. ~~Digital invitation templates/content~~ **Decided 2026-10-11 (AI recommendation accepted): one built-in look**, no template collection: the email and the guest page show the couple's names and the guest's own events. Photos, a custom message and richer content come with the website in Phase 5.
 4. Bulk **guest import** (CSV)? Not in V1 docs; duplicate-detection index exists. Ask.
 5. Reminder cadence stays **manual** (no scheduler in V1).
 
@@ -381,9 +382,9 @@ Ask these when the relevant phase starts (recommendations in brackets are the AI
 | -- | ----- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | 1  | 2     | ~~Schedule/timeline model~~ **Decided:** bounded `schedule[]` embedded in each event                             | (done)                                                    |
 | 2  | 2     | ~~Task "Notes" separate from "Description"?~~ **Decided:** one field (`description`)                              | (done)                                                    |
-| 3  | 3     | Approve `tokenEnc` + `TOKEN_ENCRYPTION_KEY` for re-showable guest links                                          | Yes                                                       |
-| 4  | 3     | RSVP link per guest or per household                                                                             | Per guest first                                           |
-| 5  | 3     | Digital invitation template scope (no collection in DB doc)                                                      | One built-in template first                               |
+| 3  | 3     | ~~Approve `tokenEnc` + `TOKEN_ENCRYPTION_KEY`~~ **Decided: yes (2026-10-11)**                                    | (done)                                                    |
+| 4  | 3     | ~~RSVP link per guest or per household~~ **Decided: per guest (2026-10-11)**                                      | (done)                                                    |
+| 5  | 3     | ~~Digital invitation template scope~~ **Decided: one built-in look (2026-10-11)**                                 | (done)                                                    |
 | 6  | 3     | Guest CSV import?                                                                                                | Ask; not in V1 docs                                       |
 | 7  | 4     | ~~Who may record/view expenses~~ **Decided:** all family members view and record; members edit/delete only their own, admin+ any | (done) |
 | 8  | 4     | Expense fields (date, single amount) vs DB doc                                                                   | Add an expense date                                       |

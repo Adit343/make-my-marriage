@@ -24,6 +24,7 @@ const EXPECTED_INDEXES: Record<string, string[]> = {
     "weddingId_1_nameNormalized_1__id_1",
     "weddingId_1_groupId_1",
     "weddingId_1_phone_1 sparse",
+    "link.tokenHash_1 unique partial",
   ],
   rsvps: ["guestId_1_eventId_1 unique partial", "weddingId_1_eventId_1_status_1"],
   weddings: ["purgeAfter_1 partial"],

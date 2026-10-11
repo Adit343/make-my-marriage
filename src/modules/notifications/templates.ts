@@ -12,7 +12,12 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
-function layout(heading: string, paragraphs: string[], action: { label: string; url: string }) {
+function layout(
+  heading: string,
+  paragraphs: string[],
+  action: { label: string; url: string },
+  brand = "Make My Marriage",
+) {
   const body = paragraphs
     .map(
       (text) =>
@@ -22,7 +27,7 @@ function layout(heading: string, paragraphs: string[], action: { label: string; 
   return `<!doctype html>
 <html><body style="margin:0;padding:32px 16px;background:#FAF6F0;font-family:Arial,Helvetica,sans-serif">
   <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px">
-    <p style="margin:0 0 24px;font-family:Georgia,serif;font-size:20px;color:#1F4D3D">Make My Marriage</p>
+    <p style="margin:0 0 24px;font-family:Georgia,serif;font-size:20px;color:#1F4D3D">${escapeHtml(brand)}</p>
     <h1 style="margin:0 0 16px;font-family:Georgia,serif;font-size:26px;font-weight:normal;color:#1f1b17">${heading}</h1>
     ${body}
     <p style="margin:24px 0">
@@ -86,6 +91,99 @@ export function passwordResetEmail(input: { name: string; resetUrl: string }) {
       input.resetUrl,
       "",
       "If you didn't ask for this, you can ignore this email — your password won't change.",
+    ].join("\n"),
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Guest emails (Phase 3). The guest sees the couple's names, not the product's, and only their own
+// events: nothing about other guests, the team or the budget (DB Design §11.2).
+// ---------------------------------------------------------------------------------------------
+
+export interface GuestEmailEvent {
+  name: string;
+  /** Already formatted in the event's own timezone, e.g. "Sat 13 Feb, 10:00 AM". */
+  when: string;
+  venue: string | null;
+}
+
+function eventLinesHtml(events: GuestEmailEvent[]): string {
+  const rows = events
+    .map(
+      (event) =>
+        `<li style="margin:0 0 8px"><strong>${escapeHtml(event.name)}</strong><br><span style="color:#717974">${escapeHtml(event.when)}${event.venue ? ` &middot; ${escapeHtml(event.venue)}` : ""}</span></li>`,
+    )
+    .join("");
+  return `<ul style="margin:0 0 16px;padding-left:18px;font-size:15px;line-height:22px;color:#414944">${rows}</ul>`;
+}
+
+function eventLinesText(events: GuestEmailEvent[]): string[] {
+  return events.map(
+    (event) => `- ${event.name}: ${event.when}${event.venue ? `, ${event.venue}` : ""}`,
+  );
+}
+
+export function guestInvitationEmail(input: {
+  guestName: string;
+  weddingTitle: string;
+  events: GuestEmailEvent[];
+  rsvpUrl: string;
+}) {
+  const hello = `Hi ${input.guestName.trim().split(/\s+/)[0] ?? input.guestName},`;
+  return {
+    subject: `You're invited: ${input.weddingTitle}`,
+    html: layout(
+      "You're invited",
+      [
+        escapeHtml(hello),
+        `We would love to have you celebrate with us at <strong>${escapeHtml(input.weddingTitle)}</strong>.`,
+        ...(input.events.length > 0 ? [eventLinesHtml(input.events)] : []),
+        "Please let us know if you can make it. This is your personal link: no account or password needed.",
+      ],
+      { label: "View invitation &amp; RSVP", url: input.rsvpUrl },
+      input.weddingTitle,
+    ),
+    text: [
+      hello,
+      "",
+      `We would love to have you celebrate with us at ${input.weddingTitle}.`,
+      "",
+      ...eventLinesText(input.events),
+      ...(input.events.length > 0 ? [""] : []),
+      "Please let us know if you can make it. This is your personal link (no account needed):",
+      "",
+      input.rsvpUrl,
+    ].join("\n"),
+  };
+}
+
+export function rsvpReminderEmail(input: {
+  guestName: string;
+  weddingTitle: string;
+  events: GuestEmailEvent[];
+  rsvpUrl: string;
+}) {
+  const hello = `Hi ${input.guestName.trim().split(/\s+/)[0] ?? input.guestName},`;
+  return {
+    subject: `A gentle reminder: please RSVP for ${input.weddingTitle}`,
+    html: layout(
+      "Will you join us?",
+      [
+        escapeHtml(hello),
+        `We haven't heard from you yet about <strong>${escapeHtml(input.weddingTitle)}</strong>. It only takes a minute to reply.`,
+        ...(input.events.length > 0 ? [eventLinesHtml(input.events)] : []),
+      ],
+      { label: "Reply now", url: input.rsvpUrl },
+      input.weddingTitle,
+    ),
+    text: [
+      hello,
+      "",
+      `We haven't heard from you yet about ${input.weddingTitle}. It only takes a minute to reply:`,
+      "",
+      ...eventLinesText(input.events),
+      ...(input.events.length > 0 ? [""] : []),
+      input.rsvpUrl,
     ].join("\n"),
   };
 }
