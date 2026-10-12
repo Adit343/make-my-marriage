@@ -33,6 +33,16 @@ export function formatCalendarDate(isoDate: string): string {
   }).format(new Date(`${isoDate}T00:00:00Z`));
 }
 
+/** "2027-02-14" → "14 February 2027" (the day-first style used on invitations and printed cards). */
+export function formatLongDate(isoDate: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${isoDate}T00:00:00Z`));
+}
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** "2027-02-11" → "11 Feb 2027" (the date style on the Stitch task screens). */

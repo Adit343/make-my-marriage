@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { CoverPicker, type CoverChoice } from "@/components/website/cover-picker";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
 import type { WebsiteTemplate } from "@/lib/constants/enums";
@@ -158,6 +159,9 @@ export function DesignTab({
   update,
   events,
   site,
+  weddingId,
+  hero,
+  onHero,
   addressPrefix,
   publicUrl,
   slugState,
@@ -169,6 +173,10 @@ export function DesignTab({
   update: (changes: Partial<EditorDraft>) => void;
   events: { id: string; name: string; isPublic: boolean; dateLabel: string }[];
   site: WebsiteDto;
+  weddingId: string;
+  /** The chosen cover photo while it is still Public, else null. */
+  hero: CoverChoice | null;
+  onHero: (choice: CoverChoice | null) => void;
   addressPrefix: string;
   publicUrl: string;
   slugState: SlugState;
@@ -178,6 +186,7 @@ export function DesignTab({
 }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
+  const [picking, setPicking] = useState(false);
   const error = slugError(slugState);
   const published = site.status === "published";
   const shown = events.filter((event) => event.isPublic && draft.publicEventIds.includes(event.id));
@@ -338,26 +347,90 @@ export function DesignTab({
       </section>
 
       <section className={CARD} aria-labelledby="cover">
-        <div className="mb-4">
-          <h2 id="cover" className="font-headline-sm text-headline-sm text-[#2A2622]">
-            Cover image
-          </h2>
-          <p className="mt-1 font-body-sm text-body-sm text-[#686F6A]">
-            Main hero visual greeting guests upon website load.
-          </p>
-        </div>
-        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#686F6A]/30 bg-[#FAF6F0]/60 p-8 text-center">
-          <div className="mb-3 flex size-10 items-center justify-center rounded-full bg-[#2A2622]/[0.06] text-[#686F6A]">
-            <Icon name="lock" className="text-[20px]" />
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <p className="font-label-sm text-label-sm tracking-widest text-[#A0623C] uppercase">
+              Hero module
+            </p>
+            <h2 id="cover" className="font-headline-sm text-headline-sm text-[#2A2622]">
+              Cover image
+            </h2>
+            <p className="mt-1 font-body-sm text-body-sm text-[#686F6A]">
+              The main picture that greets guests when your site opens.
+            </p>
           </div>
-          <h3 className="mb-1 font-headline-sm text-[18px] text-[#2A2622]">
-            Available when Gallery launches
-          </h3>
-          <p className="max-w-sm font-body-sm text-body-sm text-[#686F6A]">
-            Until then your site uses a clean typographic cover composed with the Newsreader
-            headline suite.
-          </p>
+          <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#EBF2EE] px-3 py-1 font-label-sm text-label-sm font-semibold text-[#1F4D3D]">
+            <Icon name="lock_open" className="text-[14px]" />
+            Unlocked
+          </span>
         </div>
+        {hero ? (
+          <div className="space-y-4">
+            <div className="relative aspect-video overflow-hidden rounded-xl bg-[#EFE7DB]">
+              {/* A Public gallery photo behind a short-lived signed address. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={hero.url}
+                alt="The chosen cover photo"
+                className="h-full w-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setPicking(true)}
+                className="absolute right-3 bottom-3 flex items-center gap-2 rounded-lg bg-white/95 px-4 py-2 font-label-md text-label-md font-medium text-[#2A2622] shadow hover:bg-white"
+              >
+                <Icon name="photo_library" className="text-[18px]" />
+                Choose from gallery
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="flex min-w-0 items-center gap-2 font-body-sm text-body-sm text-[#2A2622]/80">
+                <Icon name="public" className="shrink-0 text-[16px] text-[#1F4D3D]" />
+                <span className="truncate">Current: {hero.fileName} (Public)</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => onHero(null)}
+                className="font-label-md text-label-md font-medium text-[#B3261E] hover:underline"
+              >
+                Remove cover
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#686F6A]/30 bg-[#FAF6F0]/60 p-8 text-center">
+            <div className="mb-3 flex size-10 items-center justify-center rounded-full bg-[#2A2622]/[0.06] text-[#686F6A]">
+              <Icon name="photo_library" className="text-[20px]" />
+            </div>
+            <h3 className="mb-1 font-headline-sm text-[18px] text-[#2A2622]">
+              {draft.heroAssetId ? "Your cover photo isn't available" : "No cover photo yet"}
+            </h3>
+            <p className="mb-4 max-w-sm font-body-sm text-body-sm text-[#686F6A]">
+              {draft.heroAssetId
+                ? "It was deleted or is no longer marked Public, so your site shows the plain cover for now."
+                : "Until you choose one, your site uses a clean typographic cover."}
+            </p>
+            <button
+              type="button"
+              onClick={() => setPicking(true)}
+              className="flex items-center gap-2 rounded-lg bg-[#1F4D3D] px-5 py-2.5 font-label-md text-label-md font-medium text-[#FAF6F0] hover:bg-[#16382c]"
+            >
+              <Icon name="photo_library" className="text-[18px]" />
+              Choose from gallery
+            </button>
+          </div>
+        )}
+        {picking ? (
+          <CoverPicker
+            weddingId={weddingId}
+            currentId={hero?.assetId ?? null}
+            onClose={() => setPicking(false)}
+            onChoose={(choice) => {
+              setPicking(false);
+              onHero(choice);
+            }}
+          />
+        ) : null}
       </section>
 
       <section className={CARD} aria-labelledby="visible-to-guests">
@@ -626,7 +699,7 @@ export function DesignTab({
           </button>
         </div>
         <div className="flex items-center gap-2 font-body-sm text-body-sm text-[#686F6A]">
-          <Icon name="shield" className="text-[16px] text-[#B5714A]" />
+          <Icon name="shield" className="text-[16px] text-[#A0623C]" />
           <span>
             {published
               ? "Anyone with this link can view the website. Never put private details here."

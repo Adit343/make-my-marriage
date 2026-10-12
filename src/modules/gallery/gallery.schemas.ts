@@ -111,6 +111,8 @@ export const listAssetsQuery = z.strictObject({
   /** Members see active photos; owners and admins can also open the approval queue. */
   status: z.enum(ASSET_STATUSES).optional(),
   favorite: z.literal("true").optional(),
+  /** Only photos with this visibility (the website cover picker asks for "public"). */
+  visibility: z.enum(MEDIA_VISIBILITIES).optional(),
 });
 export type ListAssetsQuery = z.infer<typeof listAssetsQuery>;
 

@@ -60,6 +60,7 @@ export function SelectField({
   icon,
   children,
   disabled,
+  ariaLabel,
 }: {
   id: string;
   value: string;
@@ -67,6 +68,8 @@ export function SelectField({
   icon?: IconName;
   children: ReactNode;
   disabled?: boolean;
+  /** A name for the select when no <label for> points at it. */
+  ariaLabel?: string;
 }) {
   return (
     <div className="relative">
@@ -78,6 +81,7 @@ export function SelectField({
       ) : null}
       <select
         id={id}
+        aria-label={ariaLabel}
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}

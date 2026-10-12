@@ -1,6 +1,6 @@
 import "server-only";
 import { GUEST_LIST_PAGE_SIZE } from "@/lib/constants/guests";
-import { formatDayMonth, todayIn } from "@/lib/dates";
+import { formatDayMonth, formatLongDate, todayIn } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
 import { getEnv } from "@/lib/env";
 import { calendarDayIn, nextEventLabel, venueLine } from "@/lib/events/format";
@@ -38,6 +38,8 @@ import { countActiveMembers } from "@/modules/members/member.repository";
 import { listTeam } from "@/modules/members/member.service";
 import { can } from "@/modules/members/permissions";
 import { listEveryTask, listEventTasks } from "@/modules/tasks/task.service";
+import { listAccessTokens } from "@/modules/gallery/access-token.service";
+import { getGallerySettings, listAlbums } from "@/modules/gallery/gallery.service";
 import { listStreams } from "@/modules/livestream/stream.service";
 import { getVendorDetail, listEveryVendor } from "@/modules/vendors/vendor.service";
 import {
@@ -565,6 +567,43 @@ export async function getLiveStreamsPage(auth: AuthContext) {
       startsAt: event.startsAt,
       timezone: event.timezone,
     })),
+    nowIso: new Date().toISOString(),
+  };
+}
+
+/**
+ * Data for the Gallery (Stitch "Gallery Home", album, approval queue, sharing and settings). Every
+ * role sees and adds photos; owners and admins also get the approval queue and the shared links.
+ * The photos themselves are loaded by the page through the REST API, a page at a time.
+ */
+export async function getGalleryPage(auth: AuthContext) {
+  const dashboard = await getDashboard(auth);
+  const weddingAuth = await getWeddingAuth(auth);
+  if (!dashboard.workspace || !weddingAuth) return null;
+
+  const canManage = can(weddingAuth.membership.role, "gallery:manage");
+  const [settings, albums, events, links, { wedding }] = await Promise.all([
+    getGallerySettings(weddingAuth),
+    listAlbums(weddingAuth),
+    listEvents(weddingAuth),
+    canManage ? listAccessTokens(weddingAuth) : Promise.resolve([]),
+    getWeddingFor(weddingAuth),
+  ]);
+  return {
+    dashboard: { viewer: dashboard.viewer, workspace: dashboard.workspace },
+    weddingId: weddingAuth.weddingId,
+    canManage,
+    settings,
+    albums,
+    links,
+    events: events.map((event) => ({ id: event.id, name: event.name })),
+    coupleNames:
+      wedding.partners
+        .map((partner) => partner.name.trim())
+        .filter(Boolean)
+        .join(" & ") || wedding.title,
+    dateLabel: wedding.weddingDate ? formatLongDate(wedding.weddingDate) : null,
+    timezone: wedding.timezone,
     nowIso: new Date().toISOString(),
   };
 }

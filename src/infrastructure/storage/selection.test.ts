@@ -58,6 +58,15 @@ describe("choosing the photo store", () => {
     expect(() => getStorage()).toThrow("Photo storage isn't set up on this server yet.");
   });
 
+  it("lets a production server use a disk folder only when one is named on purpose", () => {
+    stub({ NODE_ENV: "production", LOCAL_STORAGE_DIR: "/tmp/mmm-photos" });
+    expect(storageStatus()).toEqual({ configured: true, kind: "local" });
+    expect(getStorage().name).toBe("local");
+    // R2 still wins when it is set as well.
+    stub({ NODE_ENV: "production", LOCAL_STORAGE_DIR: "/tmp/mmm-photos", ...R2 });
+    expect(storageStatus().kind).toBe("r2");
+  });
+
   it("refuses a half-filled R2 setting, naming the variable but not its value", () => {
     stub({ NODE_ENV: "development", R2_ACCOUNT_ID: "abc123", R2_BUCKET: "photos" });
     expect(() => getEnv()).toThrow(/R2_BUCKET.*all of R2_ACCOUNT_ID/);

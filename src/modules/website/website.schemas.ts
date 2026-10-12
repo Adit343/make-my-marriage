@@ -63,6 +63,7 @@ export const updateWebsiteBody = z
     title: z.string().trim().min(1, "Give the site a title").max(MAX_WEBSITE_TITLE),
     tagline: z.string().trim().max(MAX_WEBSITE_TAGLINE),
     welcomeMessage: z.string().trim().max(MAX_WEBSITE_WELCOME),
+    heroAssetId: objectId.nullable(),
     sections,
     publicEventIds: z
       .array(objectId)

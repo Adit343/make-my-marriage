@@ -832,10 +832,11 @@ No auth. Implements the whitelist in Database Design §11.2 exactly — this is 
 
 **Implementation notes (built 2026-10-11, Phase 5).**
 
+- **Cover image (built 2026-10-12, step 6.4).** `heroAssetId` is a gallery photo that is active and `public`: another wedding's or a missing photo is `404`, one that is not public is `422 BUSINESS_RULE_VIOLATION`, `null` removes it. The public view's `heroImageUrl` is a short-lived signed address, present only while the photo is still active and public (never its id or file name).
 - Routes: `GET`, `POST` and `PATCH /website`, `POST /website/publish` and `/unpublish`, `GET /website/slug-check?slug=` (**addition**: `available | yours | taken | reserved | invalid`) and `GET /public/websites/:slug`. A `GET /website` answers `null` when the wedding has no site yet and **never creates one** (§2.9); `POST /website` is the explicit set-up and answers `409` if one exists.
-- `PATCH` takes any subset of `slug, title, tagline, welcomeMessage, sections, publicEventIds, display, theme, seo` plus the required `version` (a stale one is `409 VERSION_CONFLICT`). `sections` replaces the whole list in order; a section that exists keeps its id when the client sends it back; each standard kind at most once; the schedule section has no text. Taken address `409 SLUG_TAKEN`; reserved `422 BUSINESS_RULE_VIOLATION`; badly shaped `400`; an event of another wedding `404`; an event not public on itself `422` naming it. There is no `story` field and no `heroAssetId` (Phase 6).
+- `PATCH` takes any subset of `slug, title, tagline, welcomeMessage, heroAssetId, sections, publicEventIds, display, theme, seo` plus the required `version` (a stale one is `409 VERSION_CONFLICT`). `sections` replaces the whole list in order; a section that exists keeps its id when the client sends it back; each standard kind at most once; the schedule section has no text. Taken address `409 SLUG_TAKEN`; reserved `422 BUSINESS_RULE_VIOLATION`; badly shaped `400`; an event of another wedding `404`; an event not public on itself `422` naming it. There is no `story` field and no `heroAssetId` (Phase 6).
 - Owners and admins edit and publish (`website:manage`); every role may read. There is one stored site: saving while it is published changes it for guests at once.
-- **Public site.** `GET /public/websites/:slug` returns `{ slug, title, coupleNames, initials, tagline, welcomeMessage, dateLabel, city, countdownTarget, sections[], events[], theme, seo }` and nothing else: sections that are hidden or empty are left out, the schedule is the chosen public events (date, time in the event's zone, venue name, dress code, description and the public lines of its run-of-show), a venue address and map link only if `display.showVenueAddresses`. Rate limited per visitor. The page is `/w/<slug>`.
+- **Public site.** `GET /public/websites/:slug` returns `{ slug, title, coupleNames, initials, tagline, welcomeMessage, heroImageUrl, dateLabel, city, countdownTarget, sections[], events[], theme, seo }` and nothing else: sections that are hidden or empty are left out, the schedule is the chosen public events (date, time in the event's zone, venue name, dress code, description and the public lines of its run-of-show), a venue address and map link only if `display.showVenueAddresses`. Rate limited per visitor. The page is `/w/<slug>`.
 
 ---
 
@@ -947,7 +948,7 @@ If `permissions.canUpload`, the same two-call presigned flow as §12.2 is availa
 
 ---
 
-**Implementation notes (built 2026-10-11, Phase 6 steps 6.0 to 6.2; screens pending).**
+**Implementation notes (built 2026-10-11, Phase 6 steps 6.0 to 6.2; the screens were built in 6.3 to 6.5).**
 
 - Storage is Cloudflare R2 (Architecture Amendment A1): **no CloudFront**. Photos are shown through presigned URLs valid for an hour; `GET /assets` and the guest list return `url` and `downloadUrl` per photo. The browser's PUT goes to R2 (or, in development, to the signed `/api/v1/storage/local/<key>` address).
 - Routes as in §12 with these specifics: `GET /gallery` answers defaults (`gallery.id: null`) until the gallery exists and never creates it; `GET /assets` is cursor-paginated (newest first) with filters `albumId` (an id or `root`), `favorite=true`, `status` (waiting and rejected photos for owners and admins only); `DELETE /albums/:id` requires body `{photos: "move_to_root" | "delete"}` and answers `{photosMoved, photosRemoved}`; a photo's `PATCH` takes `caption`, `visibility`, `albumId`, `isFavorite` + `version`.
@@ -955,7 +956,8 @@ If `permissions.canUpload`, the same two-call presigned flow as §12.2 is availa
 - Deleting a photo, or rejecting a guest's, also removes its file. Deleting an event unlinks its albums (`albumsUnlinked`).
 - **Guest routes (§12.7):** `GET /public/gallery/:token` returns `{coupleNames, title, albumTitle, canView, canUpload, canDownload, uploadsNeedApproval, photos[]}` with `meta` cursor; each photo is `{id, url, downloadUrl|null, caption, width, height}` and nothing else. `canUpload` is true only if the link allows it AND the gallery has guest uploads on. Guest `upload-url` takes `{fileName, mimeType, sizeBytes, displayName?}` only; `confirm` answers `{id, awaitingApproval}` and only works for photos that very link announced. Rate limits: lookups 120 per 15 minutes per visitor; uploads 60 per hour per visitor and 600 per hour per link.
 - Shared links (§12.6) are `gallery:manage`; `POST` returns the plain `shareUrl` and the list shows the same URL from the encrypted copy; `DELETE` revokes (idempotent).
-- Development only: `PUT` and `GET /storage/local/<key>?op=&exp=&sig=` (see PROJECT_STATUS.md §8).
+- Development only: `PUT` and `GET /storage/local/<key>?op=&exp=&sig=` (see PROJECT_STATUS.md §8). A production build uses it only when `LOCAL_STORAGE_DIR` is set on purpose (to try a build on your own machine).
+- **Added in 6.3 to 6.5 (2026-10-12):** `GET /assets` also takes `visibility=private|guests|public` (the website's cover picker asks for `public`). The guest pages are `/gallery/<token>` and `/gallery/<token>/add` (frontend routes, decision D8) and call the `/public/gallery/:token` routes of §12.7; the guest viewer shows a photo's caption and, only when the link allows downloads, its `downloadUrl` (whose file name is the original name, by design: it is the name the guest saves it under).
 
 ---
 

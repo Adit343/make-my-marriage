@@ -282,6 +282,7 @@ export async function listAssets(
       status,
       ...(query.albumId ? { albumId: query.albumId } : {}),
       ...(query.favorite ? { favoritesOnly: true } : {}),
+      ...(query.visibility ? { visibilities: [query.visibility] } : {}),
     },
     { limit: query.limit, afterId: after },
   );

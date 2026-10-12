@@ -41,6 +41,7 @@ const draft = (overrides: Partial<SiteDraft> = {}): SiteDraft => ({
   title: "Aarav & Diya",
   tagline: "",
   welcomeMessage: "",
+  heroAssetId: null,
   sections: [],
   publicEventIds: [],
   display: { showVenueAddresses: false, showCountdown: true },
@@ -211,6 +212,7 @@ describe("buildSiteView", () => {
         "initials",
         "tagline",
         "welcomeMessage",
+        "heroImageUrl",
         "dateLabel",
         "city",
         "countdownTarget",
@@ -223,6 +225,14 @@ describe("buildSiteView", () => {
     expect(view.tagline).toBe("Together");
     expect(view.welcomeMessage).toBe("Hi");
     expect(buildSiteView(draft(), [], context, NOW).tagline).toBeNull();
+  });
+
+  it("carries the cover photo address, and never the photo id", () => {
+    const url = "https://photos.example/cover.jpg?sig=abc";
+    const view = buildSiteView(draft({ heroAssetId: "a".repeat(24) }), [], context, NOW, url);
+    expect(view.heroImageUrl).toBe(url);
+    expect(JSON.stringify(view)).not.toContain("a".repeat(24));
+    expect(buildSiteView(draft(), [], context, NOW).heroImageUrl).toBeNull();
   });
 });
 

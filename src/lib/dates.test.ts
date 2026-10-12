@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { daysUntil, formatCalendarDate, todayIn } from "@/lib/dates";
+import { daysUntil, formatCalendarDate, formatLongDate, todayIn } from "@/lib/dates";
 
 describe("calendar dates", () => {
   it("uses the wedding's timezone to decide what 'today' is", () => {
@@ -19,5 +19,6 @@ describe("calendar dates", () => {
   it("formats calendar days without shifting them across timezones", () => {
     expect(formatCalendarDate("2025-12-12")).toBe("December 12, 2025");
     expect(formatCalendarDate("2027-02-01")).toBe("February 1, 2027");
+    expect(formatLongDate("2027-02-14")).toBe("14 February 2027");
   });
 });

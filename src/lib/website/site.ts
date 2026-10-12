@@ -29,6 +29,8 @@ export interface SiteDraft {
   title: string;
   tagline: string;
   welcomeMessage: string;
+  /** The chosen cover photo, or null. */
+  heroAssetId: string | null;
   /** In display order. */
   sections: {
     id: string;
@@ -81,6 +83,8 @@ export interface PublicSiteView {
   initials: string;
   tagline: string | null;
   welcomeMessage: string | null;
+  /** A short-lived address of the cover photo, or null for the typographic cover. */
+  heroImageUrl: string | null;
   dateLabel: string | null;
   city: string | null;
   /** The moment the countdown runs to, or null when it is off or has passed. */
@@ -119,6 +123,7 @@ export function buildSiteView(
   pool: SiteEventSource[],
   context: SiteContext,
   now: Date = new Date(),
+  heroImageUrl: string | null = null,
 ): PublicSiteView {
   const chosen = new Set(draft.publicEventIds);
   const sources = pool
@@ -171,6 +176,7 @@ export function buildSiteView(
     initials: context.initials,
     tagline: draft.tagline.trim() || null,
     welcomeMessage: draft.welcomeMessage.trim() || null,
+    heroImageUrl,
     dateLabel: context.dateLabel,
     city: context.city,
     countdownTarget: target,

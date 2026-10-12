@@ -584,6 +584,7 @@ describe("what the public sees", () => {
         "initials",
         "tagline",
         "welcomeMessage",
+        "heroImageUrl",
         "dateLabel",
         "city",
         "countdownTarget",

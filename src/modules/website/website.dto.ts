@@ -20,6 +20,8 @@ export interface WebsiteDto {
   title: string;
   tagline: string;
   welcomeMessage: string;
+  /** The cover photo (a Public gallery photo), or null. */
+  heroAssetId: string | null;
   /** In display order. */
   sections: WebsiteSectionDto[];
   publicEventIds: string[];
@@ -40,6 +42,7 @@ interface WebsiteLike {
   title: string;
   tagline?: string | null;
   welcomeMessage?: string | null;
+  heroAssetId?: Types.ObjectId | null;
   sections?:
     | {
         _id: Types.ObjectId;
@@ -68,6 +71,7 @@ export function toWebsiteDto(site: WebsiteLike): WebsiteDto {
     title: site.title,
     tagline: site.tagline ?? "",
     welcomeMessage: site.welcomeMessage ?? "",
+    heroAssetId: site.heroAssetId ? site.heroAssetId.toString() : null,
     sections: [...(site.sections ?? [])]
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((section) => ({

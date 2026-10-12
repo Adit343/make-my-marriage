@@ -296,6 +296,8 @@ export function PublicSite({
   }
 
   const dateLine = [view.dateLabel, view.city].filter(Boolean).join(" • ");
+  // With a cover photo the text sits on a darkened picture, so it turns light.
+  const photo = view.heroImageUrl;
 
   return (
     <div
@@ -356,9 +358,22 @@ export function PublicSite({
       </nav>
 
       <header id="site-top" className="relative overflow-hidden px-6 py-14 @3xl:px-8 @3xl:py-28">
+        {photo ? (
+          <>
+            {/* The cover is a Public gallery photo behind a short-lived signed address. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photo}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              fetchPriority="high"
+            />
+            <div aria-hidden="true" className="absolute inset-0 bg-[#1A1714]/55" />
+          </>
+        ) : null}
         <svg
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.06]"
+          className={`pointer-events-none absolute inset-0 h-full w-full opacity-[0.06] ${photo ? "hidden" : ""}`}
           fill="none"
           viewBox="0 0 1200 600"
           preserveAspectRatio="none"
@@ -384,28 +399,36 @@ export function PublicSite({
               ✦
             </span>
           ) : null}
-          <span className="mb-4 font-label-sm text-label-sm font-semibold tracking-[0.25em] text-[#686F6A] uppercase @3xl:mb-5">
+          <span
+            className={`mb-4 font-label-sm text-label-sm font-semibold tracking-[0.25em] uppercase @3xl:mb-5 ${photo ? "text-white/85" : "text-[#686F6A]"}`}
+          >
             We&apos;re getting married
           </span>
           <h1
-            className={`mb-3 font-display-mobile text-display-mobile leading-none font-normal tracking-tight text-(--site-accent) @3xl:mb-4 @3xl:font-display @3xl:text-display ${
+            className={`mb-3 font-display-mobile text-display-mobile leading-none font-normal tracking-tight @3xl:mb-4 @3xl:font-display @3xl:text-display ${photo ? "text-white" : "text-(--site-accent)"} ${
               view.theme.templateKey === "editorial" ? "italic" : ""
             }`}
           >
             {view.title}
           </h1>
           {dateLine ? (
-            <p className="font-headline-sm text-headline-sm font-normal tracking-wide text-secondary">
+            <p
+              className={`font-headline-sm text-headline-sm font-normal tracking-wide ${photo ? "text-white/90" : "text-secondary"}`}
+            >
               {dateLine}
             </p>
           ) : null}
           {view.tagline ? (
-            <p className="mt-3 max-w-xl font-body-md text-body-md text-on-surface-variant italic">
+            <p
+              className={`mt-3 max-w-xl font-body-md text-body-md italic ${photo ? "text-white/90" : "text-on-surface-variant"}`}
+            >
               {view.tagline}
             </p>
           ) : null}
           {view.countdownTarget ? (
-            <div className="mt-8 w-full max-w-md @3xl:mt-12 @3xl:max-w-none @3xl:w-auto">
+            <div
+              className={`mt-8 w-full max-w-md @3xl:mt-12 @3xl:w-auto @3xl:max-w-none ${photo ? "rounded-2xl bg-[#FAF6F0]/95 p-4 shadow-lg" : ""}`}
+            >
               <Countdown target={view.countdownTarget} initialNow={initialNow} />
             </div>
           ) : null}

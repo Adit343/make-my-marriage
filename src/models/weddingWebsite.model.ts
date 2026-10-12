@@ -22,8 +22,8 @@ import { wholeNumber } from "@/models/shared/validators";
 // DB Design §6.15. The content of the public wedding site. EVERYTHING stored here is public once
 // the site is published: nothing private (budget, members, guests, notes) is ever placed in it,
 // and the public page is built from an explicit whitelist, never by returning this document.
-// There is no heroAssetId yet: the cover image waits for the Phase 6 gallery (the Stitch screen
-// shows it locked).
+// heroAssetId is the cover image: a gallery photo whose visibility is Public (checked when it is
+// chosen AND every time the page is drawn, so making the photo private takes it off the site).
 
 const sectionSchema = new Schema({
   type: { type: String, enum: WEBSITE_SECTION_TYPES, required: true },
@@ -51,6 +51,8 @@ const weddingWebsiteSchema = new Schema(
     title: { type: String, required: true, trim: true, minlength: 1, maxlength: MAX_WEBSITE_TITLE },
     tagline: { type: String, trim: true, maxlength: MAX_WEBSITE_TAGLINE },
     welcomeMessage: { type: String, trim: true, maxlength: MAX_WEBSITE_WELCOME },
+    /** A gallery photo marked Public, or null for the plain typographic cover. */
+    heroAssetId: { type: Schema.Types.ObjectId, ref: "GalleryAsset", default: null },
     sections: {
       type: [sectionSchema],
       default: [],

@@ -13,7 +13,9 @@ export type { StorageProvider } from "@/infrastructure/storage/types";
 //   all four R2_* variables set  -> Cloudflare R2
 //   none set, not production      -> files on this machine's disk (development and tests)
 //   none set, production          -> no store: the gallery says so instead of losing photos on a
-//                                    server whose disk is temporary
+//                                    server whose disk is temporary ...unless LOCAL_STORAGE_DIR is
+//                                    set, which is a deliberate opt-in for trying a production build
+//                                    on your own machine (the folder is then yours to keep)
 // Tests can swap in their own provider.
 
 let override: StorageProvider | null = null;
@@ -45,9 +47,8 @@ export function storageStatus(): { configured: boolean; kind: "r2" | "local" | "
   if (env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET) {
     return { configured: true, kind: "r2" };
   }
-  return env.NODE_ENV === "production"
-    ? { configured: false, kind: "none" }
-    : { configured: true, kind: "local" };
+  const diskAllowed = env.NODE_ENV !== "production" || Boolean(env.LOCAL_STORAGE_DIR);
+  return diskAllowed ? { configured: true, kind: "local" } : { configured: false, kind: "none" };
 }
 
 export function getStorage(): StorageProvider {

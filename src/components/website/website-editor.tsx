@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ContentTab } from "@/components/website/content-tab";
 import { DesignTab } from "@/components/website/design-tab";
+import type { CoverChoice } from "@/components/website/cover-picker";
 import { SitePreview } from "@/components/website/site-preview";
 import {
   checkSlug,
@@ -36,6 +37,7 @@ function toDraft(site: WebsiteDto): EditorDraft {
     title: site.title,
     tagline: site.tagline,
     welcomeMessage: site.welcomeMessage,
+    heroAssetId: site.heroAssetId,
     sections: site.sections,
     publicEventIds: site.publicEventIds,
     display: site.display,
@@ -63,6 +65,9 @@ export function WebsiteEditor({
   const [draft, setDraft] = useState<EditorDraft | null>(
     data.website ? toDraft(data.website) : null,
   );
+  // The cover photo's picture. It is a short-lived address that only exists in the browser: the
+  // draft keeps just the photo's id, and the preview shows the picture while the ids match.
+  const [hero, setHero] = useState<CoverChoice | null>(data.hero);
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [stale, setStale] = useState(false);
@@ -259,8 +264,17 @@ export function WebsiteEditor({
   }
 
   const previewView = useMemo(
-    () => (draft ? buildSiteView(draft, data.pool, data.context, new Date(nowIso)) : null),
-    [draft, data.pool, data.context, nowIso],
+    () =>
+      draft
+        ? buildSiteView(
+            draft,
+            data.pool,
+            data.context,
+            new Date(nowIso),
+            hero && hero.assetId === draft.heroAssetId ? hero.url : null,
+          )
+        : null,
+    [draft, data.pool, data.context, nowIso, hero],
   );
 
   // ----- Nothing set up yet -------------------------------------------------------------------
@@ -447,6 +461,12 @@ export function WebsiteEditor({
             update={update}
             events={data.events}
             site={site}
+            weddingId={weddingId}
+            hero={hero && hero.assetId === draft.heroAssetId ? hero : null}
+            onHero={(choice) => {
+              setHero(choice);
+              update({ heroAssetId: choice ? choice.assetId : null });
+            }}
             addressPrefix={data.addressPrefix}
             publicUrl={publicUrl}
             slugState={slugState}

@@ -73,6 +73,7 @@ export function buildPatch(saved: EditorDraft, draft: EditorDraft): Record<strin
   if (saved.title !== draft.title) patch.title = draft.title;
   if (saved.tagline !== draft.tagline) patch.tagline = draft.tagline;
   if (saved.welcomeMessage !== draft.welcomeMessage) patch.welcomeMessage = draft.welcomeMessage;
+  if (saved.heroAssetId !== draft.heroAssetId) patch.heroAssetId = draft.heroAssetId;
   if (!same(saved.sections, draft.sections)) {
     patch.sections = draft.sections.map((section) => ({
       ...(isNewSection(section) ? {} : { id: section.id }),

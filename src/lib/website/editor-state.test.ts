@@ -17,6 +17,7 @@ const saved = (): EditorDraft => ({
   title: "Aarav & Diya",
   tagline: "",
   welcomeMessage: "",
+  heroAssetId: null,
   sections: [
     { id: "a", type: "story", title: "Our story", body: "We met.", isVisible: true },
     { id: "b", type: "schedule", title: "Schedule", body: "", isVisible: true },
@@ -44,6 +45,12 @@ describe("dirty tracking and patches", () => {
     const base = saved();
     expect(buildPatch(base, { ...base, slug: "other" })).toEqual({ slug: "other" });
     expect(buildPatch(base, { ...base, welcomeMessage: "Hi" })).toEqual({ welcomeMessage: "Hi" });
+    expect(buildPatch(base, { ...base, heroAssetId: "a".repeat(24) })).toEqual({
+      heroAssetId: "a".repeat(24),
+    });
+    expect(buildPatch({ ...base, heroAssetId: "a".repeat(24) }, base)).toEqual({
+      heroAssetId: null,
+    });
     expect(buildPatch(base, { ...base, publicEventIds: [] })).toEqual({ publicEventIds: [] });
     expect(
       buildPatch(base, { ...base, display: { showVenueAddresses: true, showCountdown: true } }),

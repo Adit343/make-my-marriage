@@ -2,6 +2,7 @@ import "server-only";
 import { Types } from "mongoose";
 import { MAX_SEO_DESCRIPTION, MAX_SEO_TITLE } from "@/lib/constants/website";
 import { formatShortDate } from "@/lib/dates";
+import { DOWNLOAD_URL_TTL_SECONDS } from "@/lib/constants/gallery";
 import { AppError } from "@/lib/errors";
 import {
   calendarDayIn,
@@ -23,7 +24,9 @@ import {
   type SiteEventSource,
 } from "@/lib/website/site";
 import { wallClockToInstant } from "@/lib/zoned-time";
+import { getStorage } from "@/infrastructure/storage";
 import { listEvents as listEventRows } from "@/modules/events/event.repository";
+import { findAsset } from "@/modules/gallery/gallery.repository";
 import type { WeddingAuth } from "@/modules/members/guards";
 import { toWebsiteDto, type WebsiteDto } from "@/modules/website/website.dto";
 import {
@@ -125,12 +128,41 @@ export function publicEventPool(events: EventRow[]): SiteEventSource[] {
   return events.filter((event) => event.isPublic).map(toSiteEventSource);
 }
 
+export interface HeroPhoto {
+  assetId: string;
+  fileName: string;
+  /** A short-lived address that shows the photo. */
+  url: string;
+}
+
+/**
+ * The cover photo as it may be shown right now: the photo must still be live AND still Public. A
+ * photo made private (or deleted, or rejected) after it was chosen simply stops being the cover,
+ * so nothing private can reach the public site through a stale choice.
+ */
+export async function heroPhotoFor(
+  weddingId: string,
+  assetId: string | null,
+): Promise<HeroPhoto | null> {
+  if (!assetId) return null;
+  const asset = await findAsset(weddingId, assetId);
+  if (!asset || asset.status !== "active" || asset.visibility !== "public") return null;
+  return {
+    assetId,
+    fileName: asset.fileName,
+    url: await getStorage().createDownloadUrl(asset.objectKey, {
+      expiresInSeconds: DOWNLOAD_URL_TTL_SECONDS,
+    }),
+  };
+}
+
 function draftOf(site: WebsiteDto): SiteDraft {
   return {
     slug: site.slug,
     title: site.title,
     tagline: site.tagline,
     welcomeMessage: site.welcomeMessage,
+    heroAssetId: site.heroAssetId,
     sections: site.sections,
     publicEventIds: site.publicEventIds,
     display: site.display,
@@ -246,12 +278,27 @@ export async function updateWebsite(
   auth: WeddingAuth,
   input: UpdateWebsiteInput,
 ): Promise<WebsiteDto> {
-  const { version, slug, sections, publicEventIds, ...rest } = input;
+  const { version, slug, sections, publicEventIds, heroAssetId, ...rest } = input;
   const changes: WebsiteChanges = { ...rest };
 
   if (slug !== undefined) {
     await checkSlug(auth.weddingId, slug);
     changes.slug = slug;
+  }
+  if (heroAssetId !== undefined) {
+    if (heroAssetId !== null) {
+      // Another wedding's photo, a deleted one or one still waiting for approval is "not found";
+      // a photo of this wedding that is not marked Public is a rule the editor can explain.
+      const photo = await findAsset(auth.weddingId, heroAssetId);
+      if (!photo || photo.status !== "active") throw new AppError("NOT_FOUND");
+      if (photo.visibility !== "public") {
+        throw new AppError("BUSINESS_RULE_VIOLATION", {
+          message:
+            "Only photos marked Public can be the cover. Set its visibility to Public in the gallery.",
+        });
+      }
+    }
+    changes.heroAssetId = heroAssetId;
   }
   if (publicEventIds !== undefined) {
     changes.publicEventIds = await checkPublicEvents(auth.weddingId, publicEventIds);
@@ -316,6 +363,8 @@ export interface WebsiteEditorData {
   events: { id: string; name: string; isPublic: boolean; dateLabel: string }[];
   /** The public events, formatted for the live preview. */
   pool: SiteEventSource[];
+  /** The chosen cover photo while it is still usable, with an address to show it. */
+  hero: HeroPhoto | null;
   context: SiteContext;
   /** Where the site lives, without the scheme: "makemymarriage.com/w/". */
   addressPrefix: string;
@@ -338,6 +387,7 @@ export async function getEditorData(
       dateLabel: formatShortDate(calendarDayIn(event.startsAt, event.timezone)),
     })),
     pool: publicEventPool(events),
+    hero: await heroPhotoFor(auth.weddingId, website?.heroAssetId ?? null),
     context: siteContextOf(wedding),
     addressPrefix: `${new URL(origin).host}/w/`,
     origin,
@@ -352,7 +402,14 @@ export async function getWebsitePreview(auth: WeddingAuth): Promise<PublicSiteVi
     listEventRows(auth.weddingId),
   ]);
   if (!site || !wedding) return null;
-  return buildSiteView(draftOf(site), publicEventPool(events), siteContextOf(wedding));
+  const hero = await heroPhotoFor(auth.weddingId, site.heroAssetId);
+  return buildSiteView(
+    draftOf(site),
+    publicEventPool(events),
+    siteContextOf(wedding),
+    new Date(),
+    hero?.url ?? null,
+  );
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -373,9 +430,13 @@ export async function getPublicWebsite(slug: string): Promise<PublicSiteView> {
   const wedding = await findWedding(site.weddingId);
   if (!wedding) throw new AppError("NOT_FOUND");
   const events = await listEventRows(site.weddingId);
+  const dto = toWebsiteDto(site);
+  const hero = await heroPhotoFor(site.weddingId.toString(), dto.heroAssetId);
   return buildSiteView(
-    draftOf(toWebsiteDto(site)),
+    draftOf(dto),
     publicEventPool(events),
     siteContextOf(wedding),
+    new Date(),
+    hero?.url ?? null,
   );
 }

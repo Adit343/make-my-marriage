@@ -33,6 +33,7 @@ export interface WebsiteChanges {
   title?: string;
   tagline?: string;
   welcomeMessage?: string;
+  heroAssetId?: Id | null;
   sections?: WebsiteSectionRow[];
   publicEventIds?: Id[];
   display?: { showVenueAddresses: boolean; showCountdown: boolean };

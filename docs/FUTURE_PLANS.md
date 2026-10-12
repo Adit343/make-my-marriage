@@ -3,7 +3,7 @@
 > What is left to build, in order, with the decisions that must be made first.
 > Where the project is *now* is in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). **Read that file first.**
 >
-> Last updated: **2026-10-11** · Phases 1 to 4 committed (latest `d0aa84a`; later docs and logo commits on `dev`) · **Phase 5 (wedding website and live stream) is built and verified but not yet committed. Phase 6 (Memories) is next.**
+> Last updated: **2026-10-12** · Phases 1 to 6.2 committed (latest `33fe56e`) · **Phase 6 is built and verified: the Gallery screens, QR codes and the website cover image (6.3 to 6.5) are in the working tree, not yet committed. Phase 7 (product readiness) is next.**
 
 **Contents**
 
@@ -28,13 +28,13 @@
 1. Open the project folder in Claude Code (the four design docs, `PROJECT_STATUS.md` and this file are
    imported automatically through `CLAUDE.md`).
 2. If working on a new machine, follow `PROJECT_STATUS.md` §3 (Node 24, `npm ci`, `.env.local`, branch `dev`, Stitch MCP).
-3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **1,180 passing**).
+3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **1,212 passing**).
 4. Start the next piece of work with a prompt like:
 
-   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. Phase 5 is complete (website and live
-   > streams). We are starting **Phase 6** (Memories: gallery). Do not create files, install anything or write
-   > code yet. Look at the Stitch screens for it, then propose a plan for step 6.1 and list the open decisions
-   > from section 8.4 you need answered. Wait for my approval.
+   > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. Phase 6 is complete (gallery, QR codes and the
+   > website cover image). We are starting **Phase 7** (product readiness). Do not create files, install
+   > anything or write code yet. Propose a plan for step 7.1 and list the open decisions from section 9 you
+   > need answered. Wait for my approval.
 
 5. **After each step**, the AI must update `PROJECT_STATUS.md` (what was built, decisions, new endpoints,
    test totals, commit) and tick things off here, so the next session starts correct.
@@ -89,8 +89,8 @@ These come from `CLAUDE.md`, the architecture and the working agreement. Repeat 
 | 2     | Planning                | events (with embedded schedule), tasks                   | **Done** (steps 2.1–2.7)                                |
 | 3     | Guests & Invitations    | guestGroups, guests, rsvps (emailLogs already exists)    | **Done** (steps 3.1 to 3.5). Real guest email needs a verified Resend domain in practice; WhatsApp, copy link and "invited in person" work today |
 | 4     | Financials & Vendors    | expenses, vendors, vendorPayments                        | **Done** (steps 4.1 to 4.4)                             |
-| 5     | Wedding Experience      | weddingWebsites, liveStreams                             | **Done** (built and verified 2026-10-11; commit pending) |
-| 6     | Memories                | galleries, galleryAlbums, galleryAssets, galleryAccessTokens | **In progress:** 6.0 to 6.2 built (Cloudflare R2, storage layer, gallery backend); 6.3 screens wait for Stitch designs |
+| 5     | Wedding Experience      | weddingWebsites, liveStreams                             | **Done** (steps 5.1 to 5.6, committed `da1823e`)        |
+| 6     | Memories                | galleries, galleryAlbums, galleryAssets, galleryAccessTokens | **Done** (6.0 to 6.2 committed `33fe56e`; 6.3 to 6.5 built and verified 2026-10-12, commit pending). Real photos need the owner's R2 bucket **with its CORS rule** (`PROJECT_STATUS.md` §17) |
 | 7     | Product Readiness       | none                                                     | Not started                                             |
 
 Each phase's exit condition (PRD §36) is quoted below. Suggested step numbering mirrors Phase 1:
@@ -250,7 +250,7 @@ New env var: **`GOOGLE_PLACES_API_KEY`** (server-side only; also set in Vercel).
 
 ## 7. Phase 5: Wedding experience
 
-> **Built 2026-10-11 (steps 5.1 to 5.6, not yet committed).** What was built, the choices made and the real-browser results are in `PROJECT_STATUS.md` §13 and §14.2. In short: the website editor (Content and Design and settings tabs with a live preview), the public site at `/w/<slug>`, live streams (manager, add/edit slide-over, guest watch page at `/live/<token>` with scheduled, live, ended, cancelled and invalid states), CSP `frame-src` for YouTube and Vimeo. **Still open from Phase 5:** the website cover image waits for the gallery (Phase 6); `heroAssetId`; an end time for streams (decision 11, not added); a repeatable (CI) browser test (Phase 7); the public RSVP is not on the website (guests RSVP through their personal `/i/<token>` link).
+> **Built 2026-10-11 (steps 5.1 to 5.6, committed `da1823e`).** The website's cover image arrived with Phase 6 (step 6.4).
 
 **Goal:** a polished, shareable digital experience for guests.
 **Exit condition:** "A wedding can have a shareable digital wedding experience where guests can view wedding information, events, venues, schedule, RSVP, and live-stream content without creating an account."
@@ -281,6 +281,8 @@ New env var: **`GOOGLE_PLACES_API_KEY`** (server-side only; also set in Vercel).
 ---
 
 ## 8. Phase 6: Memories
+
+> **Built (6.0 to 6.2 committed `33fe56e`; 6.3 to 6.5 built and verified 2026-10-12, not yet committed).** What was built, the choices made, the defects found and the real-browser and axe results are in `PROJECT_STATUS.md` §13 and §14.2. In short: Cloudflare R2 and the storage layer, the gallery backend, **the Gallery screens from the owner's eleven Stitch designs** (home, upload, viewer, albums, approval queue, sharing and settings, QR dialog with PNG, SVG and print card, the guest gallery and upload pages, the "link isn't working" page) and the **website cover image picker**. **Still open from Phase 6:** the owner's R2 CORS rule and a first real upload (§17 of the status file); shrinking photos in the browser before upload (not built); the wedding purge script deleting R2 objects by prefix (Phase 7); a per-wedding quota other than 2 GB; a "Download all" zip for guests (would need a library); a repeatable (CI) browser and accessibility run (Phase 7).
 
 > **Architecture change (2026-10-11, owner decision):** media storage is **Cloudflare R2**, not S3 + CloudFront (Architecture Amendment A1). Wherever this section says S3, CloudFront or AWS, read R2: presigned URLs replace CloudFront signing, `aws4fetch` signs requests, there is no AWS account. **V1 is photos only, 15 MB per photo, 2 GB per wedding.** **Built 2026-10-11 (not yet committed): 6.0 docs, 6.1 storage layer (R2 provider and a disk-backed local provider), 6.2 gallery backend** (details and choices in `PROJECT_STATUS.md` §13 and §14.2). **Next: 6.3 the gallery screens, from the owner's Stitch designs; then 6.4 the website cover image (`heroAssetId`, public photos only) and 6.5 the review** (accessibility, real-browser run against the local store, QR codes with `qrcode-generator`, client-side photo shrinking before upload). **Still to do outside 6.3:** the purge script must delete a wedding's R2 objects by prefix (Phase 7); a one-off test against a real R2 bucket once the owner creates one.
 
@@ -401,7 +403,7 @@ Ask these when the relevant phase starts (recommendations in brackets are the AI
 | 12 | 5     | ~~Slug history/redirects~~ **Decided: none in V1 (2026-10-11)**; the editor warns that changing the address breaks old links | (done)                                          |
 | 13 | 6     | ~~Per-wedding storage quota and file limits~~ **Decided 2026-10-11: 2 GB per wedding, 15 MB per photo, photos only (no video)** | (done) |
 | 13b | 6    | Per-wedding storage quota and file limits                                                                        | A few GB; check before issuing upload URLs               |
-| 14 | 6     | ~~Favourites; QR library~~ **Decided 2026-10-11: favourites built (`isFavorite`); QR library `qrcode-generator` approved (install in 6.3); `galleries` stays a collection** | (done) |
+| 14 | 6     | ~~Favourites; QR library~~ **Decided 2026-10-11: favourites built (`isFavorite`); QR library `qrcode-generator` approved and installed in 6.3; `galleries` stays a collection** | (done) |
 | 14b | 6    | Favourites; keep `galleries` collection; QR library dependency                                                   | Keep collection; ask before adding a QR dependency        |
 | 15 | 7     | Monitoring/analytics tools (V1 says none external)                                                               | Owner decision                                            |
 | 16 | any   | In-app notifications scope                                                                                       | Defer unless needed                                       |
