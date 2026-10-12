@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** 28 September 2026
-**Status:** V1 database baseline
+**Status:** V1 database baseline (amended 2026-10-11: media is stored in Cloudflare R2, photos only; wherever this document says S3, read Cloudflare R2; see Architecture Amendment A1)
 **Derived from:** *Make My Marriage — System Design Architecture Document V1.0*
 **Database:** MongoDB Atlas · **ODM:** Mongoose · **Validation:** Zod
 
@@ -70,7 +70,7 @@ Each principle is taken from the architecture and translated into a database rul
 |---|---|---|
 | 1 | Wedding isolation (§3.4, §12) | Every wedding-owned document carries `weddingId`. No repository method for these collections may run without a `weddingId` filter. |
 | 2 | MongoDB is the source of truth (§3.5) | No cached copies in Redis. Derived numbers (payment totals, RSVP counts) are computed from real documents, not duplicated, unless §9 says otherwise. |
-| 3 | Files live in S3 (§3.6, §25) | Only metadata (object key, size, MIME type) is stored in MongoDB. Never file bytes. |
+| 3 | Files live in R2 (§3.6, §25) | Only metadata (object key, size, MIME type) is stored in MongoDB. Never file bytes. |
 | 4 | Soft delete by default (§3.11, §24) | Business entities carry `deletedAt/deletedBy/deletionReason`. Hard delete is reserved for transient security data (sessions, expired tokens, stale upload records, old email logs). |
 | 5 | One user = one wedding (§13) | Enforced in the service layer **and** by a database unique index (see `weddingMembers`). |
 | 6 | Guests are not users (§16) | Guests are their own collection with no password fields. Access is by secure link token only. |
@@ -190,7 +190,7 @@ Members edit the same wedding at the same time (a parent and the planner both ed
 | 16 | `liveStreams` | livestream | Stream links per wedding/event | Soft | 5 |
 | 17 | `galleries` | gallery | Gallery container and upload settings | Soft | 6 |
 | 18 | `galleryAlbums` | gallery | Albums inside a gallery | Soft | 6 |
-| 19 | `galleryAssets` | gallery | Photo/video metadata (files are in S3) | Soft (+ TTL for stale pending uploads) | 6 |
+| 19 | `galleryAssets` | gallery | Photo/video metadata (files are in R2) | Soft (+ TTL for stale pending uploads) | 6 |
 | 20 | `galleryAccessTokens` | gallery | Shareable gallery/QR links | **Hard** (TTL, after revoke/expiry) | 6 |
 | 21 | `emailLogs` | notifications | Per-recipient email results | **Hard** (TTL) | 3 |
 
@@ -771,7 +771,7 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 | `paidAt` | Date \| null | — | Required when `status = paid` |
 | `method` | enum \| null | — | `cash`, `upi`, `bank_transfer`, `cheque`, `card`, `other` |
 | `reference` | string | — | ≤ 100 (UPI ref / cheque number). Private. |
-| `receipt` | `{ objectKey, fileName, mimeType, sizeBytes }` \| null | — | Optional S3 receipt |
+| `receipt` | `{ objectKey, fileName, mimeType, sizeBytes }` \| null | — | Optional R2 receipt |
 | `notes` | string | — | ≤ 500 |
 | `createdBy` | ObjectId | ✔ | |
 | soft-delete block | | | |
@@ -903,7 +903,7 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 
 ### 6.19 `galleryAssets`
 
-**In plain words.** One row per photo/video. The file is in S3; this row is its catalog card. Example: `IMG_2041.jpg`, 3.2 MB, uploaded by guest Rahul into "Haldi Moments", waiting for approval.
+**In plain words.** One row per photo/video. The file is in R2; this row is its catalog card. Example: `IMG_2041.jpg`, 3.2 MB, uploaded by guest Rahul into "Haldi Moments", waiting for approval.
 
 | Field | Type | Req | Rules / Notes |
 |---|---|---|---|
@@ -927,8 +927,8 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 
 ```text
 1. API checks authorization, creates row: status = pending_upload
-2. API returns short-lived S3 upload URL
-3. Browser uploads directly to S3
+2. API returns short-lived R2 upload URL
+3. Browser uploads directly to R2
 4. Browser calls "confirm" → API verifies the object exists (size/type)
 5. status = active           (member upload)
    status = pending_review   (guest upload with approval required)
@@ -945,11 +945,13 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 
 **Rules and limitations**
 
-- The TTL removes only the *metadata* row. An abandoned upload may still leave an **orphan object in S3**. Mitigation without workers: an S3 lifecycle rule on a `pending/` key prefix (or abort-incomplete-uploads). **Alternative:** upload to a `pending/` prefix and *copy* to the final key on confirm (one more S3 call).
+- The TTL removes only the *metadata* row. An abandoned upload may still leave an **orphan object in R2**. Mitigation without workers: an R2 lifecycle rule on a `pending/` key prefix (or abort-incomplete-uploads). **Alternative:** upload to a `pending/` prefix and *copy* to the final key on confirm (one more R2 call).
 - Storage per wedding = `sum(sizeBytes)` by aggregation (no stored counter). Quotas per wedding are an open product decision (§15).
 - Authorization for any media request: asset `status = active`, `deletedAt == null`, wedding not deleted, and (member session **or** a valid access token whose scope includes the asset and whose asset `visibility` allows it).
 
 ---
+
+**Implementation notes (built 2026-10-11, Phase 6 steps 6.0 to 6.2).** `galleries`, `galleryAlbums` and `galleryAssets` are built as specified with these changes: (1) the files are in **Cloudflare R2** (Architecture Amendment A1), **photos only**: `mediaType` is only `image`, `mimeType` is JPEG, PNG, WebP, HEIC or HEIF, `sizeBytes` is at most 15 MB, and a wedding may store 2 GB; (2) `galleryAssets.isFavorite` and `viaTokenId` (which shared link announced a guest photo) were added; (3) `galleries` also has a unique partial index on `weddingId` (one gallery per wedding, made on first save; a GET never creates it); (4) extra indexes `{weddingId, status, _id: -1}` (every photo, newest first) and a partial favourites index; the pending-upload TTL is partial on `status: pending_upload`; (5) **deleting a photo, or rejecting a guest's photo, also deletes its stored file** (this document said the file is kept until the wedding purge): no single-photo restore exists and the file would silently use the storage allowance; (6) the object key must match `weddings/<id>/gallery/<id>/<random>.<jpg|png|webp|heic|heif>` (validated in Mongoose and before any disk access).
 
 ### 6.20 `galleryAccessTokens`
 
@@ -975,6 +977,8 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 **Rules:** this is a **hard-delete** collection (Architecture §24: expired temporary tokens). Revoked or expired tokens remain 30 days, then disappear. **We do not track per-view counters** (`lastUsedAt`, `viewCount`) in V1, because a write per photo view is costly with no requirement behind it.
 
 ---
+
+**Implementation notes (built 2026-10-11, Phase 6).** `galleryAccessTokens` is built as specified (`tokenHash` and `tokenEnc` both `select: false`, `tokenEnc` AES-256-GCM like a guest's RSVP link), with an extra index `{weddingId, _id: -1}`: `explain()` showed that listing a wedding's links otherwise walked the global `_id` index and read other weddings' links. An upload link can only be made while the gallery has guest uploads switched on, and an album that is deleted revokes its links.
 
 ### 6.21 `emailLogs`
 
@@ -1214,7 +1218,7 @@ Only *derived text for indexing* is duplicated: `emailNormalized`, `nameNormaliz
 | `guests` | Soft | Revoke link; cascade to `rsvps` | With wedding purge |
 | `rsvps`, `vendorPayments` | Soft | With parent, or individually | With wedding purge |
 | `weddingWebsites`, `liveStreams` | Soft | Unpublish/revoke public access | With wedding purge |
-| `galleries`, `galleryAlbums`, `galleryAssets` | Soft | S3 object kept until purge | Purge deletes S3 objects **and** rows |
+| `galleries`, `galleryAlbums`, `galleryAssets` | Soft | R2 object kept until purge | Purge deletes R2 objects **and** rows |
 | `galleryAccessTokens` | Hard (TTL) | `revokedAt` first | +30 days |
 | `emailLogs` | Hard (TTL) | n/a | 180 days |
 
@@ -1231,7 +1235,7 @@ Example first: Priya deletes the wedding by mistake and changes her mind two day
 1. **In one transaction (small writes only):** set `weddings.deletedAt`, `deletedBy`, `status: archived`, `purgeAfter = now + 30 days`; soft-delete all `weddingMembers` (frees each user to join another wedding); unpublish the website (`status: draft`) and soft-delete it; revoke every `galleryAccessTokens`, `liveStreams.link`, and `guests.link` for that wedding (bulk `updateMany`).
 2. **Child rows are *not* individually soft-deleted.** Every request is gated on "wedding exists and isn't deleted", including public token routes (§6.10 rule 2), so children become unreachable immediately.
 3. **Restore within 30 days:** clear the wedding's deletion fields and re-activate the owner membership (only if that user hasn't joined another wedding in the meantime, a conflict the unique index will surface).
-4. **After `purgeAfter`:** a manually run script hard-deletes the wedding's documents in all collections (in batches) and deletes its S3 objects. It is a script, not a background service (Architecture §36).
+4. **After `purgeAfter`:** a manually run script hard-deletes the wedding's documents in all collections (in batches) and deletes its R2 objects. It is a script, not a background service (Architecture §36).
 
 **Drawbacks and alternatives**
 
@@ -1283,7 +1287,7 @@ Implements Architecture §48. The server **explicitly selects** fields for publi
 **Never:** other guests, group members, `notes`, `side`, any `weddingMembers` data, budget.
 **Writable by the guest:** `rsvps.status`, `attendingCount`, `note`, and `dietaryPreference`; nothing else.
 
-**Gallery via token:** asset `_id`, CloudFront URL, `mediaType`, `caption`, `width/height`. **Never:** `uploadedBy.userId`, `objectKey`, `weddingId`, moderation state of other people's uploads.
+**Gallery via token:** asset `_id`, a short-lived signed R2 URL, `mediaType`, `caption`, `width/height`. **Never:** `uploadedBy.userId`, `objectKey`, `weddingId`, moderation state of other people's uploads.
 
 **Live page:** `title`, `description`, `startTime`, `status`, `streamUrl`, `provider`.
 
@@ -1436,7 +1440,7 @@ Every significant choice above has a cost. This table gathers them in one place.
 | 11 | Prefix-only name search | No "contains"/fuzzy search | Atlas Search (new service) | Elasticsearch-style search is out of scope |
 | 12 | One RSVP link per guest | A family needs several links | Group-level link | Simpler model; decide in §15 |
 | 13 | One currency per wedding | Foreign-currency vendors not modeled | Per-expense currency | India-first V1 |
-| 14 | TTL deletion is best-effort; abandoned S3 uploads may orphan objects | Slight delay; storage cost from orphans | S3 lifecycle rule; `pending/` prefix + copy on confirm | No workers in V1 |
+| 14 | TTL deletion is best-effort; abandoned R2 uploads may orphan objects | Slight delay; storage cost from orphans | R2 lifecycle rule; `pending/` prefix + copy on confirm | No workers in V1 |
 | 15 | Optimistic concurrency | Clients must handle `409` | Last-write-wins | Prevents silent lost edits |
 | 16 | MongoDB has no foreign keys | Dangling or cross-wedding references if code forgets checks | Relational database (out of scope) | Repositories require `weddingId`; §9.2 checks + tests |
 
@@ -1454,7 +1458,7 @@ Each has a recommendation so work can proceed if you agree.
 | 4 | RSVP link per **guest** or per **household** (guest group)? | Start per guest; add group link if families ask for it. |
 | 5 | Keep `galleries` as its own collection, or fold its settings into `weddings`? | Keep, since the architecture lists it, but treat as a simplification candidate. |
 | 6 | Retention: `emailLogs` 180 days, invitation/token purge +30 days, wedding purge grace 30 days, account anonymize grace 30 days | Accept these defaults; make them constants in code. |
-| 7 | Per-wedding storage quota for media (needed to avoid unbounded S3 cost) | Choose a cap (e.g., a few GB) and check `sum(sizeBytes)` before issuing upload URLs. |
+| 7 | Per-wedding storage quota for media (needed to avoid unbounded R2 cost) | Choose a cap (e.g., a few GB) and check `sum(sizeBytes)` before issuing upload URLs. |
 | 8 | Persisting fields copied from Google Places responses | Store `placeId` freely; keep other Places-copied content only if current Google terms allow, otherwise store only what the user confirms or types. Verify terms before Phase 4. |
 | 9 | Introduce cached counters (paid total, RSVP counts)? | **No** until measurements show slow queries. |
 
@@ -1464,7 +1468,7 @@ Each has a recommendation so work can proceed if you agree.
 
 ### 16.1 What this design confirms
 
-- Uses only **MongoDB Atlas + Mongoose + Zod**, with S3/CloudFront as **metadata only**.
+- Uses only **MongoDB Atlas + Mongoose + Zod**, with R2 holding the files and MongoDB **metadata only**.
 - **No** Redis, BullMQ, workers, microservices, WebSockets, GraphQL, or search engines. Cleanup relies on TTL indexes and manual scripts; "expired" states are computed.
 - One user = one wedding is enforced by service checks **plus** a unique index.
 - Soft delete by default; hard delete only for transient security data (Architecture §24).

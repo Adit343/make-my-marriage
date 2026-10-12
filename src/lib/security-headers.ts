@@ -11,27 +11,37 @@
 //
 // Live streams (Phase 5): the guest watch page embeds the YouTube or Vimeo player, so frame-src
 // allows exactly those player origins and nothing else (YouTube through its no-cookie domain).
-// Phase 6 (gallery) must add the CloudFront media origin to img-src / media-src.
+// Photos (Phase 6, Architecture Amendment A1): the browser shows them from, and uploads them to,
+// the wedding's own Cloudflare R2 address (https://<account>.r2.cloudflarestorage.com), so exactly
+// that origin is allowed in img-src and connect-src, and only when R2 is configured. In development
+// the local photo store is on this site's own address and needs nothing extra.
 
 export interface HeaderEntry {
   key: string;
   value: string;
 }
 
-export function contentSecurityPolicy(options: { development: boolean }): string {
-  const { development } = options;
+export interface PolicyOptions {
+  development: boolean;
+  /** The photo store's origin (R2), if one is configured: "https://<account>.r2.cloudflarestorage.com". */
+  mediaOrigin?: string;
+}
+
+export function contentSecurityPolicy(options: PolicyOptions): string {
+  const { development, mediaOrigin } = options;
+  const media = mediaOrigin ? [mediaOrigin] : [];
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
     "script-src": ["'self'", "'unsafe-inline'", ...(development ? ["'unsafe-eval'"] : [])],
     "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
     "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
-    "img-src": ["'self'", "data:", "blob:"],
+    "img-src": ["'self'", "data:", "blob:", ...media],
     "frame-src": [
       "https://www.youtube-nocookie.com",
       "https://player.vimeo.com",
       "https://vimeo.com",
     ],
-    "connect-src": ["'self'", ...(development ? ["ws:", "wss:"] : [])],
+    "connect-src": ["'self'", ...media, ...(development ? ["ws:", "wss:"] : [])],
     "frame-ancestors": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'"],
@@ -42,7 +52,7 @@ export function contentSecurityPolicy(options: { development: boolean }): string
   return policy.join("; ");
 }
 
-export function securityHeaders(options: { development: boolean }): HeaderEntry[] {
+export function securityHeaders(options: PolicyOptions): HeaderEntry[] {
   return [
     { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
     { key: "X-Content-Type-Options", value: "nosniff" },

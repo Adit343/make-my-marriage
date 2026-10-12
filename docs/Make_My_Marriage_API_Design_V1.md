@@ -69,7 +69,7 @@ No `/v1/` path prefix in V1 — the architecture's example routes (§18) are unp
 
 ### 2.2 Request format
 
-- `Content-Type: application/json` for all bodies except file bytes, which never go through this API (see §12 — uploads go directly to S3).
+- `Content-Type: application/json` for all bodies except file bytes, which never go through this API (see §12 — uploads go directly to R2).
 - Route params, query params and the body are **all** validated with Zod before any service code runs (Architecture §19).
 - Every request should send `X-Request-ID`; the server generates one if absent and echoes it back for correlation with logs (Architecture §38).
 
@@ -821,7 +821,7 @@ No auth. Implements the whitelist in Database Design §11.2 exactly — this is 
     "title": "Aarav & Diya's Wedding", "tagline": "...", "story": "...",
     "sections": [ { "type": "schedule", "title": "Events", "body": "..." } ],
     "events": [ { "name": "Reception", "startsAt": "2027-02-14T18:00:00Z", "dressCode": "Formal" } ],
-    "heroImageUrl": "https://cdn.example/cloudfront-signed-or-public-url"
+    "heroImageUrl": "https://signed-r2-url.example/hero.jpg"
   }
 }
 ```
@@ -893,7 +893,7 @@ Module: `gallery`. Collections: `galleries`, `galleryAlbums`, `galleryAssets`, `
 
 `GET/PATCH /gallery` — settings only (`title`, `description`, `allowGuestUploads`, `requireUploadApproval`, `coverAssetId`); one document per wedding (Database Design §6.17). Albums are plain CRUD over `galleryAlbums` (§6.18); `DELETE` requires the same "move to root or delete its assets" choice as guest groups (§8.1) and event deletion.
 
-### 12.2 The direct-to-S3 upload flow (member)
+### 12.2 The direct-to-R2 upload flow (member)
 
 This is the API's mirror of Database Design §6.19's five-step lifecycle. Three calls, not one, because the file bytes never pass through this API (Architecture §3.6, §25):
 
@@ -907,9 +907,9 @@ This is the API's mirror of Database Design §6.19's five-step lifecycle. Three 
 2. Browser PUTs the file bytes directly to `uploadUrl` — never touches this API.
 
 3. POST /assets/:assetId/confirm
-   → server verifies the S3 object exists and its size/type match what was declared
+   → server verifies the R2 object exists and its size/type match what was declared
    → status → "active" (member upload) — matches Database Design §6.19's lifecycle diagram
-   → 200 with the full asset record, including its CloudFront delivery URL
+   → 200 with the full asset record, including a short-lived signed download URL
 ```
 
 **Why three calls and not one:** a single `POST /assets` with the file inline would mean the file travels through the Next.js function (slow, costly, and against Architecture §25's "direct media storage" principle) or would require multipart handling this API deliberately avoids. **Drawback:** the client must handle a two-network-hop flow and the "confirm never called" case. **Mitigation:** the `pending_upload` TTL index (Database Design §8.5) cleans up abandoned rows after 24 hours automatically — no client-side retry logic is load-bearing for correctness, only for UX.
@@ -920,7 +920,7 @@ Cursor-paginated, served by `{weddingId, albumId, status, _id}` (Database Design
 
 ### 12.4 `PATCH/DELETE /assets/:assetId`
 
-`PATCH` allows `caption`, `visibility`, `albumId` (move between albums, same wedding validated). `DELETE` soft-deletes the row — the S3 object is **not** deleted immediately (it's deleted only at wedding-purge time, Database Design §10.1) — so a photo can be restored within the normal wedding-restore window if deleted by mistake.
+`PATCH` allows `caption`, `visibility`, `albumId` (move between albums, same wedding validated). `DELETE` soft-deletes the row — the R2 object is **not** deleted immediately (it's deleted only at wedding-purge time, Database Design §10.1) — so a photo can be restored within the normal wedding-restore window if deleted by mistake.
 
 ### 12.5 `POST /assets/:assetId/moderate`
 
@@ -941,9 +941,21 @@ Only meaningful for `status: pending_review` (guest uploads under `requireUpload
 
 ### 12.7 Guest-facing gallery routes (`/api/public/gallery/:token`)
 
-`GET` returns a paginated asset list scoped to the token's `albumId` (or the whole gallery) and `permissions.canView`, with only the whitelist fields from Database Design §11.2: `id`, a CloudFront URL, `mediaType`, `caption`, `width/height` — never `uploadedBy.userId`, `objectKey`, or `weddingId`.
+`GET` returns a paginated asset list scoped to the token's `albumId` (or the whole gallery) and `permissions.canView`, with only the whitelist fields from Database Design §11.2: `id`, a short-lived signed R2 URL, `mediaType`, `caption`, `width/height` — never `uploadedBy.userId`, `objectKey`, or `weddingId`.
 
 If `permissions.canUpload`, the same two-call presigned flow as §12.2 is available under the token (no session): `POST .../upload-url` then `POST .../assets/:assetId/confirm`. The created asset's `uploadedBy` is `{ kind: "guest", guestId: token.guestId ?? null, displayName: <from request body if the token has no guestId> }` and its `status` becomes `pending_review` if the gallery's `requireUploadApproval` is on, else `active` directly (Database Design §6.19's upload lifecycle, guest branch).
+
+---
+
+**Implementation notes (built 2026-10-11, Phase 6 steps 6.0 to 6.2; screens pending).**
+
+- Storage is Cloudflare R2 (Architecture Amendment A1): **no CloudFront**. Photos are shown through presigned URLs valid for an hour; `GET /assets` and the guest list return `url` and `downloadUrl` per photo. The browser's PUT goes to R2 (or, in development, to the signed `/api/v1/storage/local/<key>` address).
+- Routes as in §12 with these specifics: `GET /gallery` answers defaults (`gallery.id: null`) until the gallery exists and never creates it; `GET /assets` is cursor-paginated (newest first) with filters `albumId` (an id or `root`), `favorite=true`, `status` (waiting and rejected photos for owners and admins only); `DELETE /albums/:id` requires body `{photos: "move_to_root" | "delete"}` and answers `{photosMoved, photosRemoved}`; a photo's `PATCH` takes `caption`, `visibility`, `albumId`, `isFavorite` + `version`.
+- **Upload (§12.2):** `POST /assets/upload-url` accepts only JPEG, PNG, WebP and HEIC/HEIF up to 15 MB and refuses (`422`, `details.code STORAGE_FULL`) past the wedding's 2 GB; `confirm` reads the stored object back: it must exist, be no larger than announced and start with the bytes of the announced type, otherwise the file and pending row are removed and the answer is `422`. A file smaller than announced is kept with its real size.
+- Deleting a photo, or rejecting a guest's, also removes its file. Deleting an event unlinks its albums (`albumsUnlinked`).
+- **Guest routes (§12.7):** `GET /public/gallery/:token` returns `{coupleNames, title, albumTitle, canView, canUpload, canDownload, uploadsNeedApproval, photos[]}` with `meta` cursor; each photo is `{id, url, downloadUrl|null, caption, width, height}` and nothing else. `canUpload` is true only if the link allows it AND the gallery has guest uploads on. Guest `upload-url` takes `{fileName, mimeType, sizeBytes, displayName?}` only; `confirm` answers `{id, awaitingApproval}` and only works for photos that very link announced. Rate limits: lookups 120 per 15 minutes per visitor; uploads 60 per hour per visitor and 600 per hour per link.
+- Shared links (§12.6) are `gallery:manage`; `POST` returns the plain `shareUrl` and the list shows the same URL from the encrypted copy; `DELETE` revokes (idempotent).
+- Development only: `PUT` and `GET /storage/local/<key>?op=&exp=&sig=` (see PROJECT_STATUS.md §8).
 
 ---
 
@@ -1024,7 +1036,7 @@ Every request logs the fields from Architecture §37/§38: `timestamp`, `level`,
 | 5 | Batch invitation send is a single synchronous `POST` that loops internally | A very large guest list could make the request slow, and V1 has no background worker to hand it off to | Real async job queue (BullMQ) | Architecture explicitly excludes queues/workers in V1 (§53); batch size (10 at a time) keeps individual calls fast enough for realistic wedding guest counts |
 | 6 | `404` used to hide "wrong wedding" vs. "doesn't exist" vs. "deleted" | Slightly less debuggable from the outside (a legitimate client bug looks identical to a malicious probe) | Return distinct codes for each case | Information-hiding matters more than debuggability for cross-tenant isolation (Database Design §9.2) |
 | 7 | MongoDB-backed rate-limit counters, not Redis | Extra write per sensitive request | Redis, or pure platform/edge rate limiting | No new infrastructure category; stays portable to ECS/Fargate later |
-| 8 | Three-call direct-to-S3 upload flow | More client-side state to manage than a single upload endpoint | Proxy the upload through the API | Matches Architecture §25's direct-to-S3 principle; keeps large file bytes off the Next.js function entirely |
+| 8 | Three-call direct-to-R2 upload flow | More client-side state to manage than a single upload endpoint | Proxy the upload through the API | Matches Architecture §25's direct-to-R2 principle; keeps large file bytes off the Next.js function entirely |
 | 9 | No generic `Idempotency-Key` header | A client can't get idempotency for granted on arbitrary new endpoints without the API team adding one | Add a generic idempotency-key mechanism up front | Every retry-sensitive action in V1 already has its own natural guard (§2.8); revisit if new endpoints without one appear |
 
 ---
@@ -1053,7 +1065,7 @@ Mirrors the format of Database Design §15; several items reference decisions st
 - Every wedding-scoped route requires membership **and** role, mirroring Architecture §12's four checks.
 - The frontend never talks to MongoDB, Google, or the email provider directly — every external call is server-mediated (Google Places §9.2, Google OAuth §4.4, email §8.6–§8.7).
 - No GraphQL, WebSockets, background workers, or queues anywhere in this design (§14.5), matching Architecture §53's exclusion list.
-- File uploads go directly browser→S3 with only metadata through the API (§12.2), matching Architecture §25.
+- File uploads go directly browser→R2 with only metadata through the API (§12.2), matching Architecture §25.
 - Error responses never include stack traces or provider secrets (§2.5, §4.4); sensitive endpoints (login, signup, password reset, OAuth, invitation acceptance, RSVP token operations) are enumerated with rate limits matching Architecture §39's list.
 
 ### 17.2 Additions and deviations that need explicit approval
@@ -1065,7 +1077,7 @@ Mirrors the format of Database Design §15; several items reference decisions st
 | `rateLimitCounters` collection | Addition beyond the Database Design's 21 collections | Makes Architecture §40 ("small application-level counters... database-backed counters only where justified") concrete without Redis |
 | `/api/public/…` path convention for guest/public routes | Addition | Architecture doesn't prescribe a URL convention for token-based routes beyond the `/invite/<token>`-style examples; this document generalizes that pattern to a `/api/public/` prefix for API routes specifically (the guest-facing *pages* like `/rsvp/<token>` remain frontend routes, not API routes, and call the corresponding `/api/public/...` endpoint) |
 | `404` (not `403`) for cross-wedding/soft-deleted resources | Refinement | Architecture §12 says "never" for hidden UI controls but doesn't specify the API error code; this document picks the information-hiding option |
-| Three-call S3 upload flow (`upload-url` → S3 PUT → `confirm`) | Concretization | Architecture §25 diagrams this flow at a high level; this document pins down the exact endpoint boundaries |
+| Three-call R2 upload flow (`upload-url` → R2 PUT → `confirm`) | Concretization | Architecture §25 diagrams this flow at a high level; this document pins down the exact endpoint boundaries |
 | Batch invitation endpoint with internal chunking | Concretization | Architecture §29 describes the batching pattern narratively; this document turns it into one concrete endpoint |
 
 ---

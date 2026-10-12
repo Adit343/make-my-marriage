@@ -28,7 +28,7 @@
 1. Open the project folder in Claude Code (the four design docs, `PROJECT_STATUS.md` and this file are
    imported automatically through `CLAUDE.md`).
 2. If working on a new machine, follow `PROJECT_STATUS.md` §3 (Node 24, `npm ci`, `.env.local`, branch `dev`, Stitch MCP).
-3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **1,051 passing**).
+3. Confirm the baseline is healthy: `git status` clean on `dev`, then `npm run typecheck`, `npm run lint`, `npm test` (expect **1,180 passing**).
 4. Start the next piece of work with a prompt like:
 
    > Read `docs/PROJECT_STATUS.md` and `docs/FUTURE_PLANS.md`. Phase 5 is complete (website and live
@@ -90,7 +90,7 @@ These come from `CLAUDE.md`, the architecture and the working agreement. Repeat 
 | 3     | Guests & Invitations    | guestGroups, guests, rsvps (emailLogs already exists)    | **Done** (steps 3.1 to 3.5). Real guest email needs a verified Resend domain in practice; WhatsApp, copy link and "invited in person" work today |
 | 4     | Financials & Vendors    | expenses, vendors, vendorPayments                        | **Done** (steps 4.1 to 4.4)                             |
 | 5     | Wedding Experience      | weddingWebsites, liveStreams                             | **Done** (built and verified 2026-10-11; commit pending) |
-| 6     | Memories                | galleries, galleryAlbums, galleryAssets, galleryAccessTokens | Not started; needs AWS                              |
+| 6     | Memories                | galleries, galleryAlbums, galleryAssets, galleryAccessTokens | **In progress:** 6.0 to 6.2 built (Cloudflare R2, storage layer, gallery backend); 6.3 screens wait for Stitch designs |
 | 7     | Product Readiness       | none                                                     | Not started                                             |
 
 Each phase's exit condition (PRD §36) is quoted below. Suggested step numbering mirrors Phase 1:
@@ -282,6 +282,8 @@ New env var: **`GOOGLE_PLACES_API_KEY`** (server-side only; also set in Vercel).
 
 ## 8. Phase 6: Memories
 
+> **Architecture change (2026-10-11, owner decision):** media storage is **Cloudflare R2**, not S3 + CloudFront (Architecture Amendment A1). Wherever this section says S3, CloudFront or AWS, read R2: presigned URLs replace CloudFront signing, `aws4fetch` signs requests, there is no AWS account. **V1 is photos only, 15 MB per photo, 2 GB per wedding.** **Built 2026-10-11 (not yet committed): 6.0 docs, 6.1 storage layer (R2 provider and a disk-backed local provider), 6.2 gallery backend** (details and choices in `PROJECT_STATUS.md` §13 and §14.2). **Next: 6.3 the gallery screens, from the owner's Stitch designs; then 6.4 the website cover image (`heroAssetId`, public photos only) and 6.5 the review** (accessibility, real-browser run against the local store, QR codes with `qrcode-generator`, client-side photo shrinking before upload). **Still to do outside 6.3:** the purge script must delete a wedding's R2 objects by prefix (Phase 7); a one-off test against a real R2 bucket once the owner creates one.
+
 **Goal:** the collaborative photo layer. **Exit condition:** "Wedding participants can collectively build and share organized wedding memories, while guests can contribute photos through controlled links."
 
 ### 8.1 Scope (PRD §26, §36)
@@ -397,8 +399,10 @@ Ask these when the relevant phase starts (recommendations in brackets are the AI
 | 10 | 4     | ~~What Google Places data may be stored~~ **Decided: the place id and what the member confirms or types; no coordinates from Google (2026-10-11)** | (done) |
 | 11 | 5     | ~~Livestream end time~~ **Decided: not added (2026-10-11)**; status is set by hand, the page needs no end time    | (done)                                                    |
 | 12 | 5     | ~~Slug history/redirects~~ **Decided: none in V1 (2026-10-11)**; the editor warns that changing the address breaks old links | (done)                                          |
-| 13 | 6     | Per-wedding storage quota and file limits                                                                        | A few GB; check before issuing upload URLs               |
-| 14 | 6     | Favourites; keep `galleries` collection; QR library dependency                                                   | Keep collection; ask before adding a QR dependency        |
+| 13 | 6     | ~~Per-wedding storage quota and file limits~~ **Decided 2026-10-11: 2 GB per wedding, 15 MB per photo, photos only (no video)** | (done) |
+| 13b | 6    | Per-wedding storage quota and file limits                                                                        | A few GB; check before issuing upload URLs               |
+| 14 | 6     | ~~Favourites; QR library~~ **Decided 2026-10-11: favourites built (`isFavorite`); QR library `qrcode-generator` approved (install in 6.3); `galleries` stays a collection** | (done) |
+| 14b | 6    | Favourites; keep `galleries` collection; QR library dependency                                                   | Keep collection; ask before adding a QR dependency        |
 | 15 | 7     | Monitoring/analytics tools (V1 says none external)                                                               | Owner decision                                            |
 | 16 | any   | In-app notifications scope                                                                                       | Defer unless needed                                       |
 | 17 | any   | Origin-check CSRF insurance                                                                                      | Optional                                                  |

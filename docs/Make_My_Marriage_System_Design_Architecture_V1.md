@@ -2,13 +2,16 @@
 
 **Version:** 1.0  
 **Date:** 28 September 2026  
-**Status:** V1 architecture baseline
+**Status:** V1 architecture baseline (amended 2026-10-11: media storage is Cloudflare R2, see Amendment A1)
+
+**Amendment A1 (2026-10-11, product-owner decision): media storage moves from Amazon S3 + CloudFront to Cloudflare R2.**
+R2 is S3-compatible, so the design is unchanged in shape: private bucket, short-lived presigned upload URLs, direct browser-to-bucket uploads, metadata only in MongoDB. What changes: (1) there is **no CDN signing layer**: private photos are served through short-lived **presigned GET URLs** (R2 does not charge for downloads); (2) requests are signed with the small MIT-licensed `aws4fetch` library, not the AWS SDK; (3) credentials are an R2 API token scoped to one bucket (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`); (4) **V1 stores photos only (no video)**, with a **2 GB cap per wedding** and a **15 MB cap per photo**; (5) the reason is cost: R2 has a free tier and no download fees, which fits the passion-project goal in §1. The later AWS ECS/Fargate hosting plan is unchanged. Wherever this document or the other design documents say S3 or CloudFront, read Cloudflare R2.
 
 ## 1. Executive Summary
 
 Make My Marriage is an India-first collaborative wedding-management SaaS for couples, families, and wedding organizers/planners.
 
-V1 is intentionally a **modular monolith** built with **Next.js + TypeScript**, using REST APIs, MongoDB Atlas with Mongoose, Zod validation, custom authentication, Amazon S3 + CloudFront for media, lightweight email delivery, and basic application logs.
+V1 is intentionally a **modular monolith** built with **Next.js + TypeScript**, using REST APIs, MongoDB Atlas with Mongoose, Zod validation, custom authentication, Cloudflare R2 (S3-compatible) for media, lightweight email delivery, and basic application logs.
 
 The initial deployment is **Vercel** because this is a passion project and infrastructure cost should remain as close to zero as practical. The architecture keeps the application portable so it can later move to **AWS ECS/Fargate** when the product becomes commercial or requires additional infrastructure.
 
@@ -57,8 +60,8 @@ V1 tracks vendor/expense payments manually. It does not process payments.
 3. **Server-side security:** frontend restrictions never replace authorization.
 4. **Wedding isolation:** every wedding-owned resource must be authorized against the authenticated user's membership.
 5. **MongoDB is the source of truth** for application state.
-6. **Direct media storage:** files live in S3, not MongoDB.
-7. **CDN delivery:** CloudFront serves media.
+6. **Direct media storage:** files live in Cloudflare R2, not MongoDB.
+7. **Private delivery:** photos are served through short-lived presigned URLs (no public bucket, no CDN layer in V1).
 8. **No premature distributed systems:** Redis, queues, workers and microservices are future options only.
 9. **Provider abstraction:** email, Places, OAuth and livestream integrations sit behind service interfaces.
 10. **Migration-friendly:** business logic should not depend on Vercel-specific infrastructure.
@@ -81,8 +84,8 @@ V1 tracks vendor/expense payments manually. It does not process payments.
 | Password authentication | Email/password |
 | OAuth | Custom Google OAuth/OIDC flow |
 | Session storage | MongoDB |
-| File storage | Amazon S3 |
-| CDN | Amazon CloudFront |
+| File storage | Cloudflare R2 (S3-compatible), signed with `aws4fetch` |
+| CDN | None in V1 (presigned URLs; R2 has no download fees) |
 | Email | Lightweight provider such as Resend |
 | Queue | None |
 | Background worker | None |
@@ -118,8 +121,8 @@ V1 tracks vendor/expense payments manually. It does not process payments.
           +-----------------+------------------+
           |                 |                  |
           v                 v                  v
-   MongoDB Atlas        Amazon S3         External APIs
-      Mongoose         CloudFront         Google OAuth
+   MongoDB Atlas      Cloudflare R2       External APIs
+      Mongoose                            Google OAuth
                                            Google Places
                                            Email Provider
                                            YouTube/Vimeo
@@ -811,7 +814,7 @@ Appropriate candidates include:
 Soft deletion is not an authorization mechanism; deleted records must still be inaccessible to normal operations.
 
 
-## 25. S3 + CloudFront Media Architecture
+## 25. Cloudflare R2 Media Architecture
 
 Do not store image files in MongoDB.
 
@@ -822,13 +825,15 @@ Browser
  ↓
 Next.js API
  ↓
-Authorization check
+Authorization check (member session or gallery link)
  ↓
-Short-lived S3 upload URL
+Short-lived presigned R2 upload URL
  ↓
-Browser uploads directly to S3
+Browser uploads directly to R2
  ↓
-CloudFront delivers media
+Browser calls "confirm"; the server checks the object
+ ↓
+Photos are shown through short-lived presigned R2 download URLs
 ```
 
 Store metadata in MongoDB:
@@ -847,9 +852,19 @@ GalleryAsset
 - deletedAt
 ```
 
-The S3 bucket should not be public.
+The R2 bucket must not be public and must not allow listing.
 
-For private media, use CloudFront signed URLs/cookies and appropriate S3 origin access controls.
+Rules for uploads (V1):
+
+- **Photos only**: JPEG, PNG, WebP, HEIC/HEIF. No video in V1.
+- **15 MB per photo** and **2 GB per wedding**, both checked before an upload URL is issued and again when the upload is confirmed.
+- Object keys are generated by the server (`weddings/<weddingId>/gallery/<assetId>/<random>.<ext>`), never from user input.
+- On confirm the server reads the object's size and content type from R2 and the first bytes of the file, and rejects (and deletes) anything whose real type, size or signature does not match what was declared.
+- Download URLs are short-lived (about an hour) and are only issued after the same authorization check as the API route.
+
+Local development and tests use a storage provider with the same interface that keeps files on disk, so no Cloudflare account is needed to develop or run the test suite.
+
+An R2 lifecycle rule on the `pending/`-style prefix can remove abandoned uploads; without it the metadata TTL still cleans the database and orphaned objects are removed by the purge script.
 
 
 ## 26. No Image-Processing Pipeline
@@ -863,7 +878,7 @@ V1 intentionally has no:
 - Video transcoding service
 - Media microservice
 
-The initial implementation stores the original uploaded asset and serves it through CloudFront.
+The initial implementation stores the original uploaded asset and serves it through presigned R2 URLs.
 
 Optimization can be introduced later if real usage demonstrates the need.
 
@@ -1101,7 +1116,7 @@ Use:
 - Proper indexes
 - Next.js caching where appropriate
 - HTTP caching where appropriate
-- CloudFront caching for media
+- Private, cacheable-in-the-browser presigned media URLs
 
 ### Future
 
@@ -1181,9 +1196,9 @@ Minimum requirements:
 - Rate limiting for sensitive endpoints
 - Secure HTTP headers
 - No secrets in frontend bundles
-- Private S3 bucket
-- CloudFront access controls for private media
-- Least-privilege AWS credentials
+- Private R2 bucket (no public access, no listing)
+- Short-lived presigned URLs for private media
+- A bucket-scoped, least-privilege R2 API token
 - Safe error responses
 
 Sensitive endpoints include:
@@ -1234,8 +1249,10 @@ MONGODB_URI
 SESSION_SECRET
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
-AWS credentials/configuration
-CLOUDFRONT signing configuration
+R2_ACCOUNT_ID
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
+R2_BUCKET
 RESEND_API_KEY
 ```
 
@@ -1353,8 +1370,8 @@ Priorities:
 3. Pagination
 4. Avoid N+1 queries
 5. Lean queries where appropriate
-6. Direct S3 uploads
-7. CloudFront media delivery
+6. Direct R2 uploads
+7. Presigned media delivery
 8. Lazy-load gallery content
 9. Small API payloads
 
@@ -1412,7 +1429,7 @@ Examples:
 
 - Google Places unavailable
 - Email provider unavailable
-- S3 unavailable
+- R2 unavailable
 - Google OAuth unavailable
 
 The application should:
@@ -1460,7 +1477,7 @@ MongoDB Atlas backup/recovery should be used according to the selected Atlas pla
 
 The application should not build a custom backup service in V1.
 
-S3 retention/lifecycle policies can be introduced as media volume grows.
+R2 lifecycle policies can be introduced as media volume grows.
 
 
 
@@ -1516,8 +1533,7 @@ S3 retention/lifecycle policies can be introduced as media volume grows.
 
 ### Phase 6 — Memories
 
-- S3
-- CloudFront
+- Cloudflare R2
 - Gallery
 - Albums
 - Guest uploads
@@ -1585,8 +1601,8 @@ Transportation management
           +-----------------+------------------+
           |                 |                  |
           v                 v                  v
-   MongoDB Atlas        Amazon S3         External APIs
-      Mongoose         CloudFront         Google OAuth
+   MongoDB Atlas      Cloudflare R2       External APIs
+      Mongoose                            Google OAuth
                                            Google Places
                                            Email Provider
                                            YouTube/Vimeo
@@ -1614,8 +1630,7 @@ ECS/Fargate
      Managed Redis later if needed
 
 MongoDB Atlas
-S3
-CloudFront
+Cloudflare R2
 External providers
 ```
 
@@ -1667,8 +1682,8 @@ If this document is supplied to an AI coding agent:
 | User model | One user = one wedding |
 | Wedding model | One wedding = multiple members |
 | Guests | No accounts |
-| Storage | S3 |
-| CDN | CloudFront |
+| Storage | Cloudflare R2 (amended 2026-10-11) |
+| CDN | None in V1 (presigned URLs) |
 | Image processing | None |
 | Email | Lightweight provider + small batches |
 | Redis | No |
@@ -1699,5 +1714,6 @@ If this document is supplied to an AI coding agent:
 - Vercel Pricing: https://vercel.com/pricing
 - Mongoose TypeScript Schemas: https://mongoosejs.com/docs/typescript/schemas.html
 - Mongoose Transactions: https://mongoosejs.com/docs/transactions.html
-- AWS CloudFront Signed URLs: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-signed-urls.html
-- AWS CloudFront Private Content: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-overview.html
+- Cloudflare R2 presigned URLs: https://developers.cloudflare.com/r2/api/s3/presigned-urls/
+- Cloudflare R2 S3 API compatibility: https://developers.cloudflare.com/r2/api/s3/api/
+- aws4fetch: https://github.com/mhart/aws4fetch

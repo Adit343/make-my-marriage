@@ -5,6 +5,10 @@
 import "@/models/emailLog.model";
 import "@/models/event.model";
 import "@/models/expense.model";
+import "@/models/gallery.model";
+import "@/models/galleryAccessToken.model";
+import "@/models/galleryAlbum.model";
+import "@/models/galleryAsset.model";
 import "@/models/guest.model";
 import "@/models/guestGroup.model";
 import "@/models/liveStream.model";

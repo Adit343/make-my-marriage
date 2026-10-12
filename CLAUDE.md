@@ -22,7 +22,7 @@ they access everything through secure tokenized links.
   parameter — no findById() without it
 - No Redis, no background workers/queues, no WebSockets, no GraphQL in V1
 - Stack: Next.js + TypeScript, MongoDB Atlas + Mongoose, Zod validation,
-  S3 + CloudFront for media (metadata only in MongoDB)
+  Cloudflare R2 for media (metadata only in MongoDB; changed from S3 + CloudFront on 2026-10-11 by the owner, see Architecture Amendment A1)
 - Code formatting: Prettier is the project standard (already used in the editor) —
   include a committed .prettierrc so formatting is consistent for anyone working
   on this repo, not just locally in the editor

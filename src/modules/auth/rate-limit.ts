@@ -33,6 +33,11 @@ export const RATE_LIMITS = {
   // and the watch page re-checks its status about once a minute while it is open.
   siteLookup: { limit: 120, windowSeconds: 15 * 60 },
   liveLookup: { limit: 150, windowSeconds: 15 * 60 },
+  // The guest gallery page and its photos (a guest with a shared link), per IP; and guest uploads.
+  galleryLookup: { limit: 120, windowSeconds: 15 * 60 },
+  galleryUpload: { limit: 60, windowSeconds: 60 * 60 },
+  // ...and per shared link, so one QR code on a wedding table can serve a whole party.
+  galleryUploadLink: { limit: 600, windowSeconds: 60 * 60 },
   // Checking whether a website address is free, per wedding.
   slugCheck: { limit: 120, windowSeconds: 60 * 60 },
 } satisfies Record<string, RateLimit>;

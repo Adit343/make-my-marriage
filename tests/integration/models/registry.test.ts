@@ -53,6 +53,22 @@ const EXPECTED_INDEXES: Record<string, string[]> = {
   rateLimitCounters: ["keyHash_1_windowStart_1 unique", "expiresAt_1 ttl=0"],
   weddingWebsites: ["weddingId_1 unique partial", "slug_1 unique partial"],
   liveStreams: ["weddingId_1_startTime_1", "link.tokenHash_1 unique partial"],
+  galleries: ["weddingId_1 unique partial"],
+  galleryAlbums: ["weddingId_1_galleryId_1_sortOrder_1", "weddingId_1_eventId_1"],
+  galleryAssets: [
+    "objectKey_1 unique",
+    "weddingId_1_albumId_1_status_1__id_-1",
+    "weddingId_1_status_1__id_-1",
+    "weddingId_1_status_1_createdAt_1",
+    "weddingId_1__id_-1_favorites partial",
+    "createdAt_1_pending_ttl partial ttl=86400",
+  ],
+  galleryAccessTokens: [
+    "tokenHash_1 unique",
+    "weddingId_1_galleryId_1",
+    "weddingId_1__id_-1",
+    "purgeAt_1 partial ttl=0",
+  ],
 };
 
 setupTestDatabase();

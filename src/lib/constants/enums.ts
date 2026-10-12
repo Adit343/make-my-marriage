@@ -167,3 +167,16 @@ export type StreamProvider = (typeof STREAM_PROVIDERS)[number];
 
 export const STREAM_STATUSES = ["scheduled", "live", "ended", "cancelled"] as const;
 export type StreamStatus = (typeof STREAM_STATUSES)[number];
+
+// Phase 6 — Memories (DB Design Appendix A). Photos only in V1: MEDIA_TYPES keeps room for video.
+export const MEDIA_VISIBILITIES = ["private", "guests", "public"] as const;
+export type MediaVisibility = (typeof MEDIA_VISIBILITIES)[number];
+
+export const MEDIA_TYPES = ["image"] as const;
+export type MediaType = (typeof MEDIA_TYPES)[number];
+
+export const ASSET_STATUSES = ["pending_upload", "pending_review", "active", "rejected"] as const;
+export type AssetStatus = (typeof ASSET_STATUSES)[number];
+
+export const UPLOADER_KINDS = ["member", "guest"] as const;
+export type UploaderKind = (typeof UPLOADER_KINDS)[number];

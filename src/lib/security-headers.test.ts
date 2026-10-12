@@ -29,6 +29,17 @@ describe("contentSecurityPolicy", () => {
     expect(directive(production, "frame-src")).not.toContain("*");
   });
 
+  it("allows the photo store only when one is configured, and only for images and uploads", () => {
+    const origin = "https://abc123.r2.cloudflarestorage.com";
+    const configured = contentSecurityPolicy({ development: false, mediaOrigin: origin });
+    expect(directive(configured, "img-src")).toContain(origin);
+    expect(directive(configured, "connect-src")).toContain(origin);
+    for (const name of ["default-src", "script-src", "style-src", "font-src", "frame-src"]) {
+      expect(directive(configured, name), name).not.toContain(origin);
+    }
+    expect(production).not.toContain("r2.cloudflarestorage.com");
+  });
+
   it("allows only Google Fonts as a stylesheet and font third party", () => {
     expect(directive(production, "style-src")).toContain("https://fonts.googleapis.com");
     expect(directive(production, "font-src")).toContain("https://fonts.gstatic.com");

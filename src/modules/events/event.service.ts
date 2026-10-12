@@ -5,6 +5,7 @@ import type { WeddingAuth } from "@/modules/members/guards";
 import { can } from "@/modules/members/permissions";
 import { softDeleteRsvpsForEvent } from "@/modules/guests/rsvp.repository";
 import { unlinkExpensesFromEvent } from "@/modules/expenses/expense.repository";
+import { unlinkAlbumsFromEvent } from "@/modules/gallery/gallery.repository";
 import { unlinkStreamsFromEvent } from "@/modules/livestream/stream.repository";
 import { unlinkTasksFromEvent } from "@/modules/tasks/task.repository";
 import { removeEventFromWebsite } from "@/modules/website/website.repository";
@@ -121,8 +122,8 @@ export async function deleteEvent(auth: WeddingAuth, eventId: string) {
   if (!canManage(auth, existing)) throw new AppError("INSUFFICIENT_ROLE");
 
   const at = new Date();
-  const { tasksUnlinked, rsvpsRemoved, expensesUnlinked, streamsUnlinked } = await withTransaction(
-    async (session) => {
+  const { tasksUnlinked, rsvpsRemoved, expensesUnlinked, streamsUnlinked, albumsUnlinked } =
+    await withTransaction(async (session) => {
       if (!(await softDeleteEvent(auth.weddingId, eventId, { by: auth.userId, at }, session))) {
         throw new AppError("NOT_FOUND");
       }
@@ -132,6 +133,7 @@ export async function deleteEvent(auth: WeddingAuth, eventId: string) {
         tasksUnlinked: await unlinkTasksFromEvent(auth.weddingId, eventId, session),
         expensesUnlinked: await unlinkExpensesFromEvent(auth.weddingId, eventId, session),
         streamsUnlinked: await unlinkStreamsFromEvent(auth.weddingId, eventId, session),
+        albumsUnlinked: await unlinkAlbumsFromEvent(auth.weddingId, eventId, session),
         rsvpsRemoved: await softDeleteRsvpsForEvent(
           auth.weddingId,
           eventId,
@@ -139,8 +141,7 @@ export async function deleteEvent(auth: WeddingAuth, eventId: string) {
           session,
         ),
       };
-    },
-  );
+    });
   return {
     id: eventId,
     deletedAt: at.toISOString(),
@@ -148,5 +149,6 @@ export async function deleteEvent(auth: WeddingAuth, eventId: string) {
     rsvpsRemoved,
     expensesUnlinked,
     streamsUnlinked,
+    albumsUnlinked,
   };
 }

@@ -23,6 +23,8 @@ describe("role matrix", () => {
     "vendors:manage": [true, true, false],
     "website:manage": [true, true, false],
     "livestream:edit": [true, true, true],
+    "gallery:edit": [true, true, true],
+    "gallery:manage": [true, true, false],
   };
 
   it.each(Object.entries(expected) as [Permission, boolean[]][])("%s", (permission, allowed) => {

@@ -26,8 +26,26 @@ const envSchema = z
     GOOGLE_PLACES_API_KEY: optionalString,
     RESEND_API_KEY: optionalString,
     EMAIL_FROM: optionalString,
+    // Cloudflare R2 photo storage (Architecture Amendment A1). All four or none: without them the
+    // gallery stores photos on this machine's disk in development and tests, and refuses to run in
+    // production.
+    R2_ACCOUNT_ID: optionalString,
+    R2_ACCESS_KEY_ID: optionalString,
+    R2_SECRET_ACCESS_KEY: optionalString,
+    R2_BUCKET: optionalString,
+    // Where the development photo store keeps files; defaults to .local-storage in the project.
+    LOCAL_STORAGE_DIR: optionalString,
   })
   .superRefine((env, ctx) => {
+    const r2 = [env.R2_ACCOUNT_ID, env.R2_ACCESS_KEY_ID, env.R2_SECRET_ACCESS_KEY, env.R2_BUCKET];
+    if (r2.some(Boolean) && !r2.every(Boolean)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["R2_BUCKET"],
+        message:
+          "Set all of R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and R2_BUCKET, or none",
+      });
+    }
     if (env.NODE_ENV === "production" && !env.TOKEN_ENCRYPTION_KEY) {
       ctx.addIssue({
         code: "custom",

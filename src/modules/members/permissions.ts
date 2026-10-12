@@ -61,6 +61,13 @@ export const PERMISSIONS = {
    * so whoever is at the venue can press Live).
    */
   "livestream:edit": EVERYONE,
+  /**
+   * Upload photos, make and edit albums, favourite and caption photos, and delete the ones you
+   * uploaded (the service checks who uploaded it). Every role (API Design §12).
+   */
+  "gallery:edit": EVERYONE,
+  /** Gallery settings, approving guest photos, deleting anyone's photo or album, and sharing links and QR codes. */
+  "gallery:manage": ADMIN_UP,
 } as const satisfies Record<string, readonly MemberRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

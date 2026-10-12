@@ -31,3 +31,6 @@ npm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# development photo store (Phase 6)
+.local-storage

@@ -132,6 +132,25 @@ const INVENTORY: Record<string, Access> = {
   "DELETE /api/v1/weddings/[weddingId]/livestreams/[streamId]": "wedding:livestream:edit",
   "POST /api/v1/weddings/[weddingId]/livestreams/[streamId]/link/rotate": "wedding:livestream:edit",
 
+  // Phase 6: the photo gallery. Every role can look; making albums, uploading, captioning and
+  // favouring photos is gallery:edit (every role; the service lets a member delete only what they
+  // made); settings, approving guest photos and shared links/QR codes are gallery:manage (admin+).
+  "GET /api/v1/weddings/[weddingId]/gallery": "wedding:wedding:view",
+  "PATCH /api/v1/weddings/[weddingId]/gallery": "wedding:gallery:manage",
+  "GET /api/v1/weddings/[weddingId]/albums": "wedding:wedding:view",
+  "POST /api/v1/weddings/[weddingId]/albums": "wedding:gallery:edit",
+  "PATCH /api/v1/weddings/[weddingId]/albums/[albumId]": "wedding:gallery:edit",
+  "DELETE /api/v1/weddings/[weddingId]/albums/[albumId]": "wedding:gallery:edit",
+  "GET /api/v1/weddings/[weddingId]/assets": "wedding:wedding:view",
+  "POST /api/v1/weddings/[weddingId]/assets/upload-url": "wedding:gallery:edit",
+  "PATCH /api/v1/weddings/[weddingId]/assets/[assetId]": "wedding:gallery:edit",
+  "DELETE /api/v1/weddings/[weddingId]/assets/[assetId]": "wedding:gallery:edit",
+  "POST /api/v1/weddings/[weddingId]/assets/[assetId]/confirm": "wedding:gallery:edit",
+  "POST /api/v1/weddings/[weddingId]/assets/[assetId]/moderate": "wedding:gallery:manage",
+  "GET /api/v1/weddings/[weddingId]/access-tokens": "wedding:gallery:manage",
+  "POST /api/v1/weddings/[weddingId]/access-tokens": "wedding:gallery:manage",
+  "DELETE /api/v1/weddings/[weddingId]/access-tokens/[tokenId]": "wedding:gallery:manage",
+
   // Token routes: the secret in the path is the credential (hash lookup, rate limited).
   "GET /api/v1/public/invitations/[token]": "public",
   // A guest's personal RSVP link (no account). The token is the credential; every unusable link is
@@ -142,6 +161,11 @@ const INVENTORY: Record<string, Access> = {
   // page (the link is the credential). Both are hand-built whitelists; every unusable one is one answer.
   "GET /api/v1/public/websites/[slug]": "public",
   "GET /api/v1/public/live/[token]": "public",
+  // A shared gallery link (no account): view, and upload when the link and the gallery allow it. The
+  // link is the credential; every unusable link is the same 403; photos are a hand-built whitelist.
+  "GET /api/v1/public/gallery/[token]": "public",
+  "POST /api/v1/public/gallery/[token]/upload-url": "public",
+  "POST /api/v1/public/gallery/[token]/assets/[assetId]/confirm": "public",
   "POST /api/v1/invitations/accept": "session",
 };
 
@@ -250,11 +274,33 @@ describe("API route inventory", () => {
         "/api/v1/weddings/[weddingId]/website",
         "/api/v1/weddings/[weddingId]/website/slug-check",
         "/api/v1/weddings/[weddingId]/livestreams",
+        "/api/v1/weddings/[weddingId]/gallery",
+        "/api/v1/weddings/[weddingId]/albums",
+        "/api/v1/weddings/[weddingId]/assets",
+        "/api/v1/weddings/[weddingId]/access-tokens",
         "/api/v1/public/invitations/[token]",
         "/api/v1/public/rsvp/[token]",
         "/api/v1/public/websites/[slug]",
         "/api/v1/public/live/[token]",
+        "/api/v1/public/gallery/[token]",
       ].sort(),
     );
+  });
+
+  it("has exactly two handlers outside the route() pipeline: the development photo store's PUT and GET", () => {
+    const raw: string[] = [];
+    for (const file of routeFiles(API_ROOT)) {
+      const source = readFileSync(file, "utf8");
+      const path = "/api/" + relative(API_ROOT, file).split(sep).slice(0, -1).join("/");
+      for (const method of METHODS) {
+        if (new RegExp(`^export (?:async )?function ${method}\\b`, "m").test(source)) {
+          raw.push(`${method} ${path}`);
+        }
+      }
+    }
+    expect(raw.sort()).toEqual([
+      "GET /api/v1/storage/local/[...key]",
+      "PUT /api/v1/storage/local/[...key]",
+    ]);
   });
 });

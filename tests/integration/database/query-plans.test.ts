@@ -4,6 +4,9 @@ import { EmailLog } from "@/models/emailLog.model";
 import { Event } from "@/models/event.model";
 import { Expense } from "@/models/expense.model";
 import { Guest } from "@/models/guest.model";
+import { GalleryAccessToken } from "@/models/galleryAccessToken.model";
+import { GalleryAlbum } from "@/models/galleryAlbum.model";
+import { GalleryAsset } from "@/models/galleryAsset.model";
 import { GuestGroup } from "@/models/guestGroup.model";
 import { LiveStream } from "@/models/liveStream.model";
 import { Rsvp } from "@/models/rsvp.model";
@@ -633,6 +636,161 @@ describe("website and live stream queries use an index and stay inside one weddi
           ...notDeleted,
         }),
       1,
+    ],
+  ];
+
+  it.each(cases)("%s", async (_label, build, maxDocs) => {
+    const result = await plan(build());
+    expect(result.stages, `plan: ${result.stages.join(" > ")}`).toContain("IXSCAN");
+    expect(result.stages).not.toContain("COLLSCAN");
+    expect(result.docsExamined).toBeLessThanOrEqual(maxDocs);
+  });
+});
+
+describe("gallery queries use an index and stay inside one wedding", () => {
+  let album: Types.ObjectId;
+  let token: string;
+
+  beforeAll(async () => {
+    await GalleryAsset.init();
+    await GalleryAlbum.init();
+    await GalleryAccessToken.init();
+    album = new Types.ObjectId();
+    const statuses = ["active", "active", "active", "pending_review", "rejected"] as const;
+    const rows = [weddingA, weddingB].flatMap((weddingId) =>
+      Array.from({ length: PER_WEDDING }, (_, i) => {
+        const id = new Types.ObjectId();
+        return {
+          _id: id,
+          weddingId,
+          galleryId: new Types.ObjectId(),
+          albumId: i % 3 === 0 ? album : null,
+          uploadedBy: { kind: "member", userId: user },
+          objectKey: `weddings/${weddingId}/gallery/${id}/${"a".repeat(20)}${String(i).padStart(4, "0")}.jpg`,
+          fileName: `IMG_${i}.jpg`,
+          mimeType: "image/jpeg",
+          sizeBytes: 1000 + i,
+          visibility: i % 2 ? "guests" : "private",
+          status: statuses[i % 5],
+          isFavorite: i % 11 === 0,
+          deletedAt: null,
+        };
+      }),
+    );
+    await GalleryAsset.collection.insertMany(rows);
+    token = "t".repeat(64);
+    await GalleryAccessToken.collection.insertMany([
+      ...Array.from({ length: 200 }, (_, i) => ({
+        weddingId: i % 2 ? weddingA : weddingB,
+        galleryId: new Types.ObjectId(),
+        tokenHash: `${"0".repeat(60)}${String(i).padStart(4, "0")}`,
+        tokenEnc: "enc",
+        permissions: { canView: true, canUpload: false, canDownload: true },
+        purgeAt: null,
+      })),
+      {
+        weddingId: weddingA,
+        galleryId: new Types.ObjectId(),
+        tokenHash: token,
+        tokenEnc: "enc",
+        permissions: { canView: true, canUpload: false, canDownload: true },
+        purgeAt: null,
+      },
+    ]);
+  });
+
+  const nd = { deletedAt: { $type: "null" as const } };
+  const cases: [string, () => { explain(verbosity: string): Promise<unknown> }, number][] = [
+    [
+      "every active photo, newest first",
+      () =>
+        GalleryAsset.find({ weddingId: weddingA, status: "active", ...nd })
+          .sort({ _id: -1 })
+          .limit(31),
+      PER_WEDDING,
+    ],
+    [
+      "the next page of every active photo",
+      () =>
+        GalleryAsset.find({
+          weddingId: weddingA,
+          status: "active",
+          _id: { $lt: new Types.ObjectId() },
+          ...nd,
+        })
+          .sort({ _id: -1 })
+          .limit(31),
+      PER_WEDDING,
+    ],
+    [
+      "an album's photos, newest first",
+      () =>
+        GalleryAsset.find({ weddingId: weddingA, albumId: album, status: "active", ...nd })
+          .sort({ _id: -1 })
+          .limit(31),
+      PER_WEDDING,
+    ],
+    [
+      "photos with no album",
+      () =>
+        GalleryAsset.find({ weddingId: weddingA, albumId: null, status: "active", ...nd })
+          .sort({ _id: -1 })
+          .limit(31),
+      PER_WEDDING,
+    ],
+    [
+      "guest-visible photos of the whole gallery (a guest link)",
+      () =>
+        GalleryAsset.find({
+          weddingId: weddingA,
+          status: "active",
+          visibility: { $in: ["guests", "public"] },
+          ...nd,
+        })
+          .sort({ _id: -1 })
+          .limit(31),
+      PER_WEDDING,
+    ],
+    [
+      "favourites, newest first",
+      () =>
+        GalleryAsset.find({ weddingId: weddingA, isFavorite: true, status: "active", ...nd }).sort({
+          _id: -1,
+        }),
+      PER_WEDDING,
+    ],
+    [
+      "the approval queue",
+      () =>
+        GalleryAsset.find({ weddingId: weddingA, status: "pending_review", ...nd })
+          .sort({ _id: -1 })
+          .limit(31),
+      PER_WEDDING,
+    ],
+    [
+      "storage used (the wedding's photos by status)",
+      () =>
+        GalleryAsset.find({
+          weddingId: weddingA,
+          status: { $in: ["pending_upload", "pending_review", "active"] },
+          ...nd,
+        }),
+      PER_WEDDING,
+    ],
+    [
+      "one photo within its wedding",
+      () => GalleryAsset.findOne({ _id: new Types.ObjectId(), weddingId: weddingA, ...nd }),
+      1,
+    ],
+    [
+      "a shared link by its hash (a guest opening it)",
+      () => GalleryAccessToken.findOne({ tokenHash: token }),
+      1,
+    ],
+    [
+      "a wedding's shared links",
+      () => GalleryAccessToken.find({ weddingId: weddingA }).sort({ _id: -1 }),
+      200,
     ],
   ];
 

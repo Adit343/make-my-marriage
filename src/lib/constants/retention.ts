@@ -18,3 +18,11 @@ export const WEDDING_PURGE_GRACE_DAYS = 30;
 
 /** A deleted account is anonymized after this grace period. */
 export const ACCOUNT_ANONYMIZE_GRACE_DAYS = 30;
+
+/** Revoked or expired gallery links are hard-deleted this long afterwards (DB Design §6.20). */
+export const GALLERY_TOKEN_PURGE_AFTER_DAYS = 30;
+
+/** When a link revoked or expiring at `at` may be removed. */
+export function galleryTokenPurgeAt(at: Date): Date {
+  return new Date(at.getTime() + GALLERY_TOKEN_PURGE_AFTER_DAYS * DAY_SECONDS * 1000);
+}
