@@ -122,8 +122,7 @@ Take an Atlas snapshot before the first real purge. Both jobs are safe to repeat
 
 ## 7. Before you call it launched
 
-- [ ] Legal pages: replace the drafts at `/terms` and `/privacy` with lawyer-reviewed text and add a real
-      contact address (marked `[contact email to be added before launch]`).
+- [ ] Legal pages: replace the drafts at `/terms` and `/privacy` with lawyer-reviewed text (the contact address is already set to shahadit68@gmail.com).
 - [ ] Resend sending domain verified; send yourself an invitation and a reset email.
 - [ ] The R2 CORS rule works for the production address (the manual photo upload above).
 - [ ] Atlas backups on; restore drill done.

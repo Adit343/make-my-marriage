@@ -71,8 +71,8 @@ export default function TermsPage() {
 
       <h2>Changes and contact</h2>
       <p>
-        We may update these terms and will tell you about important changes. Questions: [contact
-        email to be added before launch].
+        We may update these terms and will tell you about important changes. Questions:
+        shahadit68@gmail.com.
       </p>
     </LegalPage>
   );

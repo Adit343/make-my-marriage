@@ -92,12 +92,13 @@ export default function PrivacyPage() {
           wedding.
         </li>
         <li>
-          No system is perfectly secure. If you find a problem, please tell us at the address below.
+          No system is perfectly secure. If you find a problem, please tell us at the address in the
+          Contact section below.
         </li>
       </ul>
 
       <h2>Contact</h2>
-      <p>[contact email to be added before launch]</p>
+      <p>shahadit68@gmail.com</p>
     </LegalPage>
   );
 }
