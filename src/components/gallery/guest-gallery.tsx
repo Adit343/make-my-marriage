@@ -17,7 +17,7 @@ export function GuestHeader({ names, label }: { names: string; label?: string })
     <header className="bg-[#1F4D3D] px-5 py-4 text-center text-[#FAF6F0]">
       <p className="font-headline-sm text-headline-sm font-normal tracking-wide">{names}</p>
       {label ? (
-        <p className="font-label-sm text-label-sm tracking-widest text-[#FAF6F0]/70 uppercase">
+        <p className="font-label-sm text-label-sm tracking-widest text-[#FAF6F0]/85 uppercase">
           {label}
         </p>
       ) : null}

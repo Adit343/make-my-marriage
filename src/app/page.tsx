@@ -344,7 +344,7 @@ export default function LandingPage() {
               See how it works
             </a>
           </div>
-          <p className="mb-16 flex items-center justify-center gap-2 font-body-sm text-body-sm text-on-surface-variant/75">
+          <p className="mb-16 flex items-center justify-center gap-2 font-body-sm text-body-sm text-on-surface-variant">
             <Icon name="verified_user" className="text-[16px] text-primary" />
             No credit card required • Instant setup for couples &amp; planners
           </p>

@@ -81,16 +81,16 @@ export default async function OnboardingPage() {
           <div className="grid grid-cols-2 gap-4 border-t border-[#FAF6F0]/15 pt-6 text-xs">
             <div>
               <p className="mb-0.5 text-sm font-semibold text-[#FAF6F0]">Role-Isolated</p>
-              <p className="text-[#FAF6F0]/70">Budgets stay private to wedding owners.</p>
+              <p className="text-[#FAF6F0]/85">Budgets stay private to wedding owners.</p>
             </div>
             <div>
               <p className="mb-0.5 text-sm font-semibold text-[#FAF6F0]">Single Source</p>
-              <p className="text-[#FAF6F0]/70">Replaces chaotic WhatsApp chats &amp; sheets.</p>
+              <p className="text-[#FAF6F0]/85">Replaces chaotic WhatsApp chats &amp; sheets.</p>
             </div>
           </div>
         </div>
 
-        <div className="relative z-10 flex items-center justify-between border-t border-[#FAF6F0]/10 pt-6 text-xs text-[#FAF6F0]/60">
+        <div className="relative z-10 flex items-center justify-between border-t border-[#FAF6F0]/10 pt-6 text-xs text-[#FAF6F0]/85">
           <span>EST. 2025</span>
           <span className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />

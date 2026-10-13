@@ -298,7 +298,7 @@ export function SignupForm({ invite }: { invite?: string }) {
           </div>
           <div className="mt-2.5 space-y-1.5">
             <div className="flex items-center justify-between font-body-sm text-[11px]">
-              <span className="text-on-surface-variant/75">
+              <span className="text-on-surface-variant">
                 At least {PASSWORD_MIN_LENGTH} characters.
               </span>
               <span

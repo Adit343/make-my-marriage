@@ -34,3 +34,7 @@ next-env.d.ts
 
 # development photo store (Phase 6)
 .local-storage
+
+# Playwright output
+/test-results/
+/playwright-report/

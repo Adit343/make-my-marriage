@@ -188,7 +188,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
                 type="button"
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 onClick={() => setShowPassword((shown) => !shown)}
-                className="absolute top-1/2 right-3 flex -translate-y-1/2 items-center justify-center p-1 text-on-surface-variant/70 transition-colors hover:text-[#2A2622] focus:outline-hidden"
+                className="absolute top-1/2 right-3 flex -translate-y-1/2 items-center justify-center p-1 text-on-surface-variant transition-colors hover:text-[#2A2622] focus:outline-hidden"
               >
                 <Icon
                   name={showPassword ? "visibility_off" : "visibility"}
@@ -253,7 +253,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
                   showConfirm ? "Hide password confirmation" : "Show password confirmation"
                 }
                 onClick={() => setShowConfirm((shown) => !shown)}
-                className="absolute top-1/2 right-3 flex -translate-y-1/2 items-center justify-center p-1 text-on-surface-variant/70 transition-colors hover:text-[#2A2622] focus:outline-hidden"
+                className="absolute top-1/2 right-3 flex -translate-y-1/2 items-center justify-center p-1 text-on-surface-variant transition-colors hover:text-[#2A2622] focus:outline-hidden"
               >
                 <Icon
                   name={showConfirm ? "visibility_off" : "visibility"}

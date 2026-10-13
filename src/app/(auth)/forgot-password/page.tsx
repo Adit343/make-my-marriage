@@ -54,13 +54,13 @@ export default function ForgotPasswordPage() {
             ].map(([title, caption]) => (
               <div key={title}>
                 <div className="mb-0.5 font-title text-title text-[#FAF6F0]">{title}</div>
-                <div className="font-label-sm text-label-sm text-[#FAF6F0]/60">{caption}</div>
+                <div className="font-label-sm text-label-sm text-[#FAF6F0]/85">{caption}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="relative z-10 flex items-center justify-between font-label-sm text-label-sm text-[#FAF6F0]/50">
+        <div className="relative z-10 flex items-center justify-between font-label-sm text-label-sm text-[#FAF6F0]/85">
           <span>EST. 2025</span>
           <span className="inline-flex items-center gap-1.5">
             <span className="h-1 w-1 rounded-full bg-[#FAF6F0]/40" />
@@ -95,7 +95,7 @@ export default function ForgotPasswordPage() {
         <ForgotPasswordFlow />
 
         <footer className="mx-auto w-full max-w-xl pt-6 text-center">
-          <div className="inline-flex items-center justify-center gap-2 font-body-sm text-[12px] text-on-surface-variant/60">
+          <div className="inline-flex items-center justify-center gap-2 font-body-sm text-[12px] text-on-surface-variant">
             <Icon name="lock" className="text-[15px] text-on-surface-variant/50" />
             <span>256-bit encrypted • Indian IT Act (2000) &amp; DPDP Act compliant workspace</span>
           </div>

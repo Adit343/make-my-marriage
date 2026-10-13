@@ -58,12 +58,14 @@ npm run db:sync-indexes -- --apply
 
 ## Scripts
 
-| Command                                       | Does                                              |
-| --------------------------------------------- | ------------------------------------------------- |
-| `npm run dev` / `build` / `start`             | Next.js development server, build, production run |
-| `npm run typecheck` / `lint` / `format:check` | The checks CI runs                                |
-| `npm test`                                    | Unit and integration tests (see below)            |
-| `npm run test:unit` / `test:integration`      | One project at a time                             |
+| Command                                            | Does                                                                                                      |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `npm run dev` / `build` / `start`                  | Next.js development server, build, production run                                                         |
+| `npm run typecheck` / `lint` / `format:check`      | The checks CI runs                                                                                        |
+| `npm test`                                         | Unit and integration tests (see below)                                                                    |
+| `npm run test:unit` / `test:integration`           | One project at a time                                                                                     |
+| `npm run test:e2e`                                 | Browser and accessibility tests (run `npm run build` first; needs `npx playwright install chromium` once) |
+| `npm run db:purge-weddings` / `db:anonymize-users` | Manual clean-up of deleted weddings and accounts (dry run unless `-- --apply`)                            |
 
 Integration tests start a throwaway in-memory MongoDB replica set (downloaded on first run), so
 they never touch a real database.

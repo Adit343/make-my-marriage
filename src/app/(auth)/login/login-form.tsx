@@ -200,7 +200,7 @@ export function LoginForm({ oauthError, invite }: { oauthError?: string; invite?
               type="button"
               aria-label={showPassword ? "Hide password" : "Show password"}
               onClick={() => setShowPassword((shown) => !shown)}
-              className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-on-surface-variant/60 transition-colors hover:text-on-surface focus:outline-hidden"
+              className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-on-surface-variant transition-colors hover:text-on-surface focus:outline-hidden"
             >
               <Icon name={showPassword ? "visibility_off" : "visibility"} className="text-[20px]" />
             </button>
@@ -267,7 +267,7 @@ export function LoginForm({ oauthError, invite }: { oauthError?: string; invite?
             <div className="w-full border-t border-outline-variant/40" />
           </div>
           <div className="relative flex justify-center font-label-sm text-label-sm uppercase">
-            <span className="bg-surface px-3 tracking-wider text-on-surface-variant/70">
+            <span className="bg-surface px-3 tracking-wider text-on-surface-variant">
               or continue with
             </span>
           </div>
@@ -289,7 +289,7 @@ export function LoginForm({ oauthError, invite }: { oauthError?: string; invite?
         </Link>
       </p>
 
-      <div className="mt-10 flex items-center justify-center gap-2 border-t border-outline-variant/30 pt-6 font-label-sm text-label-sm text-on-surface-variant/60">
+      <div className="mt-10 flex items-center justify-center gap-2 border-t border-outline-variant/30 pt-6 font-label-sm text-label-sm text-on-surface-variant">
         <Icon name="lock" className="text-[15px]" />
         <span>256-bit encrypted • Indian DPDP Act compliant workspace</span>
       </div>

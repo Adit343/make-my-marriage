@@ -245,10 +245,7 @@ export function ForgotPasswordFlow() {
               <span>{error}</span>
             </p>
           ) : (
-            <p
-              id="email-helper"
-              className="mt-2 font-body-sm text-body-sm text-on-surface-variant/70"
-            >
+            <p id="email-helper" className="mt-2 font-body-sm text-body-sm text-on-surface-variant">
               A temporary authentication link valid for {PASSWORD_RESET_TTL_MINUTES} minutes will be
               dispatched.
             </p>
@@ -291,7 +288,7 @@ export function ForgotPasswordFlow() {
                 "Contact your wedding coordinator if you no longer have access to this email.",
             })
           }
-          className="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant/70 underline-offset-2 transition-colors hover:text-primary hover:underline"
+          className="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant underline-offset-2 transition-colors hover:text-primary hover:underline"
         >
           Cannot access your email? Contact family coordinator support
         </button>

@@ -122,7 +122,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
         <SignupForm invite={invite} />
 
         <div className="mx-auto w-full max-w-[440px] pt-4 text-center">
-          <div className="inline-flex items-center justify-center gap-1.5 font-label-sm text-label-sm text-on-surface-variant/75">
+          <div className="inline-flex items-center justify-center gap-1.5 font-label-sm text-label-sm text-on-surface-variant">
             <Icon name="lock" className="text-[14px]" />
             <span>256-bit encrypted • Indian DPDP Act compliant workspace</span>
           </div>

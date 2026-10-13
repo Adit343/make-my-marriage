@@ -59,7 +59,7 @@ export default async function ResetPasswordPage({ params }: PageProps<"/reset-pa
 
         <div className="relative z-10 flex items-center gap-3">
           <span className="inline-block h-2 w-2 rounded-full bg-secondary" />
-          <span className="font-label-md text-label-md tracking-wider text-[#FAF6F0]/70 uppercase">
+          <span className="font-label-md text-label-md tracking-wider text-[#FAF6F0]/85 uppercase">
             Production Protocol
           </span>
         </div>
@@ -72,14 +72,14 @@ export default async function ResetPasswordPage({ params }: PageProps<"/reset-pa
             Plan your wedding. Together.
           </p>
           <div className="mt-8 max-w-xs border-t border-[#FAF6F0]/15 pt-8">
-            <p className="font-body-sm text-body-sm leading-relaxed text-[#FAF6F0]/65">
+            <p className="font-body-sm text-body-sm leading-relaxed text-[#FAF6F0]/85">
               Multi-stakeholder orchestration infrastructure designed for family offices, couples,
               and master production directors.
             </p>
           </div>
         </div>
 
-        <div className="relative z-10 flex flex-wrap items-center justify-between pt-6 font-label-sm text-label-sm tracking-wider text-[#FAF6F0]/60 uppercase">
+        <div className="relative z-10 flex flex-wrap items-center justify-between pt-6 font-label-sm text-label-sm tracking-wider text-[#FAF6F0]/85 uppercase">
           <span>EST. 2025</span>
           <span className="text-[#FAF6F0]/30">•</span>
           <span>PRODUCTION OS</span>
@@ -102,7 +102,7 @@ export default async function ResetPasswordPage({ params }: PageProps<"/reset-pa
 
         <ResetPasswordForm token={token} />
 
-        <div className="flex w-full items-center justify-between pt-6 font-label-sm text-label-sm text-on-surface-variant/60">
+        <div className="flex w-full items-center justify-between pt-6 font-label-sm text-label-sm text-on-surface-variant">
           <span>MAKE MY MARRIAGE TECH</span>
           <span>AUTH GATEWAY V2.4</span>
         </div>
