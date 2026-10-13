@@ -33,6 +33,7 @@ import { memberInvitationEmail } from "@/modules/notifications/templates";
 import { findUserByEmail, findUserSummaries } from "@/modules/users/user.repository";
 import { findWedding } from "@/modules/weddings/wedding.repository";
 
+import { track } from "@/modules/analytics/analytics.service";
 // Member invitations (API Design §6.9–§6.11, DB Design §6.6, Architecture §15). The token itself
 // authorizes the join: no email-match requirement, no email verification. Mitigations are
 // single use, expiry and revocation.
@@ -160,6 +161,7 @@ export async function createInvitation(auth: WeddingAuth, input: CreateInvitatio
     throw error;
   }
 
+  await track("member_invited");
   const email = await emailInvitation(auth, invitation, token);
   // The link is returned once so the inviter can copy it, e.g. if the email fails.
   return {
@@ -272,7 +274,7 @@ export async function acceptInvitation(auth: AuthContext, token: string) {
 
   const tokenHash = hashToken(token);
   try {
-    return await withTransaction(async (session) => {
+    const joined = await withTransaction(async (session) => {
       const claimed = await claimInvitation(
         tokenHash,
         { by: auth.userId, purgeAt: purgeAtFor(new Date()) },
@@ -298,6 +300,8 @@ export async function acceptInvitation(auth: AuthContext, token: string) {
         wedding: { id: wedding._id.toString(), title: wedding.title },
       };
     });
+    await track("member_joined");
+    return joined;
   } catch (error) {
     if (isDuplicateKeyError(error, "userId")) throw new AppError("ALREADY_IN_WEDDING");
     throw error;

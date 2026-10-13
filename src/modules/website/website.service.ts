@@ -42,6 +42,7 @@ import {
 import type { UpdateWebsiteInput } from "@/modules/website/website.schemas";
 import { findWedding } from "@/modules/weddings/wedding.repository";
 
+import { track } from "@/modules/analytics/analytics.service";
 // The wedding website (API Design §10). Everything a member does needs `website:manage` except
 // reading. The public page is a separate, hand-built whitelist (lib/website/site.ts): the stored
 // document is never returned to a guest, and a site is public only while it is published AND its
@@ -329,6 +330,7 @@ export async function updateWebsite(
 export async function publishWebsite(auth: WeddingAuth): Promise<WebsiteDto> {
   const result = await setWebsiteStatus(auth.weddingId, "published", new Date());
   if (result === "not_found") throw new AppError("NOT_FOUND");
+  await track("website_published");
   return toWebsiteDto(result);
 }
 
@@ -432,6 +434,7 @@ export async function getPublicWebsite(slug: string): Promise<PublicSiteView> {
   const events = await listEventRows(site.weddingId);
   const dto = toWebsiteDto(site);
   const hero = await heroPhotoFor(site.weddingId.toString(), dto.heroAssetId);
+  await track("website_viewed");
   return buildSiteView(
     draftOf(dto),
     publicEventPool(events),

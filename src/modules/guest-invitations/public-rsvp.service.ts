@@ -10,6 +10,7 @@ import { findGuestByTokenHash, setGuestDietary } from "@/modules/guests/guest.re
 import { listRsvpsForGuest, updateRsvp } from "@/modules/guests/rsvp.repository";
 import { findWedding } from "@/modules/weddings/wedding.repository";
 
+import { track } from "@/modules/analytics/analytics.service";
 // The guest's own RSVP page (API Design §8.10, DB Design §11.2). No account: the personal link is
 // the credential. Everything returned is a hand-built whitelist: the guest sees their own name,
 // their own events and their own answers, never other guests, private notes, the team or the budget.
@@ -165,6 +166,7 @@ export async function submitPublicRsvp(token: string, input: SubmitRsvpInput): P
     }
   });
 
+  await track("rsvp_answered");
   const refreshed = {
     ...guest,
     dietaryPreference: input.dietaryPreference ?? guest.dietaryPreference,

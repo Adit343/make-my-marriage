@@ -49,6 +49,7 @@ import type { WeddingAuth } from "@/modules/members/guards";
 import { can } from "@/modules/members/permissions";
 import { findUserSummaries } from "@/modules/users/user.repository";
 
+import { track } from "@/modules/analytics/analytics.service";
 // Photos (API Design §12.2 to §12.5). The file bytes never pass through this API: the browser sends
 // them straight to the photo store with a short-lived presigned address, then asks us to "confirm".
 // Confirm reads the stored object back (its size and its first bytes) and refuses anything that is
@@ -187,6 +188,7 @@ export async function finalizeUpload(
     width: dimensions.width ?? null,
     height: dimensions.height ?? null,
   });
+  if (updated) await track("photo_uploaded");
   // Someone confirmed it at the same moment: theirs is the result.
   return updated ?? (await findAsset(weddingId, asset._id)) ?? asset;
 }

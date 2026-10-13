@@ -26,6 +26,7 @@ import {
 } from "@/modules/weddings/wedding.repository";
 import type { CreateWeddingInput, UpdateWeddingInput } from "@/modules/weddings/wedding.schemas";
 
+import { track } from "@/modules/analytics/analytics.service";
 type Id = Types.ObjectId | string;
 
 /** The signed-in user's wedding and role, or null if they haven't created or joined one. */
@@ -49,7 +50,7 @@ export async function createWedding(auth: AuthContext, input: CreateWeddingInput
 
   const { relationship, ...weddingFields } = input;
   try {
-    return await withTransaction(async (session) => {
+    const created = await withTransaction(async (session) => {
       const wedding = await insertWedding({ ...weddingFields, createdBy: auth.userId }, session);
       const membership = await createOwnerMembership(
         { weddingId: wedding._id, userId: auth.userId, relationship },
@@ -60,6 +61,8 @@ export async function createWedding(auth: AuthContext, input: CreateWeddingInput
         membership: { id: membership._id.toString(), role: membership.role },
       };
     });
+    await track("wedding_created");
+    return created;
   } catch (error) {
     if (isDuplicateKeyError(error, "userId")) throw new AppError("ALREADY_IN_WEDDING");
     throw error;

@@ -47,6 +47,7 @@ import {
   setPassword,
 } from "@/modules/users/user.repository";
 
+import { track } from "@/modules/analytics/analytics.service";
 interface RequestContext {
   userAgent?: string | null;
 }
@@ -84,6 +85,7 @@ export async function signUp(
     persistent: true,
     userAgent: context.userAgent,
   });
+  await track("signup");
   return { user: toUserDto(user, { hasPassword: true }), hasWedding: false, cookie };
 }
 

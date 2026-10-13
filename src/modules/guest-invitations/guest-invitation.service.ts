@@ -25,6 +25,7 @@ import {
 } from "@/modules/notifications/templates";
 import { findWedding } from "@/modules/weddings/wedding.repository";
 
+import { track } from "@/modules/analytics/analytics.service";
 // Sending invitations and RSVP reminders (API Design §8.6 to §8.8, Architecture §29 to §31).
 //
 //   email     the app sends it (Resend; the console in development), one log row per recipient.
@@ -268,6 +269,10 @@ async function run(
   );
 
   const count = (outcome: SendOutcome) => results.filter((item) => item.outcome === outcome).length;
+  await track(
+    input.kind === "reminder" ? "reminder_sent" : "invitation_sent",
+    count("sent") + count("marked"),
+  );
   return {
     batchId,
     channel: input.channel,

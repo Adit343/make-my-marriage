@@ -2,6 +2,7 @@
 // `npm run db:sync-indexes` can enumerate them via mongoose.modelNames().
 // Add an import here whenever a model file is created.
 
+import "@/models/analyticsCounter.model";
 import "@/models/emailLog.model";
 import "@/models/event.model";
 import "@/models/expense.model";

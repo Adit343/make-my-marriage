@@ -52,6 +52,7 @@ import {
 } from "@/modules/guests/rsvp.repository";
 import type { WeddingAuth } from "@/modules/members/guards";
 
+import { track } from "@/modules/analytics/analytics.service";
 // Guests (API Design §8.2 to §8.5). Everyone in the wedding can see and edit the guest list
 // (permission guests:edit): a parent and the planner work on it together, and optimistic
 // concurrency keeps their edits from silently overwriting each other. Guests are NOT app users:
@@ -173,6 +174,7 @@ export async function createGuest(
     await insertRsvps(auth.weddingId, created._id, eventIds, session);
     return created;
   });
+  await track("guest_created");
   return toDetail(auth, guest);
 }
 

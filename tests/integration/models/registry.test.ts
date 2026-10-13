@@ -50,6 +50,7 @@ const EXPECTED_INDEXES: Record<string, string[]> = {
     "invitationId_1 sparse",
     "createdAt_1 ttl=15552000",
   ],
+  analyticsCounters: ["event_1_day_1 unique", "dayStart_1 ttl=34560000"],
   rateLimitCounters: ["keyHash_1_windowStart_1 unique", "expiresAt_1 ttl=0"],
   weddingWebsites: ["weddingId_1 unique partial", "slug_1 unique partial"],
   liveStreams: ["weddingId_1_startTime_1", "link.tokenHash_1 unique partial"],

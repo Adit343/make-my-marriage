@@ -21,7 +21,8 @@
     "storage:check": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/check-storage.ts",
     "db:purge-weddings": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db-maintenance.ts weddings",
     "db:anonymize-users": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db-maintenance.ts users",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "analytics:summary": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/analytics-summary.ts"
   },
   "dependencies": {
     "aws4fetch": "^1.0.20",

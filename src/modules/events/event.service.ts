@@ -22,6 +22,7 @@ import {
 } from "@/modules/events/event.repository";
 import type { CreateEventInput, UpdateEventInput } from "@/modules/events/event.schemas";
 
+import { track } from "@/modules/analytics/analytics.service";
 // Events (API Design §7.1). Everyone in the wedding can see events and create them. Editing or
 // deleting someone else's event needs events:manage-any (admin and owner): owner decision
 // 2026-10-10. Routes check membership and events:edit; WHICH event is being touched is only known
@@ -80,6 +81,7 @@ export async function createEvent(auth: WeddingAuth, input: CreateEventInput): P
     ...(schedule ? { schedule: toScheduleRows(schedule) } : {}),
     createdBy: auth.userId,
   });
+  await track("event_created");
   return toDto(auth, event);
 }
 

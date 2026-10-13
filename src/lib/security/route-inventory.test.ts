@@ -15,6 +15,7 @@ type Access = "public" | "optional" | "session" | `wedding:${string}`;
 
 const INVENTORY: Record<string, Access> = {
   "GET /api/v1/health": "public",
+  "GET /api/v1/health/ready": "public",
 
   "POST /api/v1/auth/signup": "public",
   "POST /api/v1/auth/login": "public",
@@ -244,6 +245,7 @@ describe("API route inventory", () => {
     expect(writes.sort()).toEqual(
       [
         "/api/v1/health",
+        "/api/v1/health/ready",
         "/api/v1/auth/google",
         "/api/v1/auth/google/callback",
         "/api/v1/auth/sessions",

@@ -982,6 +982,8 @@ Why both `role` and `relationship`? The architecture's example tree shows "Coupl
 
 **Implementation notes (built 2026-10-11, Phase 6).** `galleryAccessTokens` is built as specified (`tokenHash` and `tokenEnc` both `select: false`, `tokenEnc` AES-256-GCM like a guest's RSVP link), with an extra index `{weddingId, _id: -1}`: `explain()` showed that listing a wedding's links otherwise walked the global `_id` index and read other weddings' links. An upload link can only be made while the gallery has guest uploads switched on, and an album that is deleted revokes its links.
 
+**Implementation note (Phase 7, step 7.7).** One collection was added beyond this list, like `rateLimitCounters`: `analyticsCounters` (`event`, `day` "YYYY-MM-DD", `count`, `dayStart`), unique on `{event, day}` with a 400-day TTL on `dayStart`. It stores counts only, never an id of a user, wedding, guest or request.
+
 ### 6.21 `emailLogs`
 
 **In plain words.** A per-recipient receipt for emails the app sent. Example: 40 guests emailed → 37 `sent`, 3 `failed`; the 3 can be retried without re-sending the 37 (Architecture §30).
