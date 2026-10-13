@@ -80,8 +80,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         </div>
 
         <footer className="relative z-10 flex items-center justify-between pt-4 font-label-sm text-label-sm text-surface-bright/40">
-          <span>EST. 2025</span>
-          <span>PRODUCTION OS</span>
+          <span>INDIA-FIRST</span>
+          <span>WEDDING WORKSPACE</span>
         </footer>
       </section>
 

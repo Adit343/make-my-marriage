@@ -43,14 +43,14 @@ export default function ForgotPasswordPage() {
             <span className="font-light text-[#FAF6F0]/95 italic">Together.</span>
           </h1>
           <p className="font-body-md text-body-md leading-relaxed text-[#FAF6F0]/75">
-            One shared space for your families, coordinators, and schedules — completely private,
-            encrypted, and synchronized in real time.
+            One shared space for your families, coordinators, and schedules — private by default,
+            with everything kept in one shared place.
           </p>
           <div className="mt-10 grid grid-cols-3 gap-4 border-t border-[#FAF6F0]/10 pt-8">
             {[
               ["Dual-Family", "Permission tiers"],
-              ["Budget Split", "Real-time ledger"],
-              ["256-bit", "Vault encryption"],
+              ["Budget Tracker", "Shared ledger"],
+              ["Private", "By default"],
             ].map(([title, caption]) => (
               <div key={title}>
                 <div className="mb-0.5 font-title text-title text-[#FAF6F0]">{title}</div>
@@ -61,10 +61,10 @@ export default function ForgotPasswordPage() {
         </div>
 
         <div className="relative z-10 flex items-center justify-between font-label-sm text-label-sm text-[#FAF6F0]/85">
-          <span>EST. 2025</span>
+          <span>INDIA-FIRST</span>
           <span className="inline-flex items-center gap-1.5">
             <span className="h-1 w-1 rounded-full bg-[#FAF6F0]/40" />
-            PRODUCTION OS • SECURE INFRASTRUCTURE
+            WEDDING WORKSPACE • PRIVATE BY DEFAULT
           </span>
         </div>
       </section>
@@ -97,7 +97,7 @@ export default function ForgotPasswordPage() {
         <footer className="mx-auto w-full max-w-xl pt-6 text-center">
           <div className="inline-flex items-center justify-center gap-2 font-body-sm text-[12px] text-on-surface-variant">
             <Icon name="lock" className="text-[15px] text-on-surface-variant/50" />
-            <span>256-bit encrypted • Indian IT Act (2000) &amp; DPDP Act compliant workspace</span>
+            <span>Private by default • Your wedding data stays in your workspace</span>
           </div>
         </footer>
       </section>

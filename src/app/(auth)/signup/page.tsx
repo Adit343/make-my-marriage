@@ -98,9 +98,9 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
         </div>
 
         <div className="relative z-10 flex items-center justify-between font-label-sm text-label-sm tracking-wider text-primary-fixed-dim/75 uppercase">
-          <span>EST. 2025</span>
+          <span>INDIA-FIRST</span>
           <span className="h-1 w-1 rounded-full bg-surface-bright/40" />
-          <span>PRODUCTION OS</span>
+          <span>WEDDING WORKSPACE</span>
         </div>
       </div>
 
@@ -124,7 +124,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
         <div className="mx-auto w-full max-w-[440px] pt-4 text-center">
           <div className="inline-flex items-center justify-center gap-1.5 font-label-sm text-label-sm text-on-surface-variant">
             <Icon name="lock" className="text-[14px]" />
-            <span>256-bit encrypted • Indian DPDP Act compliant workspace</span>
+            <span>Private by default • Your wedding data stays in your workspace</span>
           </div>
         </div>
       </div>

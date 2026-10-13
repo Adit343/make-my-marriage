@@ -80,9 +80,9 @@ export default async function ResetPasswordPage({ params }: PageProps<"/reset-pa
         </div>
 
         <div className="relative z-10 flex flex-wrap items-center justify-between pt-6 font-label-sm text-label-sm tracking-wider text-[#FAF6F0]/85 uppercase">
-          <span>EST. 2025</span>
+          <span>INDIA-FIRST</span>
           <span className="text-[#FAF6F0]/30">•</span>
-          <span>PRODUCTION OS</span>
+          <span>WEDDING WORKSPACE</span>
           <span className="text-[#FAF6F0]/30">•</span>
           <span>SECURE INFRASTRUCTURE</span>
         </div>

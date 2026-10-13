@@ -293,7 +293,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
         <div className="mt-10 flex items-center justify-center gap-2 border-t border-[#2A2622]/8 pt-6 text-center font-body-sm text-body-sm text-on-surface-variant">
           <Icon name="encrypted" className="text-[18px] text-[#1F4D3D]" />
-          <span>256-bit encrypted • Indian DPDP Act compliant workspace</span>
+          <span>Private by default • Your wedding data stays in your workspace</span>
         </div>
       </div>
 

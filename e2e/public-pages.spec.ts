@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoA11yViolations, newVisitor } from "./helpers";
 
-const PAGES = ["/", "/login", "/signup", "/forgot-password"];
+const PAGES = ["/", "/login", "/signup", "/forgot-password", "/terms", "/privacy"];
 
 test.describe("signed-out pages", () => {
   for (const path of PAGES) {

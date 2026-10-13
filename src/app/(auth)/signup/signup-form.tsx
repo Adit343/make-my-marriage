@@ -382,14 +382,14 @@ export function SignupForm({ invite }: { invite?: string }) {
       <p className="mt-5 text-center font-body-sm text-body-sm leading-relaxed text-on-surface-variant/80">
         By creating an account, you agree to our{" "}
         <a
-          href="#"
+          href="/terms"
           className="font-medium text-primary-container decoration-secondary underline-offset-2 hover:underline"
         >
           Terms
         </a>{" "}
         and{" "}
         <a
-          href="#"
+          href="/privacy"
           className="font-medium text-primary-container decoration-secondary underline-offset-2 hover:underline"
         >
           Privacy Policy

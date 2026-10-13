@@ -165,22 +165,19 @@ export function SettingsPanel({
       <Sessions sessions={sessions} />
       <DangerZone wedding={wedding} viewer={viewer} activeMemberCount={activeMemberCount} />
       <footer className="flex flex-col items-center justify-between border-t border-[#2A2622]/[0.06] pt-6 pb-12 text-[13px] text-on-surface-variant sm:flex-row">
-        <p>
-          © 2025 Make My Marriage Technologies Pvt Ltd. All rights reserved. Indian IT Act (2000)
-          &amp; DPDP Compliant.
-        </p>
+        <p>© 2026 Make My Marriage. All rights reserved.</p>
         <div className="mt-2 flex gap-4 sm:mt-0">
-          <Link href="/#privacy" className="transition-colors hover:text-primary">
+          <Link href="/privacy" className="transition-colors hover:text-primary">
             Privacy Policy
           </Link>
           <span className="text-outline-variant">•</span>
-          <a href="#" className="transition-colors hover:text-primary">
-            Security &amp; Compliance
-          </a>
+          <Link href="/terms" className="transition-colors hover:text-primary">
+            Terms
+          </Link>
           <span className="text-outline-variant">•</span>
-          <a href="#" className="transition-colors hover:text-primary">
-            Support
-          </a>
+          <Link href="/privacy#security" className="transition-colors hover:text-primary">
+            Security
+          </Link>
         </div>
       </footer>
     </>
@@ -894,7 +891,7 @@ function DangerZone({
             </h4>
             <p className="font-body-sm text-body-sm text-on-surface-variant">
               {isOwner
-                ? "Hidden immediately and recoverable for 30 days. Soft delete retains financial records for DPDP compliance before permanent cleanup."
+                ? "Hidden immediately and recoverable for 30 days. It is permanently erased after that."
                 : "You lose access to the workspace. You'd need a new invitation to come back."}
             </p>
           </div>
@@ -959,7 +956,7 @@ function DangerZone({
           ) : confirming === "delete-wedding" ? (
             <p>
               This will immediately hide all schedules, guest lists, and invitations. You have 30
-              days of soft-delete grace period before permanent DPDP database erasure.
+              days to change your mind before it is permanently erased.
             </p>
           ) : (
             <>

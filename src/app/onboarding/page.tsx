@@ -75,8 +75,8 @@ export default async function OnboardingPage() {
             <span className="font-light text-[#FAF6F0]/90 italic">Together.</span>
           </h1>
           <p className="mb-8 text-sm leading-relaxed font-light text-[#FAF6F0]/80 sm:text-base">
-            One shared space for your families, coordinators, and schedules — completely private,
-            encrypted, and synchronized in real time.
+            One shared space for your families, coordinators, and schedules — private by default,
+            with everything kept in one shared place.
           </p>
           <div className="grid grid-cols-2 gap-4 border-t border-[#FAF6F0]/15 pt-6 text-xs">
             <div>
@@ -91,10 +91,10 @@ export default async function OnboardingPage() {
         </div>
 
         <div className="relative z-10 flex items-center justify-between border-t border-[#FAF6F0]/10 pt-6 text-xs text-[#FAF6F0]/85">
-          <span>EST. 2025</span>
+          <span>INDIA-FIRST</span>
           <span className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            PRODUCTION OS • SECURE INFRASTRUCTURE
+            WEDDING WORKSPACE • PRIVATE BY DEFAULT
           </span>
         </div>
       </div>

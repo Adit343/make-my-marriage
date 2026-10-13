@@ -565,10 +565,9 @@ const FOOTER_LINKS = [
   { href: "/#features", label: "Features" },
   { href: "/#how-it-works", label: "How It Works" },
   { href: "/#collaboration", label: "Collaboration" },
-  { href: "/#privacy", label: "Privacy Policy" },
-  { href: "#", label: "Terms of Service" },
-  { href: "#", label: "Security & Compliance" },
-  { href: "#", label: "Contact Support" },
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/terms", label: "Terms of Service" },
+  { href: "/privacy#security", label: "Security" },
 ];
 
 export function DashboardFooter() {
@@ -586,8 +585,7 @@ export function DashboardFooter() {
             High-trust digital architecture for multi-stakeholder wedding production.
           </p>
           <p className="mt-3 font-body-sm text-[12px] text-outline">
-            © 2025 Make My Marriage Technologies Pvt Ltd. All rights reserved. Indian IT Act (2000)
-            &amp; DPDP Compliant.
+            © 2026 Make My Marriage. All rights reserved.
           </p>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-body-sm">

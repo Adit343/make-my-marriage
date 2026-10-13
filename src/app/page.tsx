@@ -85,7 +85,7 @@ const STEPS: { number: string; icon: IconName; title: string; body: string }[] =
     number: "03",
     icon: "task_alt",
     title: "Plan everything together",
-    body: "Assign tasks, track multi-ceremony RSVP confirmations, and reconcile expenses in real-time without duplicate vendor calls or confusion.",
+    body: "Assign tasks, track multi-ceremony RSVP confirmations, and keep expenses in one place without duplicate vendor calls or confusion.",
   },
 ];
 
@@ -185,8 +185,8 @@ const PRIVACY: { icon: IconName; title: string; body: string }[] = [
   },
   {
     icon: "lock_person",
-    title: "Bank-Grade Infrastructure",
-    body: "Full AES-256 encryption at rest and TLS 1.3 in transit. Strictly compliant with the Indian Information Technology Act and DPDP 2023 norms.",
+    title: "Private by Design",
+    body: "Connections use HTTPS, passwords are hashed, guest links are unguessable and can be revoked, and each wedding's data is kept separate from every other.",
   },
 ];
 
@@ -227,16 +227,14 @@ const FOOTER_COLUMNS = [
       { href: "#", label: "For Couples" },
       { href: "#", label: "For Extended Families" },
       { href: "#", label: "For Wedding Planners" },
-      { href: "#", label: "Contact Support" },
     ],
   },
   {
     heading: "Governance",
     links: [
-      { href: "#privacy", label: "Privacy Policy" },
-      { href: "#", label: "Terms of Service" },
-      { href: "#", label: "Security & Compliance" },
-      { href: "#", label: "DPDP 2023 Compliance" },
+      { href: "/privacy", label: "Privacy Policy" },
+      { href: "/terms", label: "Terms of Service" },
+      { href: "/privacy#security", label: "Security" },
     ],
   },
 ];
@@ -907,10 +905,7 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="flex flex-col items-center justify-between gap-4 border-t border-on-surface/10 pt-8 font-body-sm text-body-sm text-on-surface-variant md:flex-row">
-            <p>
-              © 2025 Make My Marriage Technologies Pvt Ltd. All rights reserved. Indian IT Act
-              (2000) &amp; DPDP Compliant.
-            </p>
+            <p>© 2026 Make My Marriage. All rights reserved.</p>
             <div className="flex items-center space-x-6">
               <span className="font-label-sm text-label-sm text-secondary">
                 Hosted securely in Mumbai (ap-south-1)

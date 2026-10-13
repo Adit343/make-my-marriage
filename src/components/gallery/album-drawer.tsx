@@ -257,7 +257,12 @@ export function AlbumDrawer({
                       }`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={photo.url} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={photo.url}
+                        alt=""
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
                       {coverId === photo.id ? (
                         <span className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#1F4D3D] text-white">
                           <Icon name="check" className="text-[14px]" />
