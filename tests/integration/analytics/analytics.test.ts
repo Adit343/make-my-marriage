@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { GET as ready } from "@/app/api/v1/health/ready/route";
 import { POST as createGuestRoute } from "@/app/api/v1/weddings/[weddingId]/guests/route";
+import type { AnalyticsEvent } from "@/lib/constants/analytics";
 import { track, summarize } from "@/modules/analytics/analytics.service";
 import { AnalyticsCounter } from "@/models/analyticsCounter.model";
 import { clearCollections, setupTestDatabase } from "../../setup/database";
@@ -12,7 +13,7 @@ import { createEvent } from "../invitations/helpers-events";
 setupTestDatabase();
 beforeEach(clearCollections);
 
-const total = async (event: string) =>
+const total = async (event: AnalyticsEvent) =>
   (await AnalyticsCounter.find({ event }).lean()).reduce((sum, row) => sum + row.count, 0);
 
 describe("analytics counters", () => {

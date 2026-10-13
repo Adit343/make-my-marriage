@@ -91,7 +91,7 @@ These come from `CLAUDE.md`, the architecture and the working agreement. Repeat 
 | 4     | Financials & Vendors    | expenses, vendors, vendorPayments                        | **Done** (steps 4.1 to 4.4)                             |
 | 5     | Wedding Experience      | weddingWebsites, liveStreams                             | **Done** (steps 5.1 to 5.6, committed `da1823e`)        |
 | 6     | Memories                | galleries, galleryAlbums, galleryAssets, galleryAccessTokens | **Done** (6.0 to 6.2 committed `33fe56e`; 6.3 to 6.5 built and verified 2026-10-12, commit pending). Real photos need the owner's R2 bucket **with its CORS rule** (`PROJECT_STATUS.md` §17) |
-| 7     | Product Readiness       | none                                                     | Not started                                             |
+| 7     | Product Readiness       | analyticsCounters (counts only)                          | **Done in code** (7.1 to 7.8). Owner-side deployment steps in `docs/DEPLOYMENT.md` |
 
 Each phase's exit condition (PRD §36) is quoted below. Suggested step numbering mirrors Phase 1:
 x.1 models and enums, x.2 services and API with tests, x.3 UI from Stitch, x.4 hardening/verification.

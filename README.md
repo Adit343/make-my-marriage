@@ -65,6 +65,8 @@ npm run db:sync-indexes -- --apply
 | `npm test`                                         | Unit and integration tests (see below)                                                                    |
 | `npm run test:unit` / `test:integration`           | One project at a time                                                                                     |
 | `npm run test:e2e`                                 | Browser and accessibility tests (run `npm run build` first; needs `npx playwright install chromium` once) |
+| `npm run deploy:check` / `smoke -- <url>`          | Check production settings / smoke-test a deployed site (see `docs/DEPLOYMENT.md`)                         |
+| `npm run analytics:summary`                        | Product counts for the last 30 days (no personal data)                                                    |
 | `npm run db:purge-weddings` / `db:anonymize-users` | Manual clean-up of deleted weddings and accounts (dry run unless `-- --apply`)                            |
 
 Integration tests start a throwaway in-memory MongoDB replica set (downloaded on first run), so
