@@ -7,6 +7,7 @@ import {
   successResponse,
   type ApiMeta,
 } from "@/lib/http/envelope";
+import { assertSameOrigin } from "@/lib/http/origin";
 import { resolveRequestId } from "@/lib/http/request-id";
 import { logger } from "@/lib/logger";
 
@@ -139,6 +140,7 @@ export function route<
     let userId: string | undefined;
 
     try {
+      assertSameOrigin(request);
       const params = await parseInput(config.params, await context.params, "params");
       const query = await parseInput(config.query, Object.fromEntries(url.searchParams), "query");
       const body = config.body

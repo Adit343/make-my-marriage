@@ -166,6 +166,8 @@ Query params are an explicit allowlist per endpoint (never a raw pass-through of
 
 Session cookies are `SameSite=Lax`, which blocks cross-site `POST`/`PATCH`/`DELETE` from ever reaching the API with the cookie attached, but `Lax` still **allows** a top-level cross-site `GET` navigation to carry the cookie. Every state-changing action in this API uses a non-`GET` method specifically so `SameSite=Lax` alone is sufficient — no endpoint performs a write on `GET`. This is why §2.4 insists `GET` is read-only with no exceptions.
 
+**Added in Phase 7 (step 7.2):** as extra insurance, `route()` also refuses a state-changing request (anything but GET, HEAD, OPTIONS) whose `Origin` header is present and is not this site or `APP_URL` (`403 INSUFFICIENT_ROLE`, message "Cross-site request refused"). Requests with no `Origin` header fall back to the SameSite rule above.
+
 ### 2.10 Rate limiting
 
 Implements Architecture §40 (no Redis; lightweight, per-endpoint). Each sensitive endpoint's table row states its own limit; see §14.3 for the shared mechanism.

@@ -14,6 +14,8 @@ export interface CallOptions {
   cookie?: string;
   ip?: string;
   params?: Record<string, string>;
+  /** Extra request headers, e.g. Origin. */
+  headers?: Record<string, string>;
 }
 
 export interface CallResult {
@@ -31,6 +33,7 @@ export async function call(handler: RouteHandler, options: CallOptions = {}): Pr
   });
   if (options.body !== undefined) headers.set("content-type", "application/json");
   if (options.cookie) headers.set("cookie", options.cookie);
+  for (const [name, value] of Object.entries(options.headers ?? {})) headers.set(name, value);
 
   const response = await handler(
     new Request(`http://localhost${options.path ?? "/api/test"}`, {
