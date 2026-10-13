@@ -18,7 +18,9 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "db:sync-indexes": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db-sync-indexes.ts",
-    "storage:check": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/check-storage.ts"
+    "storage:check": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/check-storage.ts",
+    "db:purge-weddings": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db-maintenance.ts weddings",
+    "db:anonymize-users": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db-maintenance.ts users"
   },
   "dependencies": {
     "aws4fetch": "^1.0.20",
