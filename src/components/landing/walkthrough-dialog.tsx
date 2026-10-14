@@ -1,5 +1,6 @@
 "use client";
 
+import { DateField } from "@/components/ui/date-field";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
@@ -9,6 +10,7 @@ import { useToast } from "@/components/ui/toast";
 export function WalkthroughDialog() {
   const toast = useToast();
   const [open, setOpen] = useState(false);
+  const [demoDate, setDemoDate] = useState("");
   const firstFieldRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -83,10 +85,14 @@ export function WalkthroughDialog() {
                 aria-label="WhatsApp phone number"
                 className="w-full rounded-lg border border-on-surface/15 bg-surface-container-lowest px-3.5 py-2.5 text-body-sm text-on-surface focus:border-primary focus:outline-hidden"
               />
-              <input
-                type="date"
-                aria-label="Preferred date"
-                className="w-full rounded-lg border border-on-surface/15 bg-surface-container-lowest px-3.5 py-2.5 text-body-sm text-on-surface focus:border-primary focus:outline-hidden"
+              <DateField
+                id="demo-date"
+                ariaLabel="Preferred date"
+                value={demoDate}
+                onChange={setDemoDate}
+                placeholder="Preferred date"
+                title="Preferred date"
+                fieldClass="w-full rounded-lg border border-on-surface/15 bg-surface-container-lowest px-3.5 py-2.5 text-body-sm text-on-surface focus:border-primary focus:outline-hidden"
               />
               <button
                 type="button"

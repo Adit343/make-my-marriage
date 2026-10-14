@@ -7,7 +7,10 @@ import {
   type EventInput,
   type EventLocation,
 } from "@/components/events/events-api";
+import { DateTimeField } from "@/components/ui/date-time-field";
 import { Icon } from "@/components/ui/icon";
+import { Select } from "@/components/ui/select";
+import { splitDateTime } from "@/lib/calendar";
 import { useDialogFocus } from "@/components/ui/use-dialog-focus";
 import { useToast } from "@/components/ui/toast";
 import { ApiError, errorMessage } from "@/lib/client/api-client";
@@ -35,10 +38,6 @@ const FIELD =
 const FIELD_SM = FIELD.replace("font-body-md text-body-md", "font-body-sm text-body-sm");
 const INNER_FIELD =
   "w-full rounded-lg border border-[#2A2622]/10 bg-[#FAF6F0] px-3 py-2 font-body-sm text-body-sm text-[#2A2622] outline-none transition-all placeholder:text-[#2A2622]/35 focus:border-[#1F4D3D] focus:bg-[#FFFDF9] focus:shadow-[0_0_0_3px_rgba(31,77,61,0.08)]";
-// A native date-time field whose own picker icon is stretched over the whole input (and made
-// invisible) so the designed icon shows and a click anywhere opens the picker.
-const PICKER =
-  "relative [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0";
 
 interface FormState {
   name: string;
@@ -316,27 +315,20 @@ export function EventDrawer({
               <label htmlFor="event-type" className={LABEL}>
                 Event type <span className="text-secondary">*</span>
               </label>
-              <div className="relative">
-                <select
-                  id="event-type"
-                  value={form.type}
-                  onChange={(e) => set("type", e.target.value as EventType)}
-                  className={`${FIELD} cursor-pointer appearance-none`}
-                >
-                  {EVENT_TYPES.map((value) => (
-                    <option key={value} value={value}>
-                      {EVENT_TYPE_LABEL[value]}
-                    </option>
-                  ))}
-                </select>
-                <Icon
-                  name="expand_more"
-                  className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[18px] text-on-surface-variant"
-                />
-              </div>
+              <Select
+                id="event-type"
+                value={form.type}
+                onChange={(value) => set("type", value as EventType)}
+              >
+                {EVENT_TYPES.map((value) => (
+                  <option key={value} value={value}>
+                    {EVENT_TYPE_LABEL[value]}
+                  </option>
+                ))}
+              </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label htmlFor="event-start" className={LABEL}>
@@ -344,20 +336,15 @@ export function EventDrawer({
                   </label>
                   <Counter error={errors.starts} />
                 </div>
-                <div className="relative">
-                  <input
-                    id="event-start"
-                    type="datetime-local"
-                    value={form.starts}
-                    onChange={(e) => set("starts", e.target.value)}
-                    aria-invalid={Boolean(errors.starts)}
-                    className={`${FIELD_SM} ${PICKER} pr-8 pl-3 ${errors.starts ? "border-error" : ""}`}
-                  />
-                  <Icon
-                    name="calendar_today"
-                    className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-[16px] text-on-surface-variant"
-                  />
-                </div>
+                <DateTimeField
+                  id="event-start"
+                  value={form.starts}
+                  onChange={(value) => set("starts", value)}
+                  invalid={Boolean(errors.starts)}
+                  defaultTime="10:00"
+                  timeLabel="Start time"
+                  title="Event start date"
+                />
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
@@ -368,20 +355,16 @@ export function EventDrawer({
                     Ends <span className="font-normal text-on-surface-variant">(optional)</span>
                   </label>
                 </div>
-                <div className="relative">
-                  <input
-                    id="event-end"
-                    type="datetime-local"
-                    value={form.ends}
-                    onChange={(e) => set("ends", e.target.value)}
-                    aria-invalid={Boolean(errors.ends)}
-                    className={`${FIELD_SM} ${PICKER} pr-8 pl-3 ${errors.ends ? "border-error" : ""}`}
-                  />
-                  <Icon
-                    name="schedule"
-                    className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-[16px] text-on-surface-variant"
-                  />
-                </div>
+                <DateTimeField
+                  id="event-end"
+                  value={form.ends}
+                  onChange={(value) => set("ends", value)}
+                  invalid={Boolean(errors.ends)}
+                  clearable
+                  defaultTime={splitDateTime(form.starts).time || "12:00"}
+                  timeLabel="End time"
+                  title="Event end date"
+                />
                 {errors.ends ? <p className="text-[11px] text-error">{errors.ends}</p> : null}
               </div>
             </div>
@@ -390,24 +373,18 @@ export function EventDrawer({
               <label htmlFor="event-timezone" className={LABEL}>
                 Timezone
               </label>
-              <div className="relative">
-                <select
-                  id="event-timezone"
-                  value={form.timezone}
-                  onChange={(e) => set("timezone", e.target.value)}
-                  className={`${FIELD_SM} cursor-pointer appearance-none`}
-                >
-                  {timezoneOptions.map((zone) => (
-                    <option key={zone.value} value={zone.value}>
-                      {zone.label}
-                    </option>
-                  ))}
-                </select>
-                <Icon
-                  name="public"
-                  className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[18px] text-on-surface-variant"
-                />
-              </div>
+              <Select
+                id="event-timezone"
+                icon="public"
+                value={form.timezone}
+                onChange={(value) => set("timezone", value)}
+              >
+                {timezoneOptions.map((zone) => (
+                  <option key={zone.value} value={zone.value}>
+                    {zone.label}
+                  </option>
+                ))}
+              </Select>
               <p className="font-body-sm text-[12px] text-on-surface-variant">
                 The start and end times above are read in this timezone.
               </p>

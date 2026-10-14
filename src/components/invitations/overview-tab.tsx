@@ -343,7 +343,7 @@ export function OverviewTab({
               </p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left">
+                <table className="stack-table w-full border-collapse text-left">
                   <thead>
                     <tr className="border-b border-on-surface/5 font-label-sm text-label-sm tracking-wider text-on-surface-variant uppercase">
                       <th className="pb-2.5 font-semibold">Date &amp; time</th>
@@ -361,22 +361,22 @@ export function OverviewTab({
                         key={batch.batchId}
                         className="transition-colors hover:bg-surface-container-low/40"
                       >
-                        <td className="py-3.5 font-medium text-on-surface">
+                        <td data-slot="main" className="py-3.5 font-medium text-on-surface">
                           {batchWhen(batch.at, timezone, now)}
                           <div className="font-label-sm text-label-sm font-normal text-on-surface-variant">
                             {batch.kind === "reminder" ? "RSVP reminder" : "Invitation"}
                           </div>
                         </td>
-                        <td className="py-3.5">
+                        <td data-label="Channel" className="py-3.5">
                           <span className="inline-flex items-center gap-1 rounded bg-surface-container px-2 py-0.5 font-label-sm text-label-sm font-medium text-primary">
                             <Icon name="mail" className="text-[13px]" />
                             Email
                           </span>
                         </td>
-                        <td className="py-3.5 text-on-surface">
+                        <td data-label="Guests" className="py-3.5 text-on-surface">
                           {batch.total} {batch.total === 1 ? "guest" : "guests"}
                         </td>
-                        <td className="py-3.5">
+                        <td data-label="Result" className="py-3.5">
                           {batch.failed > 0 ? (
                             <div className="flex items-center gap-1">
                               <span>{batch.sent} sent,</span>
@@ -389,7 +389,7 @@ export function OverviewTab({
                           )}
                         </td>
                         {canViewLog ? (
-                          <td className="py-3.5 text-right">
+                          <td data-label="Details" className="py-3.5 text-right">
                             <button
                               type="button"
                               onClick={() => onViewBatch(batch.batchId)}

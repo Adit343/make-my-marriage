@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { EventMenu } from "@/components/events/event-menu";
 import { BudgetDialog } from "@/components/finance/budget-dialog";
 import { BUTTON_PRIMARY, Chip, EmptyState, FilterPill, ProgressBar } from "@/components/finance/ui";
 import { useExpenseActions } from "@/components/finance/use-expense-actions";
+import { DateField } from "@/components/ui/date-field";
 import { Icon } from "@/components/ui/icon";
+import { Popover } from "@/components/ui/popover";
 import type { ExpenseCategory } from "@/lib/constants/enums";
 import { formatShortDate } from "@/lib/dates";
 import { EXPENSE_CATEGORY_LABEL } from "@/lib/finance/labels";
@@ -650,7 +652,7 @@ function Ledger({
       ) : (
         <div className={`${CARD} overflow-hidden`}>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[960px] border-collapse text-left">
+            <table className="stack-table w-full border-collapse text-left md:min-w-[960px]">
               <caption className="sr-only">
                 Every expense, with what is agreed, paid and still to pay
               </caption>
@@ -693,7 +695,7 @@ function Ledger({
                       key={expense.id}
                       className="transition-colors hover:bg-surface-container-low/60"
                     >
-                      <td className="max-w-[220px] px-4 py-4">
+                      <td data-slot="main" className="max-w-[220px] px-4 py-4">
                         <Link
                           href={`/dashboard/expenses/${expense.id}`}
                           className="font-title text-body-sm font-semibold text-on-surface underline-offset-2 hover:text-primary hover:underline"
@@ -704,32 +706,48 @@ function Ledger({
                           <Chip>{EXPENSE_CATEGORY_LABEL[expense.category]}</Chip>
                         </div>
                       </td>
-                      <td className="px-4 py-4 font-body-sm text-body-sm whitespace-nowrap text-on-surface-variant">
+                      <td
+                        data-label="Date"
+                        className="px-4 py-4 font-body-sm text-body-sm whitespace-nowrap text-on-surface-variant"
+                      >
                         {expense.expenseDate ? formatShortDate(expense.expenseDate) : "–"}
                       </td>
-                      <td className="px-4 py-4 font-body-sm text-body-sm text-on-surface-variant">
+                      <td
+                        data-label="Vendor"
+                        className="px-4 py-4 font-body-sm text-body-sm text-on-surface-variant"
+                      >
                         {expense.vendorName ?? "–"}
                       </td>
-                      <td className="px-4 py-4">
+                      <td data-label="Event" className="px-4 py-4">
                         <Chip>{expense.eventName ?? "All events"}</Chip>
                       </td>
-                      <td className="px-4 py-4 text-right font-body-sm text-body-sm whitespace-nowrap text-on-surface-variant">
+                      <td
+                        data-label="Estimated"
+                        className="px-4 py-4 text-right font-body-sm text-body-sm whitespace-nowrap text-on-surface-variant"
+                      >
                         {expense.estimatedAmountMinor !== null
                           ? money(expense.estimatedAmountMinor)
                           : "–"}
                       </td>
-                      <td className="px-4 py-4 text-right font-body-sm text-body-sm whitespace-nowrap text-on-surface">
+                      <td
+                        data-label="Agreed"
+                        className="px-4 py-4 text-right font-body-sm text-body-sm whitespace-nowrap text-on-surface"
+                      >
                         {expense.agreedAmountMinor !== null
                           ? money(expense.agreedAmountMinor)
                           : "–"}
                       </td>
-                      <td className="px-4 py-4 text-right font-body-sm text-body-sm whitespace-nowrap text-primary">
+                      <td
+                        data-label="Paid"
+                        className="px-4 py-4 text-right font-body-sm text-body-sm whitespace-nowrap text-primary"
+                      >
                         <span className="inline-flex items-center gap-1.5">
                           {money(expense.paidAmountMinor)}
                           {settled ? <Icon name="check_circle" className="text-[15px]" /> : null}
                         </span>
                       </td>
                       <td
+                        data-label="Remaining"
                         className={`px-4 py-4 text-right font-body-sm text-body-sm whitespace-nowrap ${
                           expense.remainingAmountMinor > 0
                             ? "text-secondary"
@@ -738,14 +756,14 @@ function Ledger({
                       >
                         {money(expense.remainingAmountMinor)}
                       </td>
-                      <td className="w-32 px-4 py-4">
+                      <td data-label="Progress" className="w-32 px-4 py-4">
                         <ProgressBar
                           percent={paidPercent(expense.costMinor, expense.paidAmountMinor)}
                           label={`${expense.title} paid so far`}
                           tone={settled ? "green" : "terracotta"}
                         />
                       </td>
-                      <td className="px-3 py-4 text-right">
+                      <td data-slot="actions" className="px-3 py-4 text-right">
                         <EventMenu
                           eventName={expense.title}
                           items={menuItems(expense)}
@@ -821,23 +839,7 @@ function DateRangePill({
   onChange: (filters: LedgerFilters) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointer = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const label =
     filters.from && filters.to
@@ -850,71 +852,84 @@ function DateRangePill({
   const invalid = Boolean(filters.from && filters.to && filters.from > filters.to);
 
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
+        ref={triggerRef}
         type="button"
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-2 rounded-full border border-on-background/10 bg-surface-container-lowest px-3.5 py-1.5 font-body-sm text-body-sm text-on-surface transition-all hover:border-on-background/20 focus:border-primary/50 focus:outline-hidden"
+        className="flex max-w-full items-center gap-2 rounded-full border border-on-background/10 bg-surface-container-lowest px-3.5 py-1.5 font-body-sm text-body-sm text-on-surface transition-all hover:border-on-background/20 focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/15 focus-visible:outline-hidden"
       >
         <span className="text-on-surface-variant">Date:</span>
-        <span className="font-medium text-primary">{label}</span>
-        <Icon name="calendar_today" className="text-[16px]" />
+        <span className="truncate font-medium text-primary">{label}</span>
+        <Icon name="calendar_today" className="shrink-0 text-[16px]" />
       </button>
       {open ? (
-        <div
-          role="dialog"
-          aria-label="Filter by expense date"
-          className="elevation-2 absolute left-0 z-30 mt-2 w-72 space-y-3 rounded-xl border border-[#2A2622]/[0.08] bg-[#FFFDF9] p-4"
+        <Popover
+          anchorRef={triggerRef}
+          onClose={() => setOpen(false)}
+          title="Filter by expense date"
+          trapFocus
+          maxHeight={420}
         >
-          <label className="block">
-            <span className="mb-1 block font-label-md text-label-md font-semibold text-[#2A2622]">
-              From
-            </span>
-            <input
-              type="date"
-              value={filters.from}
-              max={filters.to || undefined}
-              onChange={(event) => onChange({ ...filters, from: event.target.value })}
-              className="w-full rounded-lg border border-[#2A2622]/15 bg-[#FFFDF9] px-3 py-2 font-body-sm text-body-sm outline-none focus:border-[#1F4D3D]"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block font-label-md text-label-md font-semibold text-[#2A2622]">
-              To
-            </span>
-            <input
-              type="date"
-              value={filters.to}
-              min={filters.from || undefined}
-              onChange={(event) => onChange({ ...filters, to: event.target.value })}
-              className="w-full rounded-lg border border-[#2A2622]/15 bg-[#FFFDF9] px-3 py-2 font-body-sm text-body-sm outline-none focus:border-[#1F4D3D]"
-            />
-          </label>
-          {invalid ? (
-            <p role="alert" className="text-[12px] text-error">
-              The end date is before the start date.
-            </p>
-          ) : null}
-          <div className="flex justify-between">
-            <button
-              type="button"
-              onClick={() => onChange({ ...filters, from: "", to: "" })}
-              className="font-body-sm text-body-sm font-medium text-secondary hover:underline"
-            >
-              Clear dates
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="font-body-sm text-body-sm font-medium text-primary hover:underline"
-            >
-              Done
-            </button>
+          <div className="w-full space-y-3 p-4 sm:w-72">
+            <div className="space-y-1">
+              <label
+                htmlFor="expense-filter-from"
+                className="block font-label-md text-label-md font-semibold text-[#2A2622]"
+              >
+                From
+              </label>
+              <DateField
+                id="expense-filter-from"
+                size="sm"
+                title="From date"
+                value={filters.from}
+                max={filters.to || undefined}
+                onChange={(from) => onChange({ ...filters, from })}
+              />
+            </div>
+            <div className="space-y-1">
+              <label
+                htmlFor="expense-filter-to"
+                className="block font-label-md text-label-md font-semibold text-[#2A2622]"
+              >
+                To
+              </label>
+              <DateField
+                id="expense-filter-to"
+                size="sm"
+                title="To date"
+                value={filters.to}
+                min={filters.from || undefined}
+                onChange={(to) => onChange({ ...filters, to })}
+              />
+            </div>
+            {invalid ? (
+              <p role="alert" className="text-[12px] text-error">
+                The end date is before the start date.
+              </p>
+            ) : null}
+            <div className="flex justify-between">
+              <button
+                type="button"
+                onClick={() => onChange({ ...filters, from: "", to: "" })}
+                className="font-body-sm text-body-sm font-medium text-secondary hover:underline"
+              >
+                Clear dates
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="font-body-sm text-body-sm font-medium text-primary hover:underline"
+              >
+                Done
+              </button>
+            </div>
           </div>
-        </div>
+        </Popover>
       ) : null}
-    </div>
+    </>
   );
 }

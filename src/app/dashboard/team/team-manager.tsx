@@ -14,6 +14,7 @@ import {
 } from "@/components/dashboard/workspace-api";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Icon } from "@/components/ui/icon";
+import { Select } from "@/components/ui/select";
 import { useDialogFocus } from "@/components/ui/use-dialog-focus";
 import { useToast } from "@/components/ui/toast";
 import { ApiError, errorMessage } from "@/lib/client/api-client";
@@ -225,22 +226,22 @@ export function TeamManager({
           </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
+          <table className="stack-table w-full border-collapse text-left">
             <thead>
               <tr className="border-b border-[#2A2622]/[0.06] bg-surface-container-low/50 font-label-md text-label-md text-on-surface-variant/80">
-                <th scope="col" className="px-6 py-3 font-semibold">
+                <th scope="col" className="px-4 xl:px-6 py-3 font-semibold">
                   Member
                 </th>
-                <th scope="col" className="px-6 py-3 font-semibold">
+                <th scope="col" className="px-4 xl:px-6 py-3 font-semibold">
                   Relationship
                 </th>
-                <th scope="col" className="px-6 py-3 font-semibold">
+                <th scope="col" className="px-4 xl:px-6 py-3 font-semibold">
                   Role
                 </th>
-                <th scope="col" className="px-6 py-3 font-semibold">
+                <th scope="col" className="px-4 xl:px-6 py-3 font-semibold">
                   Joined
                 </th>
-                <th scope="col" className="px-6 py-3 text-right font-semibold">
+                <th scope="col" className="px-4 xl:px-6 py-3 text-right font-semibold">
                   Actions
                 </th>
               </tr>
@@ -285,7 +286,7 @@ export function TeamManager({
                     key={member.id}
                     className="transition-colors hover:bg-surface-container-low/30"
                   >
-                    <td className="px-6 py-4">
+                    <td data-slot="main" className="px-4 xl:px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div
                           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-title text-body-sm font-semibold ${AVATAR[member.role]}`}
@@ -301,26 +302,32 @@ export function TeamManager({
                               </span>
                             ) : null}
                           </div>
-                          <div className="text-[13px] text-on-surface-variant">
+                          <div className="max-w-[16rem] truncate text-[13px] text-on-surface-variant">
                             {member.user.email}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-on-surface-variant">
+                    <td
+                      data-label="Relationship"
+                      className="px-4 xl:px-6 py-4 text-on-surface-variant"
+                    >
                       {member.relationship ? RELATIONSHIP_PLAIN[member.relationship] : "—"}
                     </td>
-                    <td className="px-6 py-4">
+                    <td data-label="Role" className="px-4 xl:px-6 py-4">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-label-sm text-label-sm tracking-wide ${ROLE_BADGE[member.role]}`}
                       >
                         {ROLE_LABEL[member.role]}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-normal whitespace-nowrap text-on-surface-variant">
+                    <td
+                      data-label="Joined"
+                      className="px-4 xl:px-6 py-4 font-normal whitespace-nowrap text-on-surface-variant"
+                    >
                       {DATE.format(new Date(member.joinedAt))}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td data-slot="actions" className="px-4 xl:px-6 py-4 text-right">
                       {!target ? (
                         <span className="font-label-sm text-[12px] tracking-normal text-outline italic">
                           Primary Owner
@@ -512,24 +519,17 @@ function dialogContent(
         confirmLabel: "Update role",
         danger: false,
         body: (
-          <div className="relative">
-            <select
-              aria-label="New role"
-              value={newRole}
-              onChange={(event) => setNewRole(event.target.value as InvitationRole)}
-              className={`${FIELD} cursor-pointer appearance-none`}
-            >
-              {[...INVITATION_ROLES].reverse().map((role) => (
-                <option key={role} value={role}>
-                  {ROLE_OPTION_TEXT[role]}
-                </option>
-              ))}
-            </select>
-            <Icon
-              name="expand_more"
-              className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-outline"
-            />
-          </div>
+          <Select
+            ariaLabel="New role"
+            value={newRole}
+            onChange={(value) => setNewRole(value as InvitationRole)}
+          >
+            {[...INVITATION_ROLES].reverse().map((role) => (
+              <option key={role} value={role}>
+                {ROLE_OPTION_TEXT[role]}
+              </option>
+            ))}
+          </Select>
         ),
       };
     case "revoke":
@@ -786,24 +786,17 @@ function InviteDrawer({
               <label htmlFor="invite-role" className={FIELD_LABEL}>
                 Role &amp; Permissions <span className="text-secondary">*</span>
               </label>
-              <div className="relative">
-                <select
-                  id="invite-role"
-                  value={role}
-                  onChange={(event) => setRole(event.target.value as InvitationRole)}
-                  className={`${FIELD} cursor-pointer appearance-none`}
-                >
-                  {[...INVITATION_ROLES].reverse().map((value) => (
-                    <option key={value} value={value}>
-                      {ROLE_OPTION_TEXT[value]}
-                    </option>
-                  ))}
-                </select>
-                <Icon
-                  name="expand_more"
-                  className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-outline"
-                />
-              </div>
+              <Select
+                id="invite-role"
+                value={role}
+                onChange={(value) => setRole(value as InvitationRole)}
+              >
+                {[...INVITATION_ROLES].reverse().map((value) => (
+                  <option key={value} value={value}>
+                    {ROLE_OPTION_TEXT[value]}
+                  </option>
+                ))}
+              </Select>
               <p className="mt-1 text-[12px] leading-relaxed text-outline">
                 Admins can edit event details, sign off vendor agreements, and approve guest lists.
                 Only Owners can transfer wedding ownership or delete the project.
@@ -819,31 +812,24 @@ function InviteDrawer({
                   <span className="text-[11px] text-error">Select one</span>
                 ) : null}
               </div>
-              <div className="relative">
-                <select
-                  id="invite-relationship"
-                  value={relationship}
-                  onChange={(event) => {
-                    setRelationship(event.target.value as MemberRelationship);
-                    setErrors((e) => ({ ...e, relationship: false }));
-                  }}
-                  aria-invalid={errors.relationship}
-                  className={`${FIELD} cursor-pointer appearance-none ${errors.relationship ? "border-error" : ""}`}
-                >
-                  <option value="" disabled>
-                    Select relationship
+              <Select
+                id="invite-relationship"
+                value={relationship}
+                onChange={(value) => {
+                  setRelationship(value as MemberRelationship);
+                  setErrors((e) => ({ ...e, relationship: false }));
+                }}
+                invalid={errors.relationship}
+              >
+                <option value="" disabled>
+                  Select relationship
+                </option>
+                {INVITE_RELATIONSHIPS.map((value) => (
+                  <option key={value} value={value}>
+                    {RELATIONSHIP_PLAIN[value]}
                   </option>
-                  {INVITE_RELATIONSHIPS.map((value) => (
-                    <option key={value} value={value}>
-                      {RELATIONSHIP_PLAIN[value]}
-                    </option>
-                  ))}
-                </select>
-                <Icon
-                  name="expand_more"
-                  className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-outline"
-                />
-              </div>
+                ))}
+              </Select>
             </div>
 
             <div className="space-y-1.5">

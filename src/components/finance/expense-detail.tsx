@@ -333,7 +333,7 @@ export function ExpenseDetail({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] border-collapse text-left">
+            <table className="stack-table w-full border-collapse text-left md:min-w-[760px]">
               <caption className="sr-only">Payments recorded for {expense.title}</caption>
               <thead>
                 <tr className="bg-surface-container-low">
@@ -359,15 +359,19 @@ export function ExpenseDetail({
                     key={item.id}
                     className={item.status === "cancelled" ? "opacity-70" : undefined}
                   >
-                    <td className="px-6 py-4 font-body-sm text-body-sm whitespace-nowrap text-on-surface">
+                    <td
+                      data-slot="main"
+                      className="px-6 py-4 font-body-sm text-body-sm whitespace-nowrap text-on-surface"
+                    >
                       {dateCell(item)}
                     </td>
                     <td
+                      data-label="Amount"
                       className={`px-6 py-4 font-title text-body-sm font-semibold whitespace-nowrap ${item.status === "cancelled" ? "text-on-surface-variant line-through" : "text-on-surface"}`}
                     >
                       {money(item.amountMinor)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td data-label="Status" className="px-6 py-4">
                       {item.status === "paid" ? (
                         <Chip tone="green" dot>
                           {PAYMENT_STATUS_LABEL.paid}
@@ -382,15 +386,21 @@ export function ExpenseDetail({
                         </Chip>
                       )}
                     </td>
-                    <td className="px-6 py-4 font-body-sm text-body-sm text-on-surface-variant">
+                    <td
+                      data-label="Method"
+                      className="px-6 py-4 font-body-sm text-body-sm text-on-surface-variant"
+                    >
                       {item.method ? PAYMENT_METHOD_LABEL[item.method] : "–"}
                     </td>
-                    <td className="max-w-[220px] px-6 py-4 font-body-sm text-body-sm text-on-surface-variant">
+                    <td
+                      data-label="Reference"
+                      className="max-w-[220px] px-6 py-4 font-body-sm text-body-sm text-on-surface-variant"
+                    >
                       <span className="block truncate" title={item.notes ?? undefined}>
                         {item.reference ?? "–"}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-right">
+                    <td data-slot="actions" className="px-4 py-4 text-right">
                       {canRecordPayments ? (
                         <EventMenu
                           eventName={`${money(item.amountMinor)} payment`}

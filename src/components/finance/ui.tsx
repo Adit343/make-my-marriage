@@ -1,24 +1,21 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
+import { FIELD, LABEL } from "@/components/ui/field-styles";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { Select } from "@/components/ui/select";
 import { currencySymbol } from "@/lib/finance/money";
 
 // Small pieces the Expenses and Vendors screens share, in the Stitch style used by the Tasks and
 // Guests screens (cream fields, green primary, terracotta accents).
 
-export const LABEL = "block font-label-md text-label-md font-semibold text-[#2A2622]";
-export const FIELD =
-  "w-full rounded-lg border border-[#2A2622]/15 bg-[#FFFDF9] px-3.5 py-2.5 font-body-md text-body-md text-[#2A2622] outline-none transition-all placeholder:text-[#2A2622]/35 focus:border-[#1F4D3D] focus:shadow-[0_0_0_3px_rgba(31,77,61,0.08)] disabled:opacity-60";
-/** A native date field whose own picker icon is stretched over the input and made invisible, so the designed calendar icon shows and a click anywhere opens the picker. */
-export const PICKER =
-  "relative [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0";
+export { FIELD, LABEL };
 export const BUTTON_PRIMARY =
-  "flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-body-sm text-body-sm font-medium text-on-primary shadow-sm transition-all duration-150 hover:bg-tertiary active:scale-[0.99]";
+  "flex items-center gap-2 whitespace-nowrap rounded-lg bg-primary px-4 py-2 font-body-sm text-body-sm font-medium text-on-primary shadow-sm transition-all duration-150 hover:bg-tertiary active:scale-[0.99]";
 export const BUTTON_SECONDARY =
   "rounded-lg border border-[#D5CCC0] px-4 py-2 font-body-sm text-body-sm font-medium text-[#2A2622] transition-colors hover:bg-[#F2ECE3]";
 
-/** The "pill with a hidden native select" filter used across the app's list screens. */
+/** The pill filter used across the app's list screens: "Category: All" opening a themed list. */
 export function FilterPill({
   label,
   value,
@@ -30,29 +27,20 @@ export function FilterPill({
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
 }) {
-  const selected = options.find((option) => option.value === value);
   return (
-    <label className="relative flex cursor-pointer items-center gap-2 rounded-full border border-on-background/10 bg-surface-container-lowest px-3.5 py-1.5 font-body-sm text-body-sm text-on-surface transition-all focus-within:border-primary/50 hover:border-on-background/20">
-      <span className="text-on-surface-variant">{label}:</span>
-      <span className="max-w-[160px] truncate font-medium text-primary">{selected?.label}</span>
-      <Icon name="expand_more" className="text-[16px]" />
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Select
+      variant="pill"
+      prefix={`${label}:`}
+      ariaLabel={label}
+      value={value}
+      onChange={onChange}
+      options={options}
+      className="max-w-full"
+    />
   );
 }
 
-/** A native select drawn like the other form fields, with an optional leading icon. */
+/** A dropdown drawn like the other form fields, with an optional leading icon. */
 export function SelectField({
   id,
   value,
@@ -66,34 +54,23 @@ export function SelectField({
   value: string;
   onChange: (value: string) => void;
   icon?: IconName;
+  /** <option> elements, as for a native select. */
   children: ReactNode;
   disabled?: boolean;
-  /** A name for the select when no <label for> points at it. */
+  /** A name for the control when no <label for> points at it. */
   ariaLabel?: string;
 }) {
   return (
-    <div className="relative">
-      {icon ? (
-        <Icon
-          name={icon}
-          className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-[18px] text-[#1F4D3D]"
-        />
-      ) : null}
-      <select
-        id={id}
-        aria-label={ariaLabel}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        className={`${FIELD} cursor-pointer appearance-none pr-10 ${icon ? "pl-11" : ""}`}
-      >
-        {children}
-      </select>
-      <Icon
-        name="expand_more"
-        className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[18px] text-on-surface-variant"
-      />
-    </div>
+    <Select
+      id={id}
+      value={value}
+      onChange={onChange}
+      icon={icon}
+      disabled={disabled}
+      ariaLabel={ariaLabel}
+    >
+      {children}
+    </Select>
   );
 }
 

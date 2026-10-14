@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DrawerShell } from "@/components/finance/drawer-shell";
-import { FIELD, LABEL, PICKER, SelectField } from "@/components/finance/ui";
+import { FIELD, LABEL, SelectField } from "@/components/finance/ui";
+import { DateTimeField } from "@/components/ui/date-time-field";
 import {
   createStream,
   updateStream,
@@ -341,20 +342,15 @@ export function StreamDrawer({
         <label htmlFor="stream-start" className={LABEL}>
           Start date and time
         </label>
-        <div className="relative">
-          <Icon
-            name="calendar_today"
-            className="pointer-events-none absolute top-1/2 left-3.5 z-10 -translate-y-1/2 text-[18px] text-on-surface-variant"
-          />
-          <input
-            id="stream-start"
-            type="datetime-local"
-            value={form.start}
-            aria-invalid={Boolean(errors.start)}
-            onChange={(event) => set("start", event.target.value)}
-            className={`${FIELD} ${PICKER} pl-10 ${errors.start ? "border-error" : ""}`}
-          />
-        </div>
+        <DateTimeField
+          id="stream-start"
+          value={form.start}
+          onChange={(value) => set("start", value)}
+          invalid={Boolean(errors.start)}
+          defaultTime="18:00"
+          timeLabel="Start time"
+          title="Stream start date"
+        />
         {errors.start ? (
           <p role="alert" className="font-body-sm text-body-sm text-error">
             {errors.start}

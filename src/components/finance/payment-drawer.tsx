@@ -8,7 +8,9 @@ import {
   type PaymentInput,
   type PaymentResult,
 } from "@/components/finance/finance-api";
-import { AmountField, Field, FIELD, PICKER, SelectField } from "@/components/finance/ui";
+import { AmountField, Field, FIELD, SelectField } from "@/components/finance/ui";
+import { DateField } from "@/components/ui/date-field";
+import { DateTimeField } from "@/components/ui/date-time-field";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
 import { ApiError, errorMessage } from "@/lib/client/api-client";
@@ -181,37 +183,20 @@ export function PaymentDrawer({
       </div>
 
       <Field label="Due date" htmlFor="payment-due" optional>
-        <div className="relative">
-          <input
-            id="payment-due"
-            type="date"
-            value={dueDate}
-            onChange={(event) => setDueDate(event.target.value)}
-            className={`${FIELD} ${PICKER} pr-11 font-body-sm text-body-sm`}
-          />
-          <Icon
-            name="calendar_today"
-            className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[18px] text-on-surface-variant"
-          />
-        </div>
+        <DateField id="payment-due" value={dueDate} onChange={setDueDate} title="Due date" />
       </Field>
 
       {status === "paid" ? (
         <Field label="Paid on date & time" htmlFor="payment-paid-on" error={errors.paidOn}>
-          <div className="relative">
-            <input
-              id="payment-paid-on"
-              type="datetime-local"
-              value={paidOn}
-              onChange={(event) => setPaidOn(event.target.value)}
-              aria-invalid={Boolean(errors.paidOn)}
-              className={`${FIELD} ${PICKER} pr-11 font-body-sm text-body-sm`}
-            />
-            <Icon
-              name="schedule"
-              className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[18px] text-on-surface-variant"
-            />
-          </div>
+          <DateTimeField
+            id="payment-paid-on"
+            value={paidOn}
+            onChange={setPaidOn}
+            invalid={Boolean(errors.paidOn)}
+            defaultTime="12:00"
+            timeLabel="Paid at (time)"
+            title="Paid on"
+          />
         </Field>
       ) : null}
 

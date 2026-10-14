@@ -8,6 +8,7 @@ import {
   type GuestInput,
 } from "@/components/guests/guests-api";
 import { Icon } from "@/components/ui/icon";
+import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { useDialogFocus } from "@/components/ui/use-dialog-focus";
 import { ApiError, errorMessage } from "@/lib/client/api-client";
@@ -44,7 +45,6 @@ const NEW_GROUP = "__new__";
 const FIELD =
   "w-full rounded-lg border border-on-surface/15 bg-[#FFFDF9] px-3.5 py-2.5 font-body-sm text-body-sm text-on-surface shadow-[0_1px_3px_0_rgba(42,38,34,0.02)] transition-all placeholder:text-on-surface/40 focus:border-primary-container focus:ring-2 focus:ring-primary-container/10 focus:outline-none";
 const LABEL = "mb-2 block font-label-md text-label-md text-on-surface";
-const SELECT = `${FIELD} cursor-pointer appearance-none pr-8`;
 
 interface FormState {
   name: string;
@@ -430,49 +430,35 @@ export function GuestDrawer({
                 <label className={LABEL} htmlFor="guest-group">
                   Group
                 </label>
-                <div className="relative">
-                  <select
-                    id="guest-group"
-                    value={form.group}
-                    onChange={(event) => set("group", event.target.value)}
-                    className={SELECT}
-                  >
-                    <option value="">No group</option>
-                    {groups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                    <option value={NEW_GROUP}>+ Create new group</option>
-                  </select>
-                  <Icon
-                    name="expand_more"
-                    className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-base text-outline"
-                  />
-                </div>
+                <Select
+                  id="guest-group"
+                  value={form.group}
+                  onChange={(value) => set("group", value)}
+                >
+                  <option value="">No group</option>
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                  <option value={NEW_GROUP}>+ Create new group</option>
+                </Select>
               </div>
               <div>
                 <label className={LABEL} htmlFor="guest-side">
                   Side
                 </label>
-                <div className="relative">
-                  <select
-                    id="guest-side"
-                    value={form.side}
-                    onChange={(event) => set("side", event.target.value as GuestSide)}
-                    className={SELECT}
-                  >
-                    {(["partnerOne", "partnerTwo", "both"] as const).map((side) => (
-                      <option key={side} value={side}>
-                        {sideLabel(side, partners)}
-                      </option>
-                    ))}
-                  </select>
-                  <Icon
-                    name="expand_more"
-                    className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-base text-outline"
-                  />
-                </div>
+                <Select
+                  id="guest-side"
+                  value={form.side}
+                  onChange={(value) => set("side", value as GuestSide)}
+                >
+                  {(["partnerOne", "partnerTwo", "both"] as const).map((side) => (
+                    <option key={side} value={side}>
+                      {sideLabel(side, partners)}
+                    </option>
+                  ))}
+                </Select>
               </div>
             </div>
 
@@ -593,24 +579,17 @@ export function GuestDrawer({
               <label className={LABEL} htmlFor="guest-diet">
                 Dietary preference
               </label>
-              <div className="relative">
-                <select
-                  id="guest-diet"
-                  value={form.dietary}
-                  onChange={(event) => set("dietary", event.target.value as DietaryPreference | "")}
-                  className={SELECT}
-                >
-                  {DIETARY_ORDER.map((diet) => (
-                    <option key={diet} value={diet}>
-                      {DIETARY_LABEL[diet]}
-                    </option>
-                  ))}
-                </select>
-                <Icon
-                  name="expand_more"
-                  className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-base text-outline"
-                />
-              </div>
+              <Select
+                id="guest-diet"
+                value={form.dietary}
+                onChange={(value) => set("dietary", value as DietaryPreference | "")}
+              >
+                {DIETARY_ORDER.map((diet) => (
+                  <option key={diet} value={diet}>
+                    {DIETARY_LABEL[diet]}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             <details

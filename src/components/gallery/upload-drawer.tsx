@@ -8,6 +8,7 @@ import {
   uploadPhoto,
 } from "@/components/gallery/gallery-api";
 import { Icon } from "@/components/ui/icon";
+import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { errorMessage } from "@/lib/client/api-client";
 import { MAX_PHOTO_BYTES } from "@/lib/constants/gallery";
@@ -282,28 +283,20 @@ export function UploadDrawer({
             <label htmlFor="upload-album" className="font-label-md text-label-md font-semibold">
               Add to album
             </label>
-            <div className="relative">
-              <select
-                id="upload-album"
-                value={albumChoice}
-                // Switching mid-way would split one batch across albums.
-                disabled={rows.some((row) => row.status !== "failed")}
-                onChange={(event) => setAlbumChoice(event.target.value)}
-                className="w-full appearance-none rounded-lg border border-[#2A2622]/15 bg-white px-3.5 py-2.5 pr-10 font-body-md text-body-md outline-none focus:border-[#1F4D3D] disabled:opacity-60"
-              >
-                <option value="">No album</option>
-                {albums.map((album) => (
-                  <option key={album.id} value={album.id}>
-                    {album.title}
-                  </option>
-                ))}
-                <option value={NEW_ALBUM}>+ New album</option>
-              </select>
-              <Icon
-                name="expand_more"
-                className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[20px] text-[#2A2622]/75"
-              />
-            </div>
+            <Select
+              id="upload-album"
+              value={albumChoice}
+              onChange={setAlbumChoice}
+              disabled={rows.some((row) => row.status !== "failed")}
+            >
+              <option value="">No album</option>
+              {albums.map((album) => (
+                <option key={album.id} value={album.id}>
+                  {album.title}
+                </option>
+              ))}
+              <option value={NEW_ALBUM}>+ New album</option>
+            </Select>
             {albumChoice === NEW_ALBUM ? (
               <input
                 type="text"

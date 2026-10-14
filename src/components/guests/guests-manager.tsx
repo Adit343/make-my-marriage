@@ -1,5 +1,6 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EventMenu } from "@/components/events/event-menu";
@@ -467,25 +468,20 @@ export function GuestsManager({
             >
               Showing responses for:
             </label>
-            <div className="relative inline-block">
-              <select
-                id="guest-event"
-                value={eventId}
-                onChange={(event) => chooseEvent(event.target.value)}
-                className="cursor-pointer appearance-none rounded-lg border border-[#2A2622]/12 bg-[#FFFDF9] py-1.5 pr-8 pl-3 font-body-sm text-body-sm font-semibold text-primary hover:bg-[#F4EFEA] focus:ring-1 focus:ring-primary focus:outline-none"
-              >
-                <option value={ALL}>All events</option>
-                {events.map((event) => (
-                  <option key={event.id} value={event.id}>
-                    {event.name} ({event.dateLabel})
-                  </option>
-                ))}
-              </select>
-              <Icon
-                name="expand_more"
-                className="pointer-events-none absolute top-2 right-2 text-[18px] text-on-surface-variant"
-              />
-            </div>
+            <Select
+              id="guest-event"
+              variant="inline"
+              value={eventId}
+              onChange={chooseEvent}
+              title="Showing responses for"
+            >
+              <option value={ALL}>All events</option>
+              {events.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.name} ({event.dateLabel})
+                </option>
+              ))}
+            </Select>
           </div>
           <span className="font-label-sm text-label-sm text-on-surface-variant">
             {updatedLabel}
@@ -654,7 +650,7 @@ export function GuestsManager({
             className={`overflow-x-auto transition-opacity ${loading ? "opacity-50" : ""}`}
             aria-busy={loading}
           >
-            <table className="w-full border-collapse text-left">
+            <table className="stack-table w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-[#2A2622]/[0.08] bg-[#FAF6F0]/80 font-label-sm text-label-sm tracking-wider text-on-surface-variant uppercase">
                   <th scope="col" className="w-12 px-4 py-3.5">
@@ -931,27 +927,15 @@ function FilterPill({
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
 }) {
-  const selected = options.find((option) => option.value === value);
   return (
-    <label className="relative inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#2A2622]/[0.08] bg-[#FAF6F0] px-2.5 py-1 text-on-surface-variant focus-within:border-primary/50 hover:border-[#2A2622]/20">
-      <span className="font-label-sm text-label-sm text-on-surface-variant uppercase">
-        {label}:
-      </span>
-      <span className="max-w-[150px] truncate font-medium text-on-surface">{selected?.label}</span>
-      <Icon name="keyboard_arrow_down" className="text-[16px] text-on-surface-variant/60" />
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Select
+      variant="chip"
+      prefix={`${label}:`}
+      ariaLabel={label}
+      value={value}
+      onChange={onChange}
+      options={options}
+    />
   );
 }
 
@@ -996,7 +980,7 @@ function GuestRow({
 
   return (
     <tr className={`transition-colors hover:bg-[#FAF6F0] ${selected ? "bg-[#1F4D3D]/[0.02]" : ""}`}>
-      <td className="px-4 py-3.5 align-middle">
+      <td data-slot="select" className="px-4 py-3.5 align-middle">
         <input
           type="checkbox"
           aria-label={`Select ${guest.name}`}
@@ -1005,7 +989,7 @@ function GuestRow({
           className="h-4 w-4 cursor-pointer rounded border-gray-300 text-[#1F4D3D] focus:ring-[#1F4D3D]"
         />
       </td>
-      <td className="px-4 py-3.5 align-middle">
+      <td data-slot="main" className="px-4 py-3.5 align-middle">
         <button type="button" onClick={onView} className="flex items-center gap-3 text-left">
           <span
             aria-hidden="true"
@@ -1023,7 +1007,7 @@ function GuestRow({
           </span>
         </button>
       </td>
-      <td className="px-4 py-3.5 align-middle">
+      <td data-label="Group" className="px-4 py-3.5 align-middle">
         {groupName ? (
           <span className="inline-block rounded-md bg-[#FAF6F0] px-2.5 py-1 font-label-sm text-label-sm text-on-surface-variant">
             {groupName}
@@ -1032,13 +1016,13 @@ function GuestRow({
           <span className="text-on-surface-variant">—</span>
         )}
       </td>
-      <td className="px-4 py-3.5 align-middle text-on-surface-variant">
+      <td data-label="Side" className="px-4 py-3.5 align-middle text-on-surface-variant">
         {sideLabel(guest.side, partners)}
       </td>
-      <td className="px-4 py-3.5 align-middle">
+      <td data-label="Contact" className="px-4 py-3.5 align-middle">
         <div className="flex items-center gap-2">
           {guest.phone ? (
-            <span>{formatPhone(guest.phone)}</span>
+            <span className="whitespace-nowrap">{formatPhone(guest.phone)}</span>
           ) : (
             <span className="text-on-surface-variant">No phone</span>
           )}
@@ -1052,9 +1036,9 @@ function GuestRow({
           {guest.email ? <span className="sr-only">Email available</span> : null}
         </div>
       </td>
-      <td className="px-4 py-3.5 align-middle">
+      <td data-label="Invitation" className="px-4 py-3.5 align-middle">
         {invitation.sent ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1F4D3D]/10 px-2.5 py-1 font-label-sm text-label-sm font-medium text-primary">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1F4D3D]/10 px-2.5 py-1 whitespace-nowrap font-label-sm text-label-sm font-medium text-primary">
             <Icon
               name={invitation.channel === "whatsapp" ? "chat" : "forward_to_inbox"}
               className="text-[13px]"
@@ -1065,12 +1049,12 @@ function GuestRow({
             ) : null}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2A2622]/[0.08] bg-[#FAF6F0] px-2.5 py-1 font-label-sm text-label-sm text-on-surface-variant">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2A2622]/[0.08] bg-[#FAF6F0] px-2.5 py-1 whitespace-nowrap font-label-sm text-label-sm text-on-surface-variant">
             Not sent
           </span>
         )}
       </td>
-      <td className="px-4 py-3.5 align-middle">
+      <td data-label="RSVP" className="px-4 py-3.5 align-middle">
         <div className="flex items-center gap-2" title={reply.hint}>
           <span className={`h-2 w-2 rounded-full ${style.dot}`} />
           <span className={style.text}>{reply.label}</span>
@@ -1081,7 +1065,7 @@ function GuestRow({
           ) : null}
         </div>
       </td>
-      <td className="px-4 py-3.5 text-right align-middle">
+      <td data-slot="actions" className="px-4 py-3.5 text-right align-middle">
         <EventMenu
           eventName={guest.name}
           trigger="inline"

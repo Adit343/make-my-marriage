@@ -1,5 +1,7 @@
 "use client";
 
+import { FIELD_AUTO } from "@/components/ui/field-styles";
+import { Select } from "@/components/ui/select";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { createGroup, deleteGroup, updateGroup } from "@/components/guests/guests-api";
 import { Icon } from "@/components/ui/icon";
@@ -198,18 +200,18 @@ export function GroupsDialog({
               />
               {error ? <p className="mt-1 text-[11px] text-error">{error}</p> : null}
             </div>
-            <select
-              aria-label="Side"
+            <Select
+              ariaLabel="Side"
               value={side}
-              onChange={(event) => setSide(event.target.value as GuestSide)}
-              className={`${FIELD} w-auto cursor-pointer`}
+              onChange={(value) => setSide(value as GuestSide)}
+              fieldClass={FIELD_AUTO}
             >
               {GUEST_SIDES.map((value) => (
                 <option key={value} value={value}>
                   {sideLabel(value, partners)}
                 </option>
               ))}
-            </select>
+            </Select>
             <button
               type="submit"
               disabled={busy}
@@ -282,18 +284,18 @@ function EditRow({
         />
         {error ? <p className="mt-1 text-[11px] text-error">{error}</p> : null}
       </div>
-      <select
-        aria-label="Side"
+      <Select
+        ariaLabel="Side"
         value={side}
-        onChange={(event) => setSide(event.target.value as GuestSide)}
-        className={`${FIELD} w-auto cursor-pointer`}
+        onChange={(value) => setSide(value as GuestSide)}
+        fieldClass={FIELD_AUTO}
       >
         {GUEST_SIDES.map((value) => (
           <option key={value} value={value}>
             {sideLabel(value, partners)}
           </option>
         ))}
-      </select>
+      </Select>
       <button
         type="submit"
         disabled={saving}
@@ -358,19 +360,14 @@ function DeleteRow({
           : "It has no guests."}
       </p>
       {group.guestCount > 0 ? (
-        <select
-          aria-label="Move guests to"
-          value={target}
-          onChange={(event) => setTarget(event.target.value)}
-          className={`${FIELD} cursor-pointer`}
-        >
+        <Select ariaLabel="Move guests to" value={target} onChange={setTarget}>
           <option value="">No group (ungrouped)</option>
           {others.map((other) => (
             <option key={other.id} value={other.id}>
               Move to {other.name}
             </option>
           ))}
-        </select>
+        </Select>
       ) : null}
       <div className="flex items-center justify-end gap-2">
         <button

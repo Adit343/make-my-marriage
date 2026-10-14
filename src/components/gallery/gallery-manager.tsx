@@ -1,5 +1,6 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlbumDrawer, DeleteAlbumDialog } from "@/components/gallery/album-drawer";
@@ -517,26 +518,17 @@ export function GalleryManager({
                     ))}
                   </div>
                   {!album && albums.length > 0 ? (
-                    <label className="relative flex cursor-pointer items-center gap-2 rounded-full border border-[#2A2622]/10 bg-surface-container-lowest px-4 py-2 font-label-md text-label-md focus-within:border-primary/50">
-                      <span className="text-[#686F6A]">Album:</span>
-                      <span className="max-w-[160px] truncate font-semibold text-primary">All</span>
-                      <Icon name="keyboard_arrow_down" className="text-[18px]" />
-                      <select
-                        aria-label="Open an album"
-                        value=""
-                        onChange={(event) =>
-                          event.target.value && goTo("photos", event.target.value)
-                        }
-                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                      >
-                        <option value="">All</option>
-                        {albums.map((entry) => (
-                          <option key={entry.id} value={entry.id}>
-                            {entry.title}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <Select
+                      variant="pill"
+                      prefix="Album:"
+                      ariaLabel="Open an album"
+                      value=""
+                      onChange={(value) => value && goTo("photos", value)}
+                      options={[
+                        { value: "", label: "All" },
+                        ...albums.map((entry) => ({ value: entry.id, label: entry.title })),
+                      ]}
+                    />
                   ) : null}
                 </div>
                 <div

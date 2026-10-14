@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { updateSchedule } from "@/components/events/events-api";
 import { Icon } from "@/components/ui/icon";
+import { TimeField } from "@/components/ui/time-field";
 import { useDialogFocus } from "@/components/ui/use-dialog-focus";
 import { useToast } from "@/components/ui/toast";
 import { ApiError, errorMessage } from "@/lib/client/api-client";
@@ -197,21 +198,22 @@ export function ScheduleDrawer({
                   key={row.key}
                   className="space-y-3 rounded-xl border border-[#2A2622]/[0.08] bg-[#FFFDF9] p-4"
                 >
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-[116px] shrink-0">
-                      <input
-                        type="time"
-                        aria-label={`Time for line ${index + 1}`}
-                        aria-invalid={Boolean(problem.time)}
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2.5 sm:grid-cols-[9.5rem_minmax(0,1fr)_auto]">
+                    <div className="min-w-0">
+                      <TimeField
+                        id={`schedule-time-${row.key}`}
+                        ariaLabel={`Time for line ${index + 1}`}
+                        title="Choose a time"
+                        invalid={Boolean(problem.time)}
                         value={row.time}
-                        onChange={(e) => change(row.key, { time: e.target.value })}
-                        className={`${FIELD} ${problem.time ? "border-error" : ""}`}
+                        defaultTime={rows[index - 1]?.time || "09:00"}
+                        onChange={(time) => change(row.key, { time })}
                       />
                       {problem.time ? (
                         <p className="mt-1 text-[11px] text-error">Time required</p>
                       ) : null}
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className="order-3 col-span-2 min-w-0 sm:order-2 sm:col-span-1">
                       <input
                         type="text"
                         aria-label={`What happens in line ${index + 1}`}
@@ -232,7 +234,7 @@ export function ScheduleDrawer({
                       type="button"
                       aria-label={`Remove line ${index + 1}`}
                       onClick={() => setRows(rows.filter((other) => other.key !== row.key))}
-                      className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-outline transition-colors hover:bg-error-container/40 hover:text-[#B33A3A]"
+                      className="order-2 mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-outline sm:order-3 transition-colors hover:bg-error-container/40 hover:text-[#B33A3A]"
                     >
                       <Icon name="delete" className="text-[18px]" />
                     </button>

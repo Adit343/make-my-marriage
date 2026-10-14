@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { LandingHeader } from "@/components/landing/landing-header";
 import { GuestManagerShowcase } from "@/components/landing/guest-manager-showcase";
 import { WalkthroughDialog } from "@/components/landing/walkthrough-dialog";
 import { Icon, type IconName } from "@/components/ui/icon";
-import { BrandMark } from "@/components/ui/brand-mark";
 
 // Stitch screen: "Make My Marriage — Collaborative Wedding Planning SaaS Landing Page (Interactive)".
 // All names, numbers and quotes below are sample content from the design.
@@ -273,46 +273,7 @@ export default function LandingPage() {
       <div className="pointer-events-none fixed top-1/3 right-0 -z-10 h-[500px] w-[500px] rounded-full bg-secondary-container/15 blur-3xl" />
       <div className="pointer-events-none fixed bottom-1/4 left-10 -z-10 h-[550px] w-[550px] rounded-full bg-primary-fixed-dim/15 blur-3xl" />
 
-      <header className="sticky top-0 z-50 bg-surface/90 shadow-xs backdrop-blur-md transition-all duration-200">
-        <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-6 md:px-12">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2.5 font-headline-sm text-headline-sm font-medium tracking-tight text-primary transition-opacity hover:opacity-90"
-          >
-            <BrandMark className="h-8 w-8 shrink-0" />
-            Make My Marriage
-          </Link>
-          <nav className="hidden items-center space-x-8 md:flex">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className={
-                  link.active
-                    ? "font-label-md text-label-md font-semibold text-primary"
-                    : "font-label-md text-label-md text-on-surface-variant transition-colors duration-150 hover:text-primary"
-                }
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
-          <div className="flex items-center space-x-5">
-            <Link
-              href="/login"
-              className="font-label-md text-label-md text-on-surface-variant transition-colors duration-150 hover:text-primary"
-            >
-              Log In
-            </Link>
-            <Link
-              href="/signup"
-              className="inline-flex items-center justify-center rounded-lg bg-primary-container px-5 py-2.5 font-label-md text-label-md text-on-primary shadow-xs transition-all duration-200 hover:bg-primary active:scale-[0.99]"
-            >
-              Start planning free
-            </Link>
-          </div>
-        </div>
-      </header>
+      <LandingHeader links={NAV_LINKS} />
 
       <main>
         {/* Hero */}
@@ -410,7 +371,7 @@ export default function LandingPage() {
                     <span className="font-label-sm text-label-sm text-on-surface-variant">
                       {metric.label}
                     </span>
-                    <div className="mt-2 flex items-baseline justify-between">
+                    <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
                       <span className="font-title text-title text-on-surface">
                         {metric.value}{" "}
                         {metric.suffix ? (
@@ -871,8 +832,8 @@ export default function LandingPage() {
 
       <footer className="border-t border-on-surface/5 bg-surface-container-low">
         <div className="mx-auto w-full max-w-7xl px-6 py-16 md:px-12">
-          <div className="mb-12 grid grid-cols-1 gap-10 md:grid-cols-5">
-            <div className="space-y-4 md:col-span-2">
+          <div className="mb-12 grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-5">
+            <div className="col-span-2 space-y-4">
               <Link
                 href="/"
                 className="block font-headline-sm text-headline-sm font-medium tracking-tight text-primary"

@@ -5,6 +5,7 @@ import { deleteAsset, updateAsset } from "@/components/gallery/gallery-api";
 import { Lightbox } from "@/components/gallery/lightbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { errorMessage } from "@/lib/client/api-client";
 import { MEDIA_VISIBILITIES, type MediaVisibility } from "@/lib/constants/enums";
@@ -317,26 +318,19 @@ function Inspector({
           <label htmlFor="photo-album" className="font-label-md text-label-md font-semibold">
             Album
           </label>
-          <div className="relative">
-            <select
-              id="photo-album"
-              value={photo.albumId ?? ""}
-              disabled={saving}
-              onChange={(event) => void save({ albumId: event.target.value || null })}
-              className="w-full appearance-none rounded-lg border border-[#2A2622]/15 bg-white px-3.5 py-2.5 pr-10 font-body-md text-body-md outline-none focus:border-[#1F4D3D]"
-            >
-              <option value="">No album</option>
-              {albums.map((album) => (
-                <option key={album.id} value={album.id}>
-                  {album.title}
-                </option>
-              ))}
-            </select>
-            <Icon
-              name="expand_more"
-              className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[20px] text-[#2A2622]/75"
-            />
-          </div>
+          <Select
+            id="photo-album"
+            value={photo.albumId ?? ""}
+            onChange={(value) => void save({ albumId: value || null })}
+            disabled={saving}
+          >
+            <option value="">No album</option>
+            {albums.map((album) => (
+              <option key={album.id} value={album.id}>
+                {album.title}
+              </option>
+            ))}
+          </Select>
         </div>
       </div>
 

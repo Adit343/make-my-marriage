@@ -1,5 +1,7 @@
 "use client";
 
+import { DateField } from "@/components/ui/date-field";
+import { Select } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { createWedding, logOut, takeOnboardingPrefill } from "@/components/auth/auth-api";
@@ -356,13 +358,12 @@ export function OnboardingForm({ email }: { email: string }) {
                 </span>
                 <span className="text-[11px] font-normal text-[#B5714A]">Can be set later</span>
               </label>
-              <input
+              <DateField
                 id="wedding-date"
-                name="weddingDate"
-                type="date"
                 value={weddingDate}
-                onChange={(event) => setWeddingDate(event.target.value)}
-                className={FIELD}
+                onChange={setWeddingDate}
+                title="Wedding date"
+                fieldClass={FIELD}
               />
             </div>
 
@@ -373,35 +374,18 @@ export function OnboardingForm({ email }: { email: string }) {
                   Defines default module view
                 </span>
               </label>
-              <div className="relative">
-                <select
-                  id="user-role"
-                  name="userRole"
-                  value={relationship}
-                  onChange={(event) => setRelationship(event.target.value as MemberRelationship)}
-                  className={`${FIELD} cursor-pointer appearance-none pr-10`}
-                >
-                  {MEMBER_RELATIONSHIPS.map((value) => (
-                    <option key={value} value={value}>
-                      {ROLE_OPTIONS[value]}
-                    </option>
-                  ))}
-                </select>
-                <svg
-                  aria-hidden="true"
-                  className="pointer-events-none absolute top-1/2 right-3.5 h-4 w-4 -translate-y-1/2 text-[#68625B]"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-                  />
-                </svg>
-              </div>
+              <Select
+                id="user-role"
+                value={relationship}
+                onChange={(value) => setRelationship(value as MemberRelationship)}
+                fieldClass={FIELD}
+              >
+                {MEMBER_RELATIONSHIPS.map((value) => (
+                  <option key={value} value={value}>
+                    {ROLE_OPTIONS[value]}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             <div className="flex items-start gap-2.5 rounded-xl border border-[#E7DFD5]/80 bg-[#F5F0E6]/80 p-3 text-[#68625B]">

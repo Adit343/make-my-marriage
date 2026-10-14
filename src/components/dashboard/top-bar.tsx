@@ -9,6 +9,7 @@ import {
   ROLE_LABEL,
   WEDDING_STATUS_LABEL,
 } from "@/components/dashboard/labels";
+import { useShellNav } from "@/components/dashboard/shell-nav";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
 import { errorMessage } from "@/lib/client/api-client";
@@ -41,6 +42,7 @@ function useDismiss(open: boolean, close: () => void) {
 export function TopBar({ viewer, workspace }: { viewer: Viewer; workspace: Workspace | null }) {
   const router = useRouter();
   const toast = useToast();
+  const { open: navOpen, setOpen: setNavOpen, menuButtonRef } = useShellNav();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -70,30 +72,41 @@ export function TopBar({ viewer, workspace }: { viewer: Viewer; workspace: Works
   }
 
   return (
-    <header className="relative z-30 flex h-20 shrink-0 items-center justify-between border-b border-[#2A2622]/[0.06] bg-surface/90 px-6 backdrop-blur-md md:px-12">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <h2 className="truncate font-headline-sm text-headline-sm font-medium tracking-tight text-primary">
+    <header className="relative z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#2A2622]/[0.06] bg-surface/90 px-4 backdrop-blur-md sm:h-20 sm:px-6 lg:px-10 xl:px-12">
+      <button
+        ref={menuButtonRef}
+        type="button"
+        aria-label="Open menu"
+        aria-expanded={navOpen}
+        aria-controls="app-navigation"
+        onClick={() => setNavOpen(true)}
+        className="-ml-2 shrink-0 rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:outline-hidden lg:hidden"
+      >
+        <Icon name="menu" />
+      </button>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <h2 className="min-w-0 truncate font-headline-sm text-headline-sm font-medium tracking-tight text-primary">
             {workspace?.title ?? "Your wedding workspace"}
           </h2>
           {workspace ? (
-            <span className="hidden items-center rounded bg-surface-container px-2 py-0.5 font-label-sm text-[11px] text-on-surface-variant sm:inline-flex">
+            <span className="hidden shrink-0 items-center rounded bg-surface-container px-2 py-0.5 font-label-sm text-[11px] text-on-surface-variant xl:inline-flex">
               {WEDDING_STATUS_LABEL[workspace.status] ?? workspace.status}
             </span>
           ) : null}
         </div>
-        <p className="mt-0.5 flex items-center gap-1.5 font-body-sm text-body-sm text-on-surface-variant">
-          <Icon name="pin_drop" className="text-[15px] text-secondary" />
-          {workspace ? subtitle : "Not created yet"}
+        <p className="mt-0.5 flex min-w-0 items-center gap-1.5 font-body-sm text-body-sm text-on-surface-variant">
+          <Icon name="pin_drop" className="shrink-0 text-[15px] text-secondary" />
+          <span className="truncate">{workspace ? subtitle : "Not created yet"}</span>
           {daysLeft !== null ? (
-            <span className="ml-1 hidden rounded-full bg-secondary/10 px-1.5 py-0.5 font-label-sm text-[10px] tracking-wider text-secondary uppercase sm:inline-flex">
+            <span className="ml-1 hidden shrink-0 whitespace-nowrap rounded-full bg-secondary/10 px-1.5 py-0.5 font-label-sm text-[10px] tracking-wider text-secondary uppercase xl:inline-flex">
               {daysLeft} {daysLeft === 1 ? "Day" : "Days"} Left
             </span>
           ) : null}
         </p>
       </div>
 
-      <div className="relative flex items-center gap-4">
+      <div className="relative flex shrink-0 items-center gap-1.5 sm:gap-4">
         <div className="relative" ref={notificationsRef}>
           <button
             type="button"
@@ -105,7 +118,7 @@ export function TopBar({ viewer, workspace }: { viewer: Viewer; workspace: Works
             <Icon name="notifications" />
           </button>
           {notificationsOpen ? (
-            <div className="elevation-2 absolute right-0 z-50 mt-3 w-80 rounded-xl border border-[#2A2622]/[0.08] bg-surface-container-lowest p-4 sm:w-96">
+            <div className="elevation-2 fixed top-[4.25rem] right-3 left-3 z-50 rounded-xl border border-[#2A2622]/[0.08] bg-surface-container-lowest p-4 sm:absolute sm:top-auto sm:right-0 sm:left-auto sm:mt-3 sm:w-96">
               <div className="flex items-center justify-between border-b border-[#2A2622]/[0.06] pb-3">
                 <span className="font-title text-body-sm font-semibold text-primary">
                   Alerts &amp; Updates
@@ -122,7 +135,7 @@ export function TopBar({ viewer, workspace }: { viewer: Viewer; workspace: Works
           ) : null}
         </div>
 
-        <div className="h-6 w-px bg-[#2A2622]/[0.08]" />
+        <div className="hidden h-6 w-px bg-[#2A2622]/[0.08] sm:block" />
 
         <div className="relative" ref={profileRef}>
           <button
@@ -134,7 +147,8 @@ export function TopBar({ viewer, workspace }: { viewer: Viewer; workspace: Works
             <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#2A2622]/[0.08] bg-[#E5DCD3] font-title text-body-md font-medium text-primary select-none">
               {viewer.initials}
             </div>
-            <div className="hidden text-left sm:block">
+            <span className="sr-only">Account menu</span>
+            <div className="hidden text-left xl:block">
               <div className="flex items-center gap-2">
                 <span className="font-title text-body-sm text-on-surface">{viewer.name}</span>
                 {viewer.role ? (
@@ -154,7 +168,7 @@ export function TopBar({ viewer, workspace }: { viewer: Viewer; workspace: Works
           </button>
 
           {profileOpen ? (
-            <div className="elevation-2 absolute right-0 z-50 mt-3 w-64 rounded-xl border border-[#2A2622]/[0.08] bg-surface-container-lowest py-2 shadow-lg">
+            <div className="elevation-2 fixed top-[4.25rem] right-3 z-50 w-[min(16rem,calc(100vw-1.5rem))] rounded-xl border border-[#2A2622]/[0.08] bg-surface-container-lowest py-2 shadow-lg sm:absolute sm:top-auto sm:right-0 sm:mt-3 sm:w-64">
               <div className="border-b border-[#2A2622]/[0.06] px-4 py-2">
                 <p className="font-label-sm text-[11px] font-semibold tracking-wider text-outline uppercase">
                   Signed in as

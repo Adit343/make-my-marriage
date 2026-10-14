@@ -1,5 +1,6 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
 import { useState } from "react";
 import { EventMenu, type EventMenuItem } from "@/components/events/event-menu";
 import { AssigneeAvatars } from "@/components/tasks/assignee-avatars";
@@ -289,25 +290,15 @@ function FilterPill({
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
 }) {
-  const selected = options.find((option) => option.value === value);
   return (
-    <label className="relative flex cursor-pointer items-center gap-2 rounded-full border border-on-background/10 bg-surface-container-lowest px-3.5 py-1.5 font-body-sm text-body-sm text-on-surface transition-all focus-within:border-primary/50 hover:border-on-background/20">
-      <span className="text-on-surface-variant">{label}:</span>
-      <span className="max-w-[160px] truncate font-medium text-primary">{selected?.label}</span>
-      <Icon name="expand_more" className="text-[16px]" />
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Select
+      variant="pill"
+      prefix={`${label}:`}
+      ariaLabel={label}
+      value={value}
+      onChange={onChange}
+      options={options}
+    />
   );
 }
 

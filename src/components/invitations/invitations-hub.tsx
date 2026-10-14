@@ -261,7 +261,7 @@ export function InvitationsHub({
       <div
         role="tablist"
         aria-label="Invitations"
-        className="flex space-x-8 border-b border-on-surface/10"
+        className="custom-scrollbar flex gap-x-6 overflow-x-auto border-b border-on-surface/10 sm:gap-x-8"
       >
         {tabs.map((item) => {
           const active = tab === item.id;
@@ -277,7 +277,7 @@ export function InvitationsHub({
                 setTab(item.id);
                 if (item.id === "responses" && !eventId && events[0]) setEventId(events[0].id);
               }}
-              className={`flex items-center gap-2 border-b-2 pb-3 font-body-md text-body-md transition-colors ${
+              className={`flex shrink-0 items-center gap-2 border-b-2 pb-3 font-body-md whitespace-nowrap text-body-md transition-colors ${
                 active
                   ? "border-primary-container font-semibold text-primary"
                   : "border-transparent text-on-surface-variant hover:text-primary"

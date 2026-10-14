@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { DrawerShell } from "@/components/finance/drawer-shell";
 import { createExpense, updateExpense, type ExpenseInput } from "@/components/finance/finance-api";
-import { AmountField, Field, FIELD, PICKER, SelectField } from "@/components/finance/ui";
+import { AmountField, Field, FIELD, SelectField } from "@/components/finance/ui";
+import { DateField } from "@/components/ui/date-field";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
 import { ApiError, errorMessage } from "@/lib/client/api-client";
@@ -163,19 +164,7 @@ export function ExpenseDrawer({
       </Field>
 
       <Field label="Date" htmlFor="expense-date" optional hint="When it was booked or incurred">
-        <div className="relative">
-          <input
-            id="expense-date"
-            type="date"
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-            className={`${FIELD} ${PICKER} pl-11 font-body-sm text-body-sm`}
-          />
-          <Icon
-            name="calendar_today"
-            className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-[18px] text-on-surface-variant"
-          />
-        </div>
+        <DateField id="expense-date" value={date} onChange={setDate} title="Expense date" />
       </Field>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

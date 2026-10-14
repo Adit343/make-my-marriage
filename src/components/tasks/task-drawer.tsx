@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { RELATIONSHIP_PLAIN } from "@/components/dashboard/labels";
 import { createTask, updateTask, type TaskInput } from "@/components/tasks/tasks-api";
+import { DateField } from "@/components/ui/date-field";
 import { Icon } from "@/components/ui/icon";
+import { Select } from "@/components/ui/select";
 import { useDialogFocus } from "@/components/ui/use-dialog-focus";
 import { useToast } from "@/components/ui/toast";
 import { ApiError, errorMessage } from "@/lib/client/api-client";
@@ -40,10 +42,6 @@ export type TaskDrawerMode =
 const LABEL = "block font-label-md text-label-md font-semibold text-[#2A2622]";
 const FIELD =
   "w-full rounded-lg border border-[#2A2622]/15 bg-[#FFFDF9] px-3.5 py-2.5 font-body-md text-body-md text-[#2A2622] outline-none transition-all placeholder:text-[#2A2622]/35 focus:border-[#1F4D3D] focus:shadow-[0_0_0_3px_rgba(31,77,61,0.08)]";
-// A native date field whose own picker icon is stretched over the whole input (and made invisible)
-// so the designed calendar icon shows and a click anywhere opens the picker.
-const PICKER =
-  "relative [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0";
 
 const AVATAR_TONE = ["bg-[#1F4D3D]", "bg-[#4A6B5D]", "bg-[#B5714A]", "bg-[#8B4F2B]"];
 const STATUS_DOT: Record<TaskStatus, string> = {
@@ -264,29 +262,14 @@ export function TaskDrawer({
               <label htmlFor="task-event" className={LABEL}>
                 Event
               </label>
-              <div className="relative">
-                <Icon
-                  name="celebration"
-                  className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-[18px] text-[#1F4D3D]"
-                />
-                <select
-                  id="task-event"
-                  value={eventId}
-                  onChange={(e) => setEventId(e.target.value)}
-                  className={`${FIELD} cursor-pointer appearance-none pr-10 pl-11`}
-                >
-                  <option value="">No event (general task)</option>
-                  {events.map((event) => (
-                    <option key={event.id} value={event.id}>
-                      {event.name}
-                    </option>
-                  ))}
-                </select>
-                <Icon
-                  name="expand_more"
-                  className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[18px] text-on-surface-variant"
-                />
-              </div>
+              <Select id="task-event" value={eventId} onChange={setEventId} icon="celebration">
+                <option value="">No event (general task)</option>
+                {events.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.name}
+                  </option>
+                ))}
+              </Select>
               <p className="font-body-sm text-[12px] text-on-surface-variant">
                 Link this task to an event, or leave it as a general task.
               </p>
@@ -297,19 +280,7 @@ export function TaskDrawer({
                 <label htmlFor="task-due" className={LABEL}>
                   Due date
                 </label>
-                <div className="relative">
-                  <input
-                    id="task-due"
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className={`${FIELD} ${PICKER} pl-11 font-body-sm text-body-sm`}
-                  />
-                  <Icon
-                    name="calendar_today"
-                    className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-[18px] text-on-surface-variant"
-                  />
-                </div>
+                <DateField id="task-due" value={dueDate} onChange={setDueDate} title="Due date" />
               </div>
               <div className="space-y-1.5">
                 <span id="task-priority-label" className={LABEL}>

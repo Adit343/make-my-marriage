@@ -1,5 +1,6 @@
 "use client";
 
+import { DateField } from "@/components/ui/date-field";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DrawerShell } from "@/components/finance/drawer-shell";
@@ -256,7 +257,7 @@ export function SharingSettings({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left">
+            <table className="stack-table w-full text-left md:min-w-[720px]">
               <thead>
                 <tr className="border-y border-[#2A2622]/[0.06] bg-[#F4EFEA]/60 font-label-sm text-label-sm tracking-wider text-[#2A2622]/75 uppercase">
                   <th className="px-6 py-3 font-semibold md:pl-8">Label</th>
@@ -272,7 +273,7 @@ export function SharingSettings({
                   const live = link.status === "active";
                   return (
                     <tr key={link.id} className={live ? "" : "bg-[#F4EFEA]/50"}>
-                      <td className="px-6 py-4 md:pl-8">
+                      <td data-slot="main" className="px-6 py-4 md:pl-8">
                         <span className="flex items-center gap-3 font-label-md text-label-md font-semibold text-[#2A2622]">
                           <Icon
                             name={
@@ -287,10 +288,10 @@ export function SharingSettings({
                           {link.label?.trim() || "Untitled link"}
                         </span>
                       </td>
-                      <td className="px-3 py-4 font-body-sm text-body-sm">
+                      <td data-label="Album" className="px-3 py-4 font-body-sm text-body-sm">
                         {link.albumTitle ?? "Whole gallery"}
                       </td>
-                      <td className="px-3 py-4">
+                      <td data-label="Guests can" className="px-3 py-4">
                         <span className="flex items-center gap-2 text-[#2A2622]/75">
                           {link.permissions.canView ? (
                             <Perm icon="visibility" text="View photos" />
@@ -303,17 +304,17 @@ export function SharingSettings({
                           ) : null}
                         </span>
                       </td>
-                      <td className="px-3 py-4 font-body-sm text-body-sm">
+                      <td data-label="Expires" className="px-3 py-4 font-body-sm text-body-sm">
                         {expiryLabel(link.expiresAt, timezone)}
                       </td>
-                      <td className="px-3 py-4">
+                      <td data-label="Status" className="px-3 py-4">
                         <span
                           className={`rounded-full px-2.5 py-1 font-label-sm text-label-sm font-semibold capitalize ${STATUS_STYLE[link.status]}`}
                         >
                           {link.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 md:pr-8">
+                      <td data-label="Actions" className="px-6 py-4 md:pr-8">
                         <span className="flex items-center justify-end gap-4 font-label-md text-label-md font-medium">
                           {live ? (
                             <>
@@ -606,13 +607,13 @@ function CreateLinkDrawer({
             <label htmlFor="link-expiry" className="sr-only">
               Expiry date
             </label>
-            <input
+            <DateField
               id="link-expiry"
-              type="date"
               min={tomorrow}
               value={date}
-              onChange={(event) => setDate(event.target.value)}
-              className={FIELD}
+              onChange={setDate}
+              clearable={false}
+              title="Link expiry date"
             />
             <p className="font-body-sm text-body-sm text-[#2A2622]/75">
               The link works until the end of that day.

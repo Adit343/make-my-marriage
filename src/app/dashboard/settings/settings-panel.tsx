@@ -1,5 +1,7 @@
 "use client";
 
+import { DateField } from "@/components/ui/date-field";
+import { Select } from "@/components/ui/select";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
@@ -105,25 +107,16 @@ function SelectField({
   children: ReactNode;
 }) {
   return (
-    <div className="relative">
-      <Icon
-        name={icon}
-        className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-[18px] text-outline"
-      />
-      <select
-        id={id}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        className={`${INPUT} cursor-pointer appearance-none pr-8 pl-10`}
-      >
-        {children}
-      </select>
-      <Icon
-        name="expand_more"
-        className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[18px] text-outline"
-      />
-    </div>
+    <Select
+      id={id}
+      icon={icon}
+      value={value}
+      disabled={disabled}
+      onChange={onChange}
+      fieldClass={INPUT}
+    >
+      {children}
+    </Select>
   );
 }
 
@@ -396,20 +389,14 @@ function WeddingDetails({ wedding, canEdit }: { wedding: WeddingDto; canEdit: bo
             <label htmlFor="weddingDate" className={LABEL}>
               Wedding date
             </label>
-            <div className="relative">
-              <Icon
-                name="calendar_today"
-                className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-[18px] text-outline"
-              />
-              <input
-                id="weddingDate"
-                type="date"
-                value={weddingDate}
-                disabled={!canEdit}
-                onChange={(event) => setWeddingDate(event.target.value)}
-                className={`${INPUT} pr-4 pl-10`}
-              />
-            </div>
+            <DateField
+              id="weddingDate"
+              value={weddingDate}
+              disabled={!canEdit}
+              onChange={setWeddingDate}
+              title="Wedding date"
+              fieldClass={INPUT}
+            />
           </div>
           <div className="space-y-1.5">
             <label htmlFor="timezone" className={LABEL}>

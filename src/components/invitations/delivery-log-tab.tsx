@@ -232,7 +232,7 @@ export function DeliveryLogTab({
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
+          <table className="stack-table w-full border-collapse text-left">
             <thead>
               <tr className="border-b border-on-surface/5 font-label-sm text-label-sm tracking-wider text-on-surface-variant uppercase">
                 <th className="py-3 font-semibold">Recipient email</th>
@@ -246,7 +246,7 @@ export function DeliveryLogTab({
             <tbody className="divide-y divide-on-surface/5 text-body-sm">
               {visible.map((row) => (
                 <tr key={row.id} className="transition-colors hover:bg-surface-container-low/40">
-                  <td className="py-3.5 font-mono text-[13px] text-on-surface">
+                  <td data-slot="main" className="py-3.5 font-mono text-[13px] text-on-surface">
                     {row.recipientEmail}
                     {row.guestName ? (
                       <div
@@ -257,7 +257,7 @@ export function DeliveryLogTab({
                       </div>
                     ) : null}
                   </td>
-                  <td className="py-3.5">
+                  <td data-label="Type" className="py-3.5">
                     <span
                       className={`rounded px-2 py-0.5 font-label-sm text-label-sm font-medium ${
                         row.type === "rsvp_reminder"
@@ -268,7 +268,7 @@ export function DeliveryLogTab({
                       {row.type === "rsvp_reminder" ? "Reminder" : "Invitation"}
                     </span>
                   </td>
-                  <td className="py-3.5">
+                  <td data-label="Status" className="py-3.5">
                     <span
                       className={`inline-flex items-center gap-1.5 font-semibold ${row.status === "failed" ? "text-secondary" : "text-primary"}`}
                     >
@@ -278,20 +278,24 @@ export function DeliveryLogTab({
                       {row.status === "failed" ? "Failed" : "Sent"}
                     </span>
                   </td>
-                  <td className="py-3.5 font-mono text-[12px] text-on-surface-variant">
+                  <td
+                    data-label="Time"
+                    className="py-3.5 font-mono text-[12px] text-on-surface-variant"
+                  >
                     {logTimestamp(row.sentAt ?? row.createdAt, timezone)}
                     {row.attempts > 1 ? (
                       <div className="font-body-sm text-[11px]">{row.attempts} attempts</div>
                     ) : null}
                   </td>
                   <td
+                    data-label="Notes"
                     className={`py-3.5 font-mono text-[12px] ${row.status === "failed" ? "text-secondary" : "text-on-surface-variant"}`}
                   >
                     {row.status === "failed"
                       ? logNote(row.error)
                       : "None (delivered to the provider)"}
                   </td>
-                  <td className="py-3.5 text-right">
+                  <td data-slot="actions" className="py-3.5 text-right">
                     {row.status === "failed" ? (
                       <button
                         type="button"

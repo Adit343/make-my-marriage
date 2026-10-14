@@ -1,5 +1,6 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { apiRequest, ApiError } from "@/lib/client/api-client";
@@ -393,12 +394,12 @@ export function RsvpForm({ token, initial }: { token: string; initial: RsvpPageV
           <p className="font-body-sm text-[12px] text-on-surface-variant">
             Helps us curate your meal options with the chefs.
           </p>
-          <div className="relative pt-1">
-            <select
+          <div className="pt-1">
+            <Select
               id="dietary-select"
               value={diet}
-              onChange={(event) => setDiet(event.target.value as DietaryPreference | "")}
-              className="h-12 w-full appearance-none rounded-lg border border-outline-variant/50 bg-surface-container-low px-3.5 pr-10 font-body-md text-body-md text-on-surface transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-hidden"
+              onChange={(value) => setDiet(value as DietaryPreference | "")}
+              fieldClass="h-12 w-full rounded-lg border border-outline-variant/50 bg-surface-container-low px-3.5 font-body-md text-body-md text-on-surface transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-hidden"
             >
               <option value="">Choose one (optional)</option>
               {DIETARY_ORDER.map((value) => (
@@ -406,10 +407,7 @@ export function RsvpForm({ token, initial }: { token: string; initial: RsvpPageV
                   {DIETARY_LABEL[value]}
                 </option>
               ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pt-1 pr-3 text-on-surface-variant">
-              <Icon name="expand_more" />
-            </div>
+            </Select>
           </div>
         </div>
 
